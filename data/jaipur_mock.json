@@ -1,0 +1,138 @@
+[
+  {
+    "place_id": "jai_001",
+    "name": "Hawa Mahal (Palace of Winds)",
+    "place_type": "attraction",
+    "lat": 26.9239,
+    "lng": 75.8267,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 50,
+    "tags": ["history", "architecture", "iconic"],
+    "open_time_mins": 60,
+    "close_time_mins": 540,
+    "closed_days": [],
+    "golden_hour_recommended": true,
+    "night_view_recommended": true,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Tattoo Cafe / Wind View Cafe Rooftop",
+        "description": "Opposite rooftop terrace looking directly into the 953 honeycombed jharokha windows.",
+        "best_moment": "Morning Sun & Sunset Illumination (5:15 PM - 6:00 PM)",
+        "pro_tip": "Grab a coffee on the top terrace for straight-on eye-level photography without street traffic."
+      }
+    ]
+  },
+  {
+    "place_id": "jai_002",
+    "name": "Amber Fort (Amer Palace)",
+    "place_type": "attraction",
+    "lat": 26.9855,
+    "lng": 75.8513,
+    "duration_minutes": 150,
+    "estimated_cost_per_person_inr": 100,
+    "tags": ["history", "fortress", "unesco", "hilltop"],
+    "open_time_mins": 60,
+    "close_time_mins": 570,
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Sheesh Mahal (Mirror Palace) Courtyard",
+        "description": "Exquisite hall inlaid with convex glass mirrors under Mughal arches.",
+        "best_moment": "Midday (11:00 AM - 1:00 PM)",
+        "pro_tip": "Look for optical reflections on the ceiling when natural sunlight angles through the colonnades."
+      }
+    ]
+  },
+  {
+    "place_id": "jai_003",
+    "name": "Nahargarh Fort Sunset Viewpoint",
+    "place_type": "attraction",
+    "lat": 26.9378,
+    "lng": 75.8156,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 50,
+    "tags": ["sunset", "panoramic", "viewpoint"],
+    "open_time_mins": 120,
+    "close_time_mins": 600,
+    "closed_days": [],
+    "golden_hour_recommended": true,
+    "night_view_recommended": true,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Padao Restaurant Ridge Bastion",
+        "description": "Cliff-edge bastion with 180-degree sunset panorama over the entire Pink City.",
+        "best_moment": "Golden Hour Sunset (5:00 PM - 6:15 PM)",
+        "pro_tip": "Arrive 45 minutes before sunset; the road up the Aravalli hill has light traffic."
+      }
+    ]
+  },
+  {
+    "place_id": "jai_004",
+    "name": "LMB Laxmi Mishthan Bhandar (Johari Bazaar)",
+    "place_type": "restaurant",
+    "lat": 26.9198,
+    "lng": 75.8252,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 450,
+    "tags": ["food", "rajasthani", "sweets"],
+    "open_time_mins": 180,
+    "close_time_mins": 660,
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_jai_001",
+    "name": "Umaid Bhawan Heritage Style Hotel",
+    "place_type": "hotel",
+    "lat": 26.9280,
+    "lng": 75.7950,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 2900,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Deluxe Room)",
+    "tags": ["mid-range", "heritage", "stay"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_jai_002",
+    "name": "Zostel Jaipur (M.I. Road)",
+    "place_type": "hotel",
+    "lat": 26.9185,
+    "lng": 75.8142,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 1300,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Private 2-bed room)",
+    "tags": ["budget", "stay"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_jai_003",
+    "name": "Rambagh Palace Jaipur",
+    "place_type": "hotel",
+    "lat": 26.8980,
+    "lng": 75.8075,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 28000,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Palace Room)",
+    "tags": ["luxury", "palace", "stay"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  }
+]

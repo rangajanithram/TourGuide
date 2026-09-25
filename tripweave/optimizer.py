@@ -1,7 +1,8 @@
+from datetime import date, timedelta
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from typing import List, Optional
-from tripweave.models import Place, DayPlan, ScheduledActivity, TripPlan, HotelStaySummary, ViewpointRecommendation, TransportMode, PacePreference
+from tripweave.models import Place, DayPlan, ScheduledActivity, TripPlan, HotelStaySummary, ViewpointRecommendation, TransportMode, PacePreference, PlanVariantType
 from tripweave.distance import get_travel_metrics
 from tripweave.solar import get_golden_hour_window
 
@@ -17,7 +18,9 @@ class TripOptimizer:
         pace: PacePreference = PacePreference.BALANCED,
         interests: Optional[List[str]] = None,
         max_total_budget: Optional[int] = None,
-        max_transport_budget: Optional[int] = None
+        max_transport_budget: Optional[int] = None,
+        start_date: Optional[date] = None,
+        variant_type: PlanVariantType = PlanVariantType.BALANCED
     ):
         self.places = places
         self.days = days
@@ -28,6 +31,8 @@ class TripOptimizer:
         self.interests = interests or []
         self.max_total_budget = max_total_budget
         self.max_transport_budget = max_transport_budget
+        self.start_date = start_date
+        self.variant_type = variant_type
         
         # Find which place is our hotel (the start and end point of every day)
         self.hotel_index = next((i for i, p in enumerate(places) if p.place_id == hotel_id), 0)
@@ -100,6 +105,15 @@ class TripOptimizer:
             else:
                 max_arrival = 720
             time_var.SetRange(min_arrival, max_arrival)
+
+            # --- Weekly Closure Constraint (e.g. Closed on Fridays / Mondays) ---
+            if place.closed_days and self.start_date:
+                for day_id in range(self.days):
+                    current_date = self.start_date + timedelta(days=day_id)
+                    current_day_name = current_date.strftime("%A").lower()
+                    if current_day_name in [d.lower() for d in place.closed_days]:
+                        # Forbid vehicle (day_id) from visiting this node on its closed day!
+                        routing.VehicleVar(index).RemoveValue(day_id)
 
             # Soft Golden Hour Preference (Respects closing time!)
             if place.golden_hour_recommended:
@@ -220,8 +234,14 @@ class TripOptimizer:
                 index = next_index
                 
             if activities:
+                day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
+                date_str = day_date.isoformat() if day_date else None
+                day_name = day_date.strftime("%A") if day_date else None
+
                 day_plans.append(DayPlan(
                     day_number=day_id + 1,
+                    date=date_str,
+                    day_of_week=day_name,
                     activities=activities,
                     day_cost_inr=day_cost
                 ))
@@ -263,7 +283,8 @@ class TripOptimizer:
                 transport_status = f"⚠️ ₹{total_transport_cost} (Exceeds cap of ₹{self.max_transport_budget})"
 
         return TripPlan(
-            plan_name="TripWeave Prototype Itinerary (Hyderabad Seed)",
+            plan_name=f"TripWeave Prototype Itinerary ({self.variant_type.value.capitalize()} Variant)",
+            variant_type=self.variant_type,
             hotel_summary=self.hotel_summary,
             estimated_transport_cost_inr=total_transport_cost,
             transport_mode=TransportMode(self.transport_mode),

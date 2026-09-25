@@ -1,0 +1,138 @@
+[
+  {
+    "place_id": "del_001",
+    "name": "Qutub Minar",
+    "place_type": "attraction",
+    "lat": 28.5245,
+    "lng": 77.1855,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 40,
+    "tags": ["history", "architecture", "unesco"],
+    "open_time_mins": 60,
+    "close_time_mins": 600,
+    "closed_days": [],
+    "golden_hour_recommended": true,
+    "night_view_recommended": true,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Alai Minar Complex Lawn",
+        "description": "Wide-angle view framing the soaring victory tower against open sky.",
+        "best_moment": "Late Afternoon (4:30 PM - 5:30 PM)",
+        "pro_tip": "Position yourself on the western lawn to capture warm side-lighting on the intricate fluting."
+      }
+    ]
+  },
+  {
+    "place_id": "del_002",
+    "name": "Humayun's Tomb",
+    "place_type": "attraction",
+    "lat": 28.5933,
+    "lng": 77.2507,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 40,
+    "tags": ["history", "architecture", "unesco", "garden"],
+    "open_time_mins": 60,
+    "close_time_mins": 600,
+    "closed_days": [],
+    "golden_hour_recommended": true,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Charbagh Central Waterway Axis",
+        "description": "Reflective symmetrical view of the red sandstone dome over water channels.",
+        "best_moment": "Sunset Golden Hour (5:00 PM - 5:45 PM)",
+        "pro_tip": "Capture water reflections when the fountains are still right before twilight."
+      }
+    ]
+  },
+  {
+    "place_id": "del_003",
+    "name": "Red Fort (Lal Qila)",
+    "place_type": "attraction",
+    "lat": 28.6562,
+    "lng": 77.2410,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 50,
+    "tags": ["history", "fortress", "unesco"],
+    "open_time_mins": 90,
+    "close_time_mins": 570,
+    "closed_days": ["monday"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Lahori Gate Forecourt",
+        "description": "Massive red ramparts where national independence celebrations take place.",
+        "best_moment": "Morning (9:30 AM - 11:30 AM)",
+        "pro_tip": "Visit early to avoid mid-day sun and crowds in the open courtyards."
+      }
+    ]
+  },
+  {
+    "place_id": "del_004",
+    "name": "Karim's Old Delhi (Lunch/Dinner)",
+    "place_type": "restaurant",
+    "lat": 28.6508,
+    "lng": 77.2334,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 650,
+    "tags": ["food", "mughlai", "iconic"],
+    "open_time_mins": 240,
+    "close_time_mins": 660,
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_del_001",
+    "name": "Bloomrooms @ New Delhi Station",
+    "place_type": "hotel",
+    "lat": 28.6432,
+    "lng": 77.2185,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 2800,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Double Room, Standard)",
+    "tags": ["mid-range", "stay", "central"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_del_002",
+    "name": "Zostel Delhi (Paharganj)",
+    "place_type": "hotel",
+    "lat": 28.6445,
+    "lng": 77.2140,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 1400,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Private 2-bed room)",
+    "tags": ["budget", "stay"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_del_003",
+    "name": "The Imperial Janpath",
+    "place_type": "hotel",
+    "lat": 28.6235,
+    "lng": 77.2178,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 12500,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Heritage Room)",
+    "tags": ["luxury", "stay"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  }
+]

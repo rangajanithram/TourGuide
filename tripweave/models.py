@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import List, Optional
+from datetime import date, timedelta
+from typing import List, Optional, Dict
 from pydantic import BaseModel, Field, model_validator
 
 # --- ENUMS (Strict Typed Allowed Values) ---
@@ -15,6 +16,11 @@ class PacePreference(str, Enum):
     BALANCED = "balanced"    # 2-3 activities/day
     INTENSIVE = "intensive"  # 3-4 activities/day
 
+class PlanVariantType(str, Enum):
+    BUDGET = "budget"        # Lower cost lodging, relaxed pace
+    BALANCED = "balanced"    # Optimal trade-off, iconic moments
+    COMFORT = "comfort"      # Premium stay, intensive sightseeing
+
 # --- INPUT INTENT (What the user wants) ---
 
 class HotelPreference(BaseModel):
@@ -26,8 +32,10 @@ class TransportPreference(BaseModel):
     max_budget_inr: Optional[int] = Field(None, gt=0, description="Capped budget reserved strictly for travel")
 
 class TripRequest(BaseModel):
-    destination: str = Field(..., min_length=2, description="Target city (e.g. 'Hyderabad')")
-    days: int = Field(..., gt=0, le=14, description="Trip duration in days (1 to 14)")
+    destination: str = Field(..., min_length=2, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
+    start_date: Optional[date] = Field(None, description="Trip start date (YYYY-MM-DD)")
+    end_date: Optional[date] = Field(None, description="Trip end date (YYYY-MM-DD)")
+    days: Optional[int] = Field(None, gt=0, le=14, description="Trip duration in days (auto-computed if dates provided)")
     budget_inr: int = Field(..., gt=0, description="Total budget in INR")
     people_count: int = Field(..., gt=0, le=20, description="Number of travelers (1 to 20)")
     interests: List[str] = Field(default_factory=list, description="User tags/interests (e.g. ['history', 'food'])")
@@ -35,6 +43,36 @@ class TripRequest(BaseModel):
     start_location: Optional[str] = Field(None, description="Optional starting hub for day trips (e.g. 'Secunderabad Railway Station')")
     hotel_pref: Optional[HotelPreference] = None
     transport_pref: Optional[TransportPreference] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def resolve_dates_and_days(cls, data):
+        if isinstance(data, dict):
+            start = data.get("start_date")
+            end = data.get("end_date")
+            days = data.get("days")
+
+            # Parse string dates if provided as strings
+            if isinstance(start, str):
+                start = date.fromisoformat(start)
+                data["start_date"] = start
+            if isinstance(end, str):
+                end = date.fromisoformat(end)
+                data["end_date"] = end
+
+            if start and end:
+                if end < start:
+                    raise ValueError("end_date cannot be earlier than start_date")
+                calculated_days = (end - start).days + 1
+                data["days"] = calculated_days
+            elif days and not start:
+                # Fallback: start today
+                today = date.today()
+                data["start_date"] = today
+                data["end_date"] = today + timedelta(days=days - 1)
+            elif not days and not start:
+                raise ValueError("Must provide either (start_date and end_date) or days.")
+        return data
 
 # --- CORE DATA (The places we can choose from) ---
 
@@ -56,6 +94,7 @@ class Place(BaseModel):
     tags: List[str] = Field(default_factory=list)
     open_time_mins: Optional[int] = None   # Minutes from 8:00 AM
     close_time_mins: Optional[int] = None  # Minutes from 8:00 AM
+    closed_days: List[str] = Field(default_factory=list, description="Days of the week when closed, e.g. ['friday']")
     
     @model_validator(mode="before")
     @classmethod
@@ -85,7 +124,8 @@ class HotelStaySummary(BaseModel):
     nights: int
     people_accommodated: int
     total_cost_inr: int
-    provenance: str = Field(..., description="Clear, honest provenance of the rate")
+    provenance: str = Field(..., description="Clear provenance note of the rate")
+    why_this_hotel: Optional[str] = Field(None, description="Decision trace explaining why this hotel was selected")
 
 class ScheduledActivity(BaseModel):
     place_name: str
@@ -97,11 +137,14 @@ class ScheduledActivity(BaseModel):
 
 class DayPlan(BaseModel):
     day_number: int
+    date: Optional[str] = None           # e.g. "2026-10-16"
+    day_of_week: Optional[str] = None    # e.g. "Friday"
     activities: List[ScheduledActivity]
     day_cost_inr: int
 
 class TripPlan(BaseModel):
     plan_name: str
+    variant_type: PlanVariantType = PlanVariantType.BALANCED
     hotel_summary: Optional[HotelStaySummary] = None
     estimated_transport_cost_inr: int = 0
     transport_mode: TransportMode
@@ -112,3 +155,8 @@ class TripPlan(BaseModel):
         default="Estimated local subtotal. Excludes intercity transit, lodging taxes/GST, and unmodeled expenses.",
         description="Cost transparency disclaimer"
     )
+
+class MultiVariantTripPlan(BaseModel):
+    destination: str
+    travel_dates: str
+    variants: Dict[str, TripPlan] = Field(..., description="The 3 diverse plan variants: budget, balanced, comfort")

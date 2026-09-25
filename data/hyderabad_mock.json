@@ -12,6 +12,7 @@
     "close_time_mins": 630,
     "golden_hour_recommended": true,
     "night_view_recommended": true,
+    "closed_days": [],
     "best_viewpoints": [
       {
         "viewpoint_name": "Nimrah Cafe & Bakery Terrace / Street",
@@ -24,6 +25,29 @@
         "description": "Framed silhouette of the 4 minarets looking south down the bazaar avenue.",
         "best_moment": "Night Illumination (7:00 PM onwards)",
         "pro_tip": "Best spot for long exposure photography with night market bustle."
+      }
+    ]
+  },
+  {
+    "place_id": "p_005",
+    "name": "Salar Jung Museum",
+    "place_type": "attraction",
+    "lat": 17.3713,
+    "lng": 78.4804,
+    "duration_minutes": 120,
+    "entry_fee_inr": 50,
+    "tags": ["history", "museum", "art"],
+    "open_time_mins": 120,
+    "close_time_mins": 540,
+    "closed_days": ["friday"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Central Musical Clock Courtyard",
+        "description": "Historic European musical clock chime area.",
+        "best_moment": "Hourly chime (12:00 PM or 1:00 PM)",
+        "pro_tip": "Arrive 10 minutes before the top of the hour to secure standing space."
       }
     ]
   },

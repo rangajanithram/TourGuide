@@ -1,10 +1,14 @@
 import os
 import json
-from typing import List
+from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from tripweave.models import TripRequest, TripPlan, Place
+from tripweave.models import (
+    TripRequest, TripPlan, Place, MultiVariantTripPlan, 
+    PlanVariantType, PacePreference, TransportPreference, 
+    TransportMode, HotelPreference
+)
 from tripweave.feasibility import FeasibilityFilter
 from tripweave.optimizer import TripOptimizer
 
@@ -15,24 +19,33 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 2. Add CORS Middleware (Allows web browsers to communicate with this backend)
+# 2. Add CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For local development; in production restrict to your frontend domain
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-def get_database_places() -> List[Place]:
-    """Helper to load curated seed database candidates."""
+SUPPORTED_CITIES = {"hyderabad", "delhi", "jaipur"}
+
+def get_database_places(destination: str = "hyderabad") -> List[Place]:
+    """Loads curated seed places for the target launch city."""
+    city_key = destination.strip().lower()
+    if city_key not in SUPPORTED_CITIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Destination '{destination}' is not supported in Phase 0. Supported launch cities: {', '.join(c.capitalize() for c in sorted(SUPPORTED_CITIES))}."
+        )
+        
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_path = os.path.join(base_dir, 'data', 'hyderabad_mock.json')
+    data_path = os.path.join(base_dir, 'data', f'{city_key}_mock.json')
     
     if not os.path.exists(data_path):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Places database file missing on server."
+            detail=f"Database file for {destination} is missing on server."
         )
         
     with open(data_path, 'r', encoding='utf-8') as f:
@@ -40,50 +53,12 @@ def get_database_places() -> List[Place]:
     
     return [Place(**item) for item in raw_data]
 
-# --- ENDPOINTS ---
-
-@app.get("/", tags=["General"])
-def root():
-    """Welcome endpoint providing status and documentation link."""
-    return {
-        "service": "TripWeave Engine API",
-        "status": "online",
-        "documentation": "/docs",
-        "message": "TripWeave backend is running. Open /docs in your browser to interactively test endpoints."
-    }
-
-@app.get("/health", tags=["Health"])
-def health_check():
-    """Health check endpoint for monitoring."""
-    return {"status": "healthy", "service": "tripweave-engine"}
-
-@app.get("/api/places", response_model=List[Place], tags=["Places Database"])
-def list_places():
-    """Returns curated seed places and hotels available for the destination."""
-    return get_database_places()
-
-@app.post("/api/itinerary/generate", response_model=TripPlan, tags=["Itinerary Generation"])
-def generate_itinerary(request: TripRequest):
-    """
-    Main TripWeave Optimization Pipeline:
-    1. Validates destination.
-    2. Loads destination candidates.
-    3. Feasibility Filter selects hotel (capacity math) and partitions budget envelopes.
-    4. Google OR-Tools solves Time-Window routing with drop penalties & pace limits.
-    5. Enforces hard post-optimization budget guardrail.
-    """
-    # 1. Validate destination (Reject unsupported cities cleanly)
-    supported_destinations = {"hyderabad"}
-    if request.destination.strip().lower() not in supported_destinations:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Destination '{request.destination}' is not yet supported in Phase 0. Supported launch city: 'Hyderabad'."
-        )
-
-    # 2. Load candidates
-    all_places = get_database_places()
+def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVariantType.BALANCED) -> TripPlan:
+    """Internal pipeline helper executing Stages 1-8 for a specific variant."""
+    # 1. Load city places
+    all_places = get_database_places(request.destination)
     
-    # 3. Run Stage 2: Feasibility & Hotel Selection
+    # 2. Feasibility Filter & Hotel Selection
     filter_engine = FeasibilityFilter()
     try:
         valid_places, hotel_summary, transport_reserve = filter_engine.filter_candidates(all_places, request)
@@ -93,7 +68,15 @@ def generate_itinerary(request: TripRequest):
             detail=f"Feasibility conflict: {str(e)}"
         )
         
-    # 4. Find the selected hotel object for routing depot
+    # 3. Add 'Why this hotel?' explanation (Engineering Blueprint Stage 10)
+    if hotel_summary.nights > 0:
+        hotel_summary.why_this_hotel = (
+            f"Selected {hotel_summary.hotel_name} (₹{hotel_summary.price_per_night_per_room}/room/night) "
+            f"because its centroid proximity minimizes daily commute to attractions "
+            f"while comfortably fulfilling your {hotel_summary.people_accommodated}-guest room requirement."
+        )
+
+    # 4. Resolve routing depot
     selected_hotel = next(
         (p for p in valid_places if p.place_id == hotel_summary.hotel_id), 
         None
@@ -104,18 +87,20 @@ def generate_itinerary(request: TripRequest):
             detail="Internal error: Selected hotel could not be resolved as route depot."
         )
         
-    # 5. Run Stage 4: OR-Tools Optimizer (with pace, interests, and drop penalties)
+    # 5. OR-Tools Optimization with Date/Day-of-Week Closures
     optimizer = TripOptimizer(
         places=valid_places,
         days=request.days,
         hotel_id=selected_hotel.place_id,
         hotel_summary=hotel_summary,
-        transport_mode=request.transport_pref.mode if request.transport_pref else "cab",
+        transport_mode=request.transport_pref.mode if request.transport_pref else TransportMode.CAB,
         people_count=request.people_count,
         pace=request.pace,
         interests=request.interests,
         max_total_budget=request.budget_inr,
-        max_transport_budget=request.transport_pref.max_budget_inr if request.transport_pref else None
+        max_transport_budget=request.transport_pref.max_budget_inr if request.transport_pref else None,
+        start_date=request.start_date,
+        variant_type=variant
     )
     
     try:
@@ -126,11 +111,74 @@ def generate_itinerary(request: TripRequest):
             detail=f"Optimization failed: {str(e)}"
         )
 
-    # 6. Post-Optimization Strict Budget Guardrail
+    # 6. Post-Optimization Budget Guardrail
     if itinerary.total_cost_inr > request.budget_inr:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Feasibility conflict: Final plan total (₹{itinerary.total_cost_inr}) exceeded budget (₹{request.budget_inr}) after calculating actual route transit fares. Consider increasing budget or selecting a more economical transport mode."
+            detail=f"Feasibility conflict: Final plan total (₹{itinerary.total_cost_inr}) exceeded budget (₹{request.budget_inr}). Consider choosing a more economical transport mode or increasing budget."
         )
 
     return itinerary
+
+# --- REST ENDPOINTS ---
+
+@app.get("/", tags=["General"])
+def root():
+    return {
+        "service": "TripWeave Engine API",
+        "status": "online",
+        "documentation": "/docs",
+        "supported_cities": [c.capitalize() for c in sorted(SUPPORTED_CITIES)]
+    }
+
+@app.get("/health", tags=["Health"])
+def health_check():
+    return {"status": "healthy", "service": "tripweave-engine"}
+
+@app.get("/api/places", response_model=List[Place], tags=["Places Database"])
+def list_places(destination: str = "hyderabad"):
+    """Returns curated seed places and hotels for a supported destination."""
+    return get_database_places(destination)
+
+@app.post("/api/itinerary/generate", response_model=TripPlan, tags=["Itinerary Generation"])
+def generate_itinerary(request: TripRequest):
+    """
+    Generates a single optimal itinerary based on user constraints.
+    Enforces opening hours, day-of-week closures, golden hour, and budget limits.
+    """
+    return _build_single_plan(request, variant=PlanVariantType.BALANCED)
+
+@app.post("/api/itinerary/generate-variants", response_model=MultiVariantTripPlan, tags=["Itinerary Generation"])
+def generate_variants(request: TripRequest):
+    """
+    Blueprint Stage 9: Generates 3 Diverse Plan Variants:
+    1. Budget / Relaxed: Slower pace (2 places/day), lower expense.
+    2. Balanced: Optimal trade-off with iconic golden-hour highlights.
+    3. Comfort: Intensive pace (4 places/day) with cab transit.
+    """
+    # 1. Budget Variant (Relaxed pace, Auto/Metro transit)
+    budget_req = request.model_copy(deep=True)
+    budget_req.pace = PacePreference.RELAXED
+    budget_req.transport_pref = TransportPreference(mode=TransportMode.AUTO)
+    plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET)
+
+    # 2. Balanced Variant (User default)
+    plan_balanced = _build_single_plan(request, variant=PlanVariantType.BALANCED)
+
+    # 3. Comfort Variant (Intensive pace, Cab transit)
+    comfort_req = request.model_copy(deep=True)
+    comfort_req.pace = PacePreference.INTENSIVE
+    comfort_req.transport_pref = TransportPreference(mode=TransportMode.CAB)
+    plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT)
+
+    travel_dates_str = f"{request.start_date.isoformat()} to {request.end_date.isoformat()}" if request.start_date and request.end_date else f"{request.days} Days"
+
+    return MultiVariantTripPlan(
+        destination=request.destination.capitalize(),
+        travel_dates=travel_dates_str,
+        variants={
+            "budget": plan_budget,
+            "balanced": plan_balanced,
+            "comfort": plan_comfort
+        }
+    )
