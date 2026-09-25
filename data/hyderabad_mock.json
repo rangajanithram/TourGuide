@@ -1,0 +1,137 @@
+[
+  {
+    "place_id": "p_001",
+    "name": "Charminar",
+    "place_type": "attraction",
+    "lat": 17.3615,
+    "lng": 78.4746,
+    "duration_minutes": 60,
+    "entry_fee_inr": 25,
+    "tags": ["history", "architecture", "iconic"],
+    "open_time_mins": 60,
+    "close_time_mins": 630,
+    "golden_hour_recommended": true,
+    "night_view_recommended": true,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Nimrah Cafe & Bakery Terrace / Street",
+        "description": "Unobstructed direct front angle of Charminar illuminated against the dusk sky.",
+        "best_moment": "Golden Hour (5:15 PM - 6:15 PM)",
+        "pro_tip": "Grab an outdoor corner spot, order hot Irani Chai and Osmania biscuits as the evening lights turn on."
+      },
+      {
+        "viewpoint_name": "Machli Kaman Framing View",
+        "description": "Framed silhouette of the 4 minarets looking south down the bazaar avenue.",
+        "best_moment": "Night Illumination (7:00 PM onwards)",
+        "pro_tip": "Best spot for long exposure photography with night market bustle."
+      }
+    ]
+  },
+  {
+    "place_id": "p_002",
+    "name": "Chowmahalla Palace",
+    "place_type": "attraction",
+    "lat": 17.3578,
+    "lng": 78.4717,
+    "duration_minutes": 120,
+    "entry_fee_inr": 100,
+    "tags": ["history", "culture", "royal"],
+    "open_time_mins": 120,
+    "close_time_mins": 540,
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Khilwat Mubarak Grand Courtyard",
+        "description": "Grand Durbar hall with Belgian crystal chandeliers.",
+        "best_moment": "Midday / Afternoon (1:00 PM - 3:30 PM)",
+        "pro_tip": "Optimal indoor lighting through the royal stained glass windows."
+      }
+    ]
+  },
+  {
+    "place_id": "p_003",
+    "name": "Golconda Fort",
+    "place_type": "attraction",
+    "lat": 17.3833,
+    "lng": 78.4011,
+    "duration_minutes": 180,
+    "entry_fee_inr": 25,
+    "tags": ["history", "walking", "sunset", "fortress"],
+    "open_time_mins": 0,
+    "close_time_mins": 570,
+    "golden_hour_recommended": true,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Bala Hissar Pavilion Summit",
+        "description": "Highest point of the hilltop citadel offering 360-degree sunset views over the Hyderabad horizon.",
+        "best_moment": "Sunset Golden Hour (4:45 PM - 5:45 PM)",
+        "pro_tip": "Start climbing by 4:00 PM to reach the upper pavilion before golden hour begins; carry water."
+      }
+    ]
+  },
+  {
+    "place_id": "p_004",
+    "name": "Paradise Biryani (Lunch Only)",
+    "place_type": "restaurant",
+    "lat": 17.4412,
+    "lng": 78.4866,
+    "duration_minutes": 60,
+    "entry_fee_inr": 800,
+    "tags": ["food", "lunch"],
+    "open_time_mins": 270,
+    "close_time_mins": 390,
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_001",
+    "name": "Treebo Trend Banjara Hills",
+    "place_type": "hotel",
+    "lat": 17.4156,
+    "lng": 78.4347,
+    "duration_minutes": 0,
+    "entry_fee_inr": 0,
+    "price_per_night_inr": 2400,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Double Room, Standard)",
+    "tags": ["mid-range", "stay"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_002",
+    "name": "Zostel Hyderabad (Bunk & Rooms)",
+    "place_type": "hotel",
+    "lat": 17.4380,
+    "lng": 78.3980,
+    "duration_minutes": 0,
+    "entry_fee_inr": 0,
+    "price_per_night_inr": 1200,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Private Room 2-pax)",
+    "tags": ["budget", "stay"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_003",
+    "name": "Taj Krishna Banjara Hills",
+    "place_type": "hotel",
+    "lat": 17.4180,
+    "lng": 78.4485,
+    "duration_minutes": 0,
+    "entry_fee_inr": 0,
+    "price_per_night_inr": 9500,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Deluxe City View Room)",
+    "tags": ["luxury", "stay"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  }
+]
