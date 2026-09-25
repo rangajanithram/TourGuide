@@ -119,6 +119,8 @@ class Place(BaseModel):
 class HotelStaySummary(BaseModel):
     hotel_id: str = Field(default="", description="Unique ID of the hotel or day-trip depot")
     hotel_name: str
+    lat: float = Field(default=0.0, description="Hotel latitude for map pin")
+    lng: float = Field(default=0.0, description="Hotel longitude for map pin")
     price_per_night_per_room: int
     rooms_needed: int
     nights: int
@@ -129,6 +131,8 @@ class HotelStaySummary(BaseModel):
 
 class ScheduledActivity(BaseModel):
     place_name: str
+    lat: float = Field(default=0.0, description="Activity latitude for map pin")
+    lng: float = Field(default=0.0, description="Activity longitude for map pin")
     start_time: str
     end_time: str
     estimated_cost_inr: int
@@ -139,6 +143,7 @@ class DayPlan(BaseModel):
     day_number: int
     date: Optional[str] = None           # e.g. "2026-10-16"
     day_of_week: Optional[str] = None    # e.g. "Friday"
+    cluster_name: Optional[str] = None   # e.g. "Historic Heritage Hub"
     activities: List[ScheduledActivity]
     day_cost_inr: int
 

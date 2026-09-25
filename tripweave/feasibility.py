@@ -36,6 +36,8 @@ class FeasibilityFilter:
             summary = HotelStaySummary(
                 hotel_id=base_hub.place_id,
                 hotel_name=f"{base_hub.name} (Day Trip Origin)",
+                lat=base_hub.lat,
+                lng=base_hub.lng,
                 price_per_night_per_room=0,
                 rooms_needed=0,
                 nights=0,
@@ -93,6 +95,8 @@ class FeasibilityFilter:
                 selected_summary = HotelStaySummary(
                     hotel_id=hotel.place_id,
                     hotel_name=hotel.name,
+                    lat=hotel.lat,
+                    lng=hotel.lng,
                     price_per_night_per_room=nightly_rate,
                     rooms_needed=rooms_needed,
                     nights=nights,

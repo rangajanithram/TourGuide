@@ -5,6 +5,7 @@ from typing import List, Optional
 from tripweave.models import Place, DayPlan, ScheduledActivity, TripPlan, HotelStaySummary, ViewpointRecommendation, TransportMode, PacePreference, PlanVariantType
 from tripweave.distance import get_travel_metrics
 from tripweave.solar import get_golden_hour_window
+from tripweave.clustering import GeoClusterer
 
 class TripOptimizer:
     def __init__(
@@ -189,9 +190,11 @@ class TripOptimizer:
         total_activities_cost = 0
         total_transport_cost = 0
 
+        clusterer = GeoClusterer()
         for day_id in range(self.days):
             index = routing.Start(day_id)
             activities = []
+            day_places = []
             day_cost = 0
             
             while not routing.IsEnd(index):
@@ -223,12 +226,15 @@ class TripOptimizer:
 
                     activities.append(ScheduledActivity(
                         place_name=place.name,
+                        lat=place.lat,
+                        lng=place.lng,
                         start_time=self._minutes_to_clock_time(start_minute),
                         end_time=self._minutes_to_clock_time(start_minute + place.duration_minutes),
                         estimated_cost_inr=place_cost,
                         experience_tag=exp_tag,
                         recommended_viewpoint=best_vp
                     ))
+                    day_places.append(place)
                     day_cost += place_cost
                 
                 index = next_index
@@ -237,11 +243,13 @@ class TripOptimizer:
                 day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
                 date_str = day_date.isoformat() if day_date else None
                 day_name = day_date.strftime("%A") if day_date else None
+                cluster_label = clusterer.get_cluster_name(day_places) if day_places else "Central City Exploration"
 
                 day_plans.append(DayPlan(
                     day_number=day_id + 1,
                     date=date_str,
                     day_of_week=day_name,
+                    cluster_name=cluster_label,
                     activities=activities,
                     day_cost_inr=day_cost
                 ))
