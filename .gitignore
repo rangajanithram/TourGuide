@@ -23,3 +23,9 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+.playwright-mcp/
+
+# Node & Next.js
+web/node_modules/
+web/.next/
+web/out/
