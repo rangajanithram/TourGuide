@@ -32,6 +32,7 @@ class TripRequest(BaseModel):
     people_count: int = Field(..., gt=0, le=20, description="Number of travelers (1 to 20)")
     interests: List[str] = Field(default_factory=list, description="User tags/interests (e.g. ['history', 'food'])")
     pace: PacePreference = Field(default=PacePreference.BALANCED, description="Trip intensity/pace")
+    start_location: Optional[str] = Field(None, description="Optional starting hub for day trips (e.g. 'Secunderabad Railway Station')")
     hotel_pref: Optional[HotelPreference] = None
     transport_pref: Optional[TransportPreference] = None
 
@@ -104,5 +105,10 @@ class TripPlan(BaseModel):
     hotel_summary: Optional[HotelStaySummary] = None
     estimated_transport_cost_inr: int = 0
     transport_mode: TransportMode
+    transport_budget_status: str = Field(default="Within budget", description="Status of transport spend relative to user cap")
     days: List[DayPlan]
     total_cost_inr: int
+    disclaimer: str = Field(
+        default="Estimated local subtotal. Excludes intercity transit, lodging taxes/GST, and unmodeled expenses.",
+        description="Cost transparency disclaimer"
+    )

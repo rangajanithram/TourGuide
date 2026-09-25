@@ -101,12 +101,14 @@ class TripOptimizer:
                 max_arrival = 720
             time_var.SetRange(min_arrival, max_arrival)
 
-            # Soft Golden Hour Preference
+            # Soft Golden Hour Preference (Respects closing time!)
             if place.golden_hour_recommended:
                 gh_start, gh_end = get_golden_hour_window(place.lat, place.lng)
-                ideal_arrival = max(min_arrival, gh_start - 30)
+                # If place closes before sunset, ideal arrival is bounded by max_arrival
+                # so the visitor is inside at the summit during sunset before gates close!
+                ideal_arrival = min(max_arrival, max(min_arrival, gh_start - (place.duration_minutes // 2)))
                 time_dimension.SetCumulVarSoftLowerBound(index, ideal_arrival, 15)
-                time_dimension.SetCumulVarSoftUpperBound(index, gh_end, 15)
+                time_dimension.SetCumulVarSoftUpperBound(index, min(max_arrival, gh_end), 15)
 
             # --- Disjunction (Drop Penalty) ---
             # Crucial: Allows the solver to drop places instead of failing when schedule is packed!
@@ -228,21 +230,44 @@ class TripOptimizer:
         hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
         grand_total = total_activities_cost + total_transport_cost + hotel_total
 
-        # --- Graceful Budget Trimming ---
+        # --- Graceful Budget Trimming & Dynamic Route Transit Recalculation ---
         # If actual transit fares push the total over budget, trim lowest priority stops
-        # instead of rejecting with a 422 error!
+        # and dynamically recompute exact route transit fares!
         if self.max_total_budget and grand_total > self.max_total_budget:
             for day in reversed(day_plans):
                 while len(day.activities) > 1 and grand_total > self.max_total_budget:
                     pruned = day.activities.pop()
-                    grand_total -= pruned.estimated_cost_inr
+                    total_activities_cost -= pruned.estimated_cost_inr
                     day.day_cost_inr -= pruned.estimated_cost_inr
+
+                    # Recalculate route transit fares along surviving stops
+                    total_transport_cost = 0
+                    for d in day_plans:
+                        if not d.activities:
+                            continue
+                        stop_nodes = [self.hotel_index] + [
+                            next(i for i, p in enumerate(self.places) if p.name == a.place_name)
+                            for a in d.activities
+                        ] + [self.hotel_index]
+                        for s in range(len(stop_nodes) - 1):
+                            total_transport_cost += self.cost_matrix[stop_nodes[s]][stop_nodes[s+1]]
+
+                    grand_total = total_activities_cost + total_transport_cost + hotel_total
+
+        # Evaluate Transport Budget Status
+        transport_status = "Within budget"
+        if self.max_transport_budget:
+            if total_transport_cost <= self.max_transport_budget:
+                transport_status = f"✅ ₹{total_transport_cost} (Within cap of ₹{self.max_transport_budget})"
+            else:
+                transport_status = f"⚠️ ₹{total_transport_cost} (Exceeds cap of ₹{self.max_transport_budget})"
 
         return TripPlan(
             plan_name="TripWeave Prototype Itinerary (Hyderabad Seed)",
             hotel_summary=self.hotel_summary,
             estimated_transport_cost_inr=total_transport_cost,
             transport_mode=TransportMode(self.transport_mode),
+            transport_budget_status=transport_status,
             days=[d for d in day_plans if d.activities],
             total_cost_inr=grand_total
         )

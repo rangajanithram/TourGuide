@@ -55,7 +55,7 @@
     "place_type": "attraction",
     "lat": 17.3833,
     "lng": 78.4011,
-    "duration_minutes": 180,
+    "duration_minutes": 120,
     "entry_fee_inr": 25,
     "tags": ["history", "walking", "sunset", "fortress"],
     "open_time_mins": 0,
@@ -65,9 +65,9 @@
     "best_viewpoints": [
       {
         "viewpoint_name": "Bala Hissar Pavilion Summit",
-        "description": "Highest point of the hilltop citadel offering 360-degree sunset views over the Hyderabad horizon.",
-        "best_moment": "Sunset Golden Hour (4:45 PM - 5:45 PM)",
-        "pro_tip": "Start climbing by 4:00 PM to reach the upper pavilion before golden hour begins; carry water."
+        "description": "Highest point of the hilltop citadel offering panoramic sunset views over the Hyderabad horizon.",
+        "best_moment": "Late Afternoon & Sunset (3:30 PM - 5:30 PM)",
+        "pro_tip": "Arrive by 3:30 PM to complete the 45-minute citadel climb. You will reach the upper pavilion just as golden hour begins at 4:45 PM before gates close at 5:30 PM; carry water."
       }
     ]
   },

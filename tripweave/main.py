@@ -25,7 +25,7 @@ app.add_middleware(
 )
 
 def get_database_places() -> List[Place]:
-    """Helper to load verified database candidates."""
+    """Helper to load curated seed database candidates."""
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_path = os.path.join(base_dir, 'data', 'hyderabad_mock.json')
     
@@ -59,7 +59,7 @@ def health_check():
 
 @app.get("/api/places", response_model=List[Place], tags=["Places Database"])
 def list_places():
-    """Returns all verified places and hotels available for the destination."""
+    """Returns curated seed places and hotels available for the destination."""
     return get_database_places()
 
 @app.post("/api/itinerary/generate", response_model=TripPlan, tags=["Itinerary Generation"])
