@@ -150,7 +150,7 @@ export default function ItineraryView({ plan }: ItineraryViewProps) {
                       <div className="text-xs bg-[#11131b] border border-[#1e2230] rounded-lg p-2.5 text-gray-300 mt-2">
                         <div className="flex items-center space-x-1.5 text-amber-400 font-semibold mb-0.5">
                           <Camera className="w-3.5 h-3.5" />
-                          <span>Pro-Tip Vantage Point: {act.recommended_viewpoint.name}</span>
+                          <span>Pro-Tip Vantage Point: {act.recommended_viewpoint.viewpoint_name || act.recommended_viewpoint.name}</span>
                         </div>
                         <p className="text-[11px] text-gray-400 pl-5">{act.recommended_viewpoint.description}</p>
                       </div>

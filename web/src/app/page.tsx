@@ -96,7 +96,7 @@ export default function Home() {
             Plan without <span className="text-amber-400">hallucinations</span>.
           </h1>
           <p className="text-sm sm:text-base text-gray-400 max-w-2xl leading-relaxed">
-            Every route is verified with real Google OR-Tools time-window routing, DBSCAN neighborhood clustering, strict budget conservation, and solar sunset angles.
+            Every route is optimized with Google OR-Tools time-window routing, DBSCAN neighborhood clustering, strict budget conservation, and NOAA astronomical sunset calculations.
           </p>
         </div>
 

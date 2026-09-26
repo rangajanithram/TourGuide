@@ -7,7 +7,8 @@ export interface ScheduledActivity {
   estimated_cost_inr: number;
   experience_tag?: string | null;
   recommended_viewpoint?: {
-    name: string;
+    name?: string;
+    viewpoint_name?: string;
     description: string;
   } | null;
 }

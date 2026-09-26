@@ -48,6 +48,11 @@ class TripRequest(BaseModel):
     @classmethod
     def resolve_dates_and_days(cls, data):
         if isinstance(data, dict):
+            # 1. Map top-level transport_mode to transport_pref if not already set
+            if "transport_mode" in data and not data.get("transport_pref"):
+                mode_str = str(data["transport_mode"]).lower()
+                data["transport_pref"] = TransportPreference(mode=TransportMode(mode_str))
+
             start = data.get("start_date")
             end = data.get("end_date")
             days = data.get("days")
@@ -60,12 +65,17 @@ class TripRequest(BaseModel):
                 end = date.fromisoformat(end)
                 data["end_date"] = end
 
+            # 2. Comprehensive Date/Days Resolution (Handling all partial inputs)
             if start and end:
                 if end < start:
                     raise ValueError("end_date cannot be earlier than start_date")
                 calculated_days = (end - start).days + 1
                 data["days"] = calculated_days
-            elif days and not start:
+            elif start and days and not end:
+                data["end_date"] = start + timedelta(days=days - 1)
+            elif end and days and not start:
+                data["start_date"] = end - timedelta(days=days - 1)
+            elif days and not start and not end:
                 # Fallback: start today
                 today = date.today()
                 data["start_date"] = today
@@ -78,9 +88,20 @@ class TripRequest(BaseModel):
 
 class ViewpointRecommendation(BaseModel):
     viewpoint_name: str
+    name: Optional[str] = None
     description: str
-    best_moment: str  # e.g., "Golden Hour (5:15 PM - 6:15 PM)" or "Night Illumination"
-    pro_tip: str      # e.g., "Rooftop seating with Irani Chai and Osmania biscuits"
+    best_moment: Optional[str] = None
+    pro_tip: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def sync_name_fields(cls, data):
+        if isinstance(data, dict):
+            v_name = data.get("viewpoint_name") or data.get("name")
+            if v_name:
+                data["viewpoint_name"] = v_name
+                data["name"] = v_name
+        return data
 
 class Place(BaseModel):
     place_id: str

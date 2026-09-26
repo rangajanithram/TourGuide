@@ -68,21 +68,49 @@ class TripOptimizer:
         # 1. Setup the basic OR-Tools routing system
         time_matrix = self._create_matrices()
         
+        clusterer = GeoClusterer(eps_km=6.0)
+        clusters_dict = clusterer.cluster_places(self.places)
+        place_cluster_map = {}
+        for c_id, c_places in clusters_dict.items():
+            for cp in c_places:
+                place_cluster_map[cp.place_id] = c_id
+
         manager = pywrapcp.RoutingIndexManager(len(self.places), self.days, self.hotel_index)
         routing = pywrapcp.RoutingModel(manager)
 
-        # 2. Tell the optimizer how to calculate "Time"
+        # 2. Tell the optimizer how to calculate "Time" (strict physical minutes)
         def time_callback(from_index, to_index):
             from_node = manager.IndexToNode(from_index)
             to_node = manager.IndexToNode(to_index)
             return time_matrix[from_node][to_node]
 
-        transit_callback_index = routing.RegisterTransitCallback(time_callback)
-        routing.SetArcCostEvaluatorOfAllVehicles(transit_callback_index)
+        time_callback_index = routing.RegisterTransitCallback(time_callback)
 
-        # 3. Add Time Dimension
+        # 3. Multi-Objective Routing Cost Callback (Time + Fare + DBSCAN Neighborhood Cluster Penalty)
+        def routing_cost_callback(from_index, to_index):
+            from_node = manager.IndexToNode(from_index)
+            to_node = manager.IndexToNode(to_index)
+            base_time = time_matrix[from_node][to_node]
+            base_cost = self.cost_matrix[from_node][to_node]
+
+            # Cross-cluster hop penalty to ensure vehicles group visits locally
+            cluster_penalty = 0
+            if from_node != self.hotel_index and to_node != self.hotel_index:
+                from_p = self.places[from_node]
+                to_p = self.places[to_node]
+                c1 = place_cluster_map.get(from_p.place_id)
+                c2 = place_cluster_map.get(to_p.place_id)
+                if c1 is not None and c2 is not None and c1 != c2:
+                    cluster_penalty = 350 # Encourages OR-Tools to finish a neighborhood before moving
+
+            return int(base_time * 5 + base_cost + cluster_penalty)
+
+        cost_callback_index = routing.RegisterTransitCallback(routing_cost_callback)
+        routing.SetArcCostEvaluatorOfAllVehicles(cost_callback_index)
+
+        # 4. Add Time Dimension
         routing.AddDimension(
-            transit_callback_index,
+            time_callback_index,
             120,    # MAXIMUM SLACK: Up to 120 minutes waiting allowed
             720,    # Max 720 minutes (8:00 AM to 8:00 PM)
             True,   # Start at 0
@@ -215,10 +243,11 @@ class TripOptimizer:
                     place_cost = cost_per_person * self.people_count
                     
                     exp_tag = None
+                    day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
                     if place.golden_hour_recommended:
-                        gh_start, gh_end = get_golden_hour_window(place.lat, place.lng)
-                        if start_minute >= (gh_start - 60):
-                            exp_tag = "🌅 Scheduled for Golden Hour Sunset & Photography"
+                        gh_start, gh_end = get_golden_hour_window(place.lat, place.lng, target_date=day_date)
+                        if start_minute >= gh_start and start_minute <= (gh_end + 30):
+                            exp_tag = "🌅 Scheduled for Astronomical Golden Hour Sunset"
                     elif place.night_view_recommended and start_minute >= 600:
                         exp_tag = "🌙 Scheduled for Evening Illumination"
                         
@@ -258,13 +287,13 @@ class TripOptimizer:
         hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
         grand_total = total_activities_cost + total_transport_cost + hotel_total
 
-        # --- Graceful Budget Trimming & Dynamic Route Transit Recalculation ---
-        # If actual transit fares push the total over budget, trim lowest priority stops
-        # and dynamically recompute exact route transit fares!
+        # --- Graceful Budget Trimming & Physically Coherent Schedule Recalculation ---
         if self.max_total_budget and grand_total > self.max_total_budget:
+            pruned_any = False
             for day in reversed(day_plans):
                 while len(day.activities) > 1 and grand_total > self.max_total_budget:
                     pruned = day.activities.pop()
+                    pruned_any = True
                     total_activities_cost -= pruned.estimated_cost_inr
                     day.day_cost_inr -= pruned.estimated_cost_inr
 
@@ -281,6 +310,28 @@ class TripOptimizer:
                             total_transport_cost += self.cost_matrix[stop_nodes[s]][stop_nodes[s+1]]
 
                     grand_total = total_activities_cost + total_transport_cost + hotel_total
+
+            # If pruning occurred, physically re-accumulate clock times along surviving stops!
+            if pruned_any:
+                hotel_place = self.places[self.hotel_index]
+                for day in day_plans:
+                    curr_minute = 60  # Start tour at 9:00 AM (60 minutes from 8:00 AM)
+                    prev_lat, prev_lng = hotel_place.lat, hotel_place.lng
+                    surviving_places = []
+                    for act in day.activities:
+                        act_place = next(p for p in self.places if p.name == act.place_name)
+                        surviving_places.append(act_place)
+                        travel_mins, _ = get_travel_metrics(prev_lat, prev_lng, act_place.lat, act_place.lng, mode=self.transport_mode, people_count=self.people_count)
+                        arrival_minute = curr_minute + travel_mins
+                        start_minute = max(arrival_minute, act_place.open_time_mins if act_place.open_time_mins is not None else 0)
+                        end_minute = start_minute + act_place.duration_minutes
+                        act.start_time = self._minutes_to_clock_time(start_minute)
+                        act.end_time = self._minutes_to_clock_time(end_minute)
+                        curr_minute = end_minute
+                        prev_lat, prev_lng = act_place.lat, act_place.lng
+
+                    if surviving_places:
+                        day.cluster_name = clusterer.get_cluster_name(surviving_places)
 
         # Evaluate Transport Budget Status
         transport_status = "Within budget"

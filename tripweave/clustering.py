@@ -20,6 +20,7 @@ class GeoClusterer:
         """
         Performs DBSCAN clustering on sightseeing places.
         Returns: {cluster_id: [Place, Place, ...]}
+        Noise points are merged into their nearest cluster centroid.
         """
         # Exclude hotels from spatial clustering of activities
         sightseeing = [p for p in places if p.place_type != "hotel"]
@@ -66,29 +67,70 @@ class GeoClusterer:
 
                 cluster_id += 1
 
-        # Group into clusters
+        # Group core clusters
         clusters: Dict[int, List[Place]] = {}
         for idx, c_id in enumerate(cluster_assignments):
-            target_cluster = c_id if c_id != -1 else 0  # Map noise to nearest default cluster
-            if target_cluster not in clusters:
-                clusters[target_cluster] = []
-            clusters[target_cluster].append(sightseeing[idx])
+            if c_id != -1:
+                if c_id not in clusters:
+                    clusters[c_id] = []
+                clusters[c_id].append(sightseeing[idx])
+
+        if not clusters:
+            clusters[0] = sightseeing
+            return clusters
+
+        # Assign noise points to nearest cluster centroid
+        for idx, c_id in enumerate(cluster_assignments):
+            if c_id == -1:
+                p = sightseeing[idx]
+                best_c = min(
+                    clusters.keys(),
+                    key=lambda c: sum(calculate_distance_km(p.lat, p.lng, cp.lat, cp.lng) for cp in clusters[c]) / len(clusters[c])
+                )
+                clusters[best_c].append(p)
 
         return clusters
 
     def get_cluster_name(self, places: List[Place]) -> str:
-        """Generates a human-friendly neighborhood label based on place tags."""
-        all_tags = []
-        for p in places:
-            all_tags.extend(p.tags)
-        
-        if "architecture" in all_tags or "royal" in all_tags:
-            return "Historic Heritage Hub"
-        elif "unesco" in all_tags:
-            return "UNESCO Monument Quarter"
-        elif "fortress" in all_tags or "hilltop" in all_tags:
-            return "Citadel & Fort District"
-        elif "food" in all_tags:
-            return "Bazaar & Culinary Hub"
-        else:
-            return "Central City Hub"
+        """
+        Generates a geographically grounded and thematically accurate neighborhood label.
+        Evaluates the coordinates of the places alongside dominant attraction characteristics.
+        """
+        if not places:
+            return "Central City Exploration"
+
+        c_lat = sum(p.lat for p in places) / len(places)
+        c_lng = sum(p.lng for p in places) / len(places)
+
+        # 1. Hyderabad (lat ~17.2 - 17.6, lng ~78.2 - 78.6)
+        if 17.2 <= c_lat <= 17.6 and 78.2 <= c_lng <= 78.7:
+            if c_lat < 17.37:
+                return "Old City & Charminar Heritage District"
+            elif c_lng < 78.43:
+                return "Golconda Citadel & West Tech District"
+            else:
+                return "Central Hussain Sagar & Lakefront Quarter"
+
+        # 2. Delhi (lat ~28.4 - 28.8, lng ~76.9 - 77.4)
+        if 28.4 <= c_lat <= 28.8 and 76.9 <= c_lng <= 77.4:
+            if c_lat > 28.64:
+                return "Old Delhi & Walled City Quarter"
+            elif c_lat < 28.56:
+                return "South Delhi & Qutub Monument Quarter"
+            else:
+                return "Central Imperial & Connaught District"
+
+        # 3. Jaipur (lat ~26.8 - 27.1, lng ~75.6 - 76.0)
+        if 26.8 <= c_lat <= 27.1 and 75.6 <= c_lng <= 76.0:
+            if c_lat > 26.96:
+                return "Amer & Nahargarh Fortresses"
+            elif c_lat > 26.91:
+                return "Pink City Walled Quarter & Bazaars"
+            else:
+                return "South Jaipur & Modern District"
+
+        # Universal fallback using majority tag count
+        from collections import Counter
+        tag_counts = Counter(tag for p in places for tag in p.tags)
+        top_tag = tag_counts.most_common(1)[0][0] if tag_counts else "sightseeing"
+        return f"{top_tag.capitalize()} Neighborhood Hub"

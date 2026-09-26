@@ -176,7 +176,7 @@ export default function MapComponent({ plan }: MapComponentProps) {
                         )}
                         {act.recommended_viewpoint && (
                           <p className="text-[11px] text-gray-600 dark:text-gray-400 mt-1.5 border-t border-gray-200 dark:border-gray-700 pt-1">
-                            <span className="font-semibold text-gray-800 dark:text-gray-200">Pro-tip:</span> {act.recommended_viewpoint.name}
+                            <span className="font-semibold text-gray-800 dark:text-gray-200">Pro-tip:</span> {act.recommended_viewpoint.viewpoint_name || act.recommended_viewpoint.name}
                           </p>
                         )}
                       </div>

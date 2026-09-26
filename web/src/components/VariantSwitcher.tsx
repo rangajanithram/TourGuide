@@ -47,7 +47,7 @@ export default function VariantSwitcher({
       <div className="flex items-center justify-between mb-3 px-1">
         <div>
           <h3 className="text-sm font-bold text-white tracking-tight">Stage 9 Multi-Variant Synthesizer</h3>
-          <p className="text-xs text-gray-400">Deterministic pareto frontiers generated for your group</p>
+          <p className="text-xs text-gray-400">Deterministic multi-objective alternatives generated for your group</p>
         </div>
         <span className="text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
           3 Variants Synthesized
