@@ -11,6 +11,9 @@ export interface ScheduledActivity {
     viewpoint_name?: string;
     description: string;
   } | null;
+  verification_status?: string;
+  last_verified_date?: string;
+  source_reference?: string;
 }
 
 export interface DayPlan {
@@ -31,8 +34,19 @@ export interface HotelStaySummary {
   cost_per_night_inr?: number;
   rooms_needed: number;
   nights: number;
+  people_accommodated?: number;
   total_cost_inr: number;
+  provenance?: string;
   why_this_hotel?: string | null;
+}
+
+export interface VerificationReport {
+  is_valid: boolean;
+  audit_score: number;
+  checks_passed: string[];
+  warnings: string[];
+  errors: string[];
+  metrics: Record<string, string>;
 }
 
 export interface TripPlan {
@@ -44,9 +58,13 @@ export interface TripPlan {
   transport_budget_status: string;
   days: DayPlan[];
   total_cost_inr: number;
+  verification_report?: VerificationReport | null;
+  disclaimer?: string;
 }
 
 export interface MultiVariantTripPlan {
+  destination: string;
+  travel_dates: string;
   variants: {
     budget: TripPlan;
     balanced: TripPlan;
@@ -62,5 +80,7 @@ export interface TripFormData {
   people_count: number;
   pace: 'relaxed' | 'balanced' | 'intensive';
   transport_mode: 'cab' | 'auto' | 'metro' | 'walk';
+  origin_type?: 'hotel' | 'station' | 'airport';
+  start_location?: string;
   interests: string[];
 }

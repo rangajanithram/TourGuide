@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { 
   Calendar, Users, IndianRupee, Gauge, 
-  Car, Sparkles, Check, Compass
+  Car, Sparkles, Check, Compass, Building,
+  Train, Plane, MapPin
 } from 'lucide-react';
 import { TripFormData } from '../types/trip';
 
@@ -16,6 +17,12 @@ const CITIES = [
   { id: 'hyderabad', name: 'Hyderabad', tagline: 'Charminar, Golconda & Nizam Heritage' },
   { id: 'delhi', name: 'Delhi', tagline: 'Red Fort, Qutub Minar & Mughal Monuments' },
   { id: 'jaipur', name: 'Jaipur', tagline: 'Amber Fort, Hawa Mahal & Pink City' },
+];
+
+const ORIGIN_HUBS = [
+  { id: 'hotel', label: 'Hotel Base', desc: 'Optimal Central Stay', icon: Building },
+  { id: 'station', label: 'Railway Station', desc: 'Central Train Station', icon: Train },
+  { id: 'airport', label: 'Airport Hub', desc: 'Flight Terminal', icon: Plane },
 ];
 
 const PACES = [
@@ -42,6 +49,7 @@ const INTEREST_TAGS = [
 
 export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
   const [destination, setDestination] = useState('hyderabad');
+  const [originType, setOriginType] = useState<'hotel' | 'station' | 'airport'>('hotel');
   const [startDate, setStartDate] = useState('2026-10-15');
   const [endDate, setEndDate] = useState('2026-10-17');
   const [budget, setBudget] = useState(15000);
@@ -60,6 +68,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
     e.preventDefault();
     onSubmit({
       destination,
+      origin_type: originType,
       start_date: startDate,
       end_date: endDate,
       budget_inr: budget,
@@ -102,6 +111,38 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
                     {isSelected && <Check className="w-4 h-4 text-amber-400" />}
                   </div>
                   <p className="text-[11px] text-gray-400 line-clamp-1">{c.tagline}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Starting Origin Hub */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center space-x-1.5">
+            <MapPin className="w-3.5 h-3.5 text-amber-400" />
+            <span>Trip Starting Location / Origin</span>
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {ORIGIN_HUBS.map(hub => {
+              const isSelected = originType === hub.id;
+              const IconComp = hub.icon;
+              return (
+                <button
+                  key={hub.id}
+                  type="button"
+                  onClick={() => setOriginType(hub.id as 'hotel' | 'station' | 'airport')}
+                  className={`p-2.5 text-left rounded-xl border transition-all ${
+                    isSelected 
+                      ? 'bg-amber-500/10 border-amber-500/50 text-white ring-1 ring-amber-500/30' 
+                      : 'bg-[#161922] border-[#222736] text-gray-300 hover:border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center space-x-2 mb-1">
+                    <IconComp className={`w-3.5 h-3.5 ${isSelected ? 'text-amber-400' : 'text-gray-400'}`} />
+                    <span className="font-semibold text-xs">{hub.label}</span>
+                  </div>
+                  <p className="text-[10px] text-gray-400 line-clamp-1">{hub.desc}</p>
                 </button>
               );
             })}

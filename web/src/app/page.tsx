@@ -31,14 +31,16 @@ export default function Home() {
     setError(null);
 
     try {
-      // Call the FastAPI multi-variant endpoint
-      const response = await fetch('http://127.0.0.1:8000/api/itinerary/generate-variants', {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
+      const response = await fetch(`${apiBase}/api/itinerary/generate-variants`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           destination: formData.destination,
+          origin_type: formData.origin_type,
+          start_location: formData.start_location,
           start_date: formData.start_date,
           end_date: formData.end_date,
           budget_inr: formData.budget_inr,
@@ -69,6 +71,7 @@ export default function Home() {
   useEffect(() => {
     fetchTripPlan({
       destination: 'hyderabad',
+      origin_type: 'hotel',
       start_date: '2026-10-15',
       end_date: '2026-10-17',
       budget_inr: 15000,

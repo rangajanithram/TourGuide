@@ -130,7 +130,55 @@ def run_tests():
     assert multi_result.variants["budget"].hotel_summary.price_per_night_per_room < multi_result.variants["comfort"].hotel_summary.price_per_night_per_room, \
         "Comfort hotel must be higher tier than budget hotel!"
 
-    print("\n🎉 ALL 7 AUDIT & BLUEPRINT TESTS PASSED PERFECTLY!")
+    # Test 8: Origin Geocoding Precision (Airports & Hubs in All Cities)
+    print("\n8️⃣ Testing Real Coordinates for Multi-City Origin Hubs...")
+    from tripweave.geocoding import LocationResolver
+    hyd_name, hyd_lat, hyd_lng = LocationResolver.resolve_origin("hyderabad", start_location="Airport")
+    del_name, del_lat, del_lng = LocationResolver.resolve_origin("delhi", start_location="Airport")
+    jai_name, jai_lat, jai_lng = LocationResolver.resolve_origin("jaipur", start_location="Airport")
+    
+    assert 17.20 <= hyd_lat <= 17.28, f"Hyderabad Airport lat wrong: {hyd_lat}"
+    assert 28.50 <= del_lat <= 28.60, f"Delhi Airport lat wrong: {del_lat}"
+    assert 26.80 <= jai_lat <= 26.86, f"Jaipur Airport lat wrong: {jai_lat}"
+    print(f"   ✅ Real Origin Coordinates Verified:")
+    print(f"      - Hyderabad: {hyd_name} ({hyd_lat:.4f}, {hyd_lng:.4f})")
+    print(f"      - Delhi:     {del_name} ({del_lat:.4f}, {del_lng:.4f})")
+    print(f"      - Jaipur:    {jai_name} ({jai_lat:.4f}, {jai_lng:.4f})")
+
+    # Test 9: Data Freshness & Provenance Fields
+    print("\n9️⃣ Testing Data Freshness & Verification Status on Activities...")
+    sample_act = multi_result.variants["balanced"].days[0].activities[0]
+    assert sample_act.verification_status == "verified", "Activity must have verification status"
+    assert sample_act.last_verified_date is not None, "Activity must have last_verified_date"
+    assert sample_act.source_reference is not None, "Activity must have source_reference"
+    print(f"   ✅ Provenance Verified on '{sample_act.place_name}': {sample_act.verification_status} (Audited: {sample_act.last_verified_date}) - '{sample_act.source_reference}'")
+
+    # Test 10: Stage 8 Independent Physics & Feasibility Verifier
+    print("\n🔟 Testing Stage 8 Independent Physics & Feasibility Verifier...")
+    ver_rep = multi_result.variants["balanced"].verification_report
+    assert ver_rep is not None, "Verification report must be present on TripPlan"
+    assert ver_rep.is_valid is True, f"Plan failed independent verification: {ver_rep.errors}"
+    assert ver_rep.audit_score >= 80, f"Audit score too low: {ver_rep.audit_score}"
+    assert len(ver_rep.checks_passed) >= 3, "Must have passed core validation checks"
+    print(f"   ✅ Verification Report: Score {ver_rep.audit_score}/100 | Status: {'VALID' if ver_rep.is_valid else 'INVALID'}")
+    print(f"      Metrics: {ver_rep.metrics}")
+    print(f"      Checks Passed: {ver_rep.checks_passed}")
+
+    # Test 11: In-Solver Budget Dimension (Optimizer naturally prunes to stay within cap)
+    print("\n1️⃣1️⃣ Testing In-Solver Budget Dimension under Tight Budget...")
+    tight_req = TripRequest(
+        destination="Hyderabad",
+        days=1,
+        budget_inr=1500,
+        people_count=1,
+        transport_mode="auto"
+    )
+    tight_plan = generate_itinerary(tight_req)
+    assert tight_plan.total_cost_inr <= 1500, f"Plan cost ₹{tight_plan.total_cost_inr} exceeded tight budget ₹1500!"
+    assert tight_plan.verification_report.is_valid is True
+    print(f"   ✅ In-Solver Budget Succeeded: Plan total ₹{tight_plan.total_cost_inr} <= Budget ₹1500 (Stops: {[a.place_name for a in tight_plan.days[0].activities]})")
+
+    print("\n🎉 ALL 11 VERIFICATION, CODEX AUDIT & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

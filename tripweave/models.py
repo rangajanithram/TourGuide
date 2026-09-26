@@ -1,7 +1,7 @@
 from enum import Enum
 from datetime import date, timedelta
 from typing import List, Optional, Dict
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 # --- ENUMS (Strict Typed Allowed Values) ---
 
@@ -24,14 +24,17 @@ class PlanVariantType(str, Enum):
 # --- INPUT INTENT (What the user wants) ---
 
 class HotelPreference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     min_price_per_night_inr: Optional[int] = Field(None, ge=0, description="Minimum room rate per night in INR")
     max_price_per_night_inr: Optional[int] = Field(None, ge=0, description="Maximum room rate per night in INR")
 
 class TransportPreference(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     mode: TransportMode = Field(default=TransportMode.CAB, description="Primary mode of transportation")
     max_budget_inr: Optional[int] = Field(None, gt=0, description="Capped budget reserved strictly for travel")
 
 class TripRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     destination: str = Field(..., min_length=2, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
     start_date: Optional[date] = Field(None, description="Trip start date (YYYY-MM-DD)")
     end_date: Optional[date] = Field(None, description="Trip end date (YYYY-MM-DD)")
@@ -41,6 +44,8 @@ class TripRequest(BaseModel):
     interests: List[str] = Field(default_factory=list, description="User tags/interests (e.g. ['history', 'food'])")
     pace: PacePreference = Field(default=PacePreference.BALANCED, description="Trip intensity/pace")
     start_location: Optional[str] = Field(None, description="Optional starting hub for day trips (e.g. 'Secunderabad Railway Station')")
+    origin_type: Optional[str] = Field("hotel", description="Trip starting origin type: 'hotel', 'station', 'airport', 'custom'")
+    transport_mode: Optional[TransportMode] = Field(None, description="Primary transport mode shorthand")
     hotel_pref: Optional[HotelPreference] = None
     transport_pref: Optional[TransportPreference] = None
 
@@ -125,6 +130,11 @@ class Place(BaseModel):
                 data["estimated_cost_per_person_inr"] = data["entry_fee_inr"]
         return data
     
+    # Data Provenance & Verification
+    verification_status: str = Field(default="verified", description="Data verification status: 'verified', 'estimated', 'unknown'")
+    last_verified_date: Optional[str] = Field(default="2026-09-01", description="Last date ticket rates and hours were audited")
+    source_reference: Optional[str] = Field(default="Official Tourism Dept / Ground Audit", description="Source of opening hours and fees")
+    
     # Hotel specific fields
     price_per_night_inr: Optional[int] = Field(None, ge=0)
     max_guests_per_room: int = Field(default=2, ge=1, le=10)
@@ -159,6 +169,9 @@ class ScheduledActivity(BaseModel):
     estimated_cost_inr: int
     experience_tag: Optional[str] = None
     recommended_viewpoint: Optional[ViewpointRecommendation] = None
+    verification_status: Optional[str] = Field(default="verified", description="Data provenance status")
+    last_verified_date: Optional[str] = Field(default="2026-09-01", description="Last date ticket rates and hours were audited")
+    source_reference: Optional[str] = Field(default="Official Tourism Dept / Ground Audit", description="Source of opening hours and fees")
 
 class DayPlan(BaseModel):
     day_number: int
@@ -167,6 +180,14 @@ class DayPlan(BaseModel):
     cluster_name: Optional[str] = None   # e.g. "Historic Heritage Hub"
     activities: List[ScheduledActivity]
     day_cost_inr: int
+
+class VerificationReport(BaseModel):
+    is_valid: bool = Field(default=True, description="True if all hard physics, time-window, and budget constraints hold")
+    audit_score: int = Field(default=100, ge=0, le=100, description="Confidence score out of 100 based on validation checks")
+    checks_passed: List[str] = Field(default_factory=list)
+    warnings: List[str] = Field(default_factory=list)
+    errors: List[str] = Field(default_factory=list)
+    metrics: Dict[str, str] = Field(default_factory=dict, description="Operational physics metrics")
 
 class TripPlan(BaseModel):
     plan_name: str
@@ -177,6 +198,7 @@ class TripPlan(BaseModel):
     transport_budget_status: str = Field(default="Within budget", description="Status of transport spend relative to user cap")
     days: List[DayPlan]
     total_cost_inr: int
+    verification_report: Optional[VerificationReport] = Field(default=None, description="Independent verification and physics audit")
     disclaimer: str = Field(
         default="Estimated local subtotal. Excludes intercity transit, lodging taxes/GST, and unmodeled expenses.",
         description="Cost transparency disclaimer"

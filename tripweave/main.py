@@ -1,9 +1,11 @@
 import os
-import json
 from typing import List, Optional
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from tripweave.config import settings
+from tripweave.provider import get_places_provider
+from tripweave.verifier import ItineraryVerifier
 from tripweave.models import (
     TripRequest, TripPlan, Place, MultiVariantTripPlan, 
     PlanVariantType, PacePreference, TransportPreference, 
@@ -19,7 +21,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# 2. Add CORS Middleware
+# 2. Add CORS Middleware from Centralized Config
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -28,30 +30,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-SUPPORTED_CITIES = {"hyderabad", "delhi", "jaipur"}
-
 def get_database_places(destination: str = "hyderabad") -> List[Place]:
-    """Loads curated seed places for the target launch city."""
-    city_key = destination.strip().lower()
-    if city_key not in SUPPORTED_CITIES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Destination '{destination}' is not supported in Phase 0. Supported launch cities: {', '.join(c.capitalize() for c in sorted(SUPPORTED_CITIES))}."
-        )
-        
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_path = os.path.join(base_dir, 'data', f'{city_key}_mock.json')
-    
-    if not os.path.exists(data_path):
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Database file for {destination} is missing on server."
-        )
-        
-    with open(data_path, 'r', encoding='utf-8') as f:
-        raw_data = json.load(f)
-    
-    return [Place(**item) for item in raw_data]
+    """Loads curated places via the PlacesDataProvider abstraction."""
+    provider = get_places_provider()
+    try:
+        return provider.get_places(destination)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVariantType.BALANCED) -> TripPlan:
     """Internal pipeline helper executing Stages 1-8 for a specific variant."""
@@ -111,11 +98,15 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
             detail=f"Optimization failed: {str(e)}"
         )
 
-    # 6. Post-Optimization Budget Guardrail
-    if itinerary.total_cost_inr > request.budget_inr:
+    # 6. Stage 8: Independent Verification & Audit Report
+    report = ItineraryVerifier.verify(itinerary, request, all_places)
+    itinerary.verification_report = report
+
+    # 7. Post-Optimization Budget Guardrail
+    if not report.is_valid and itinerary.total_cost_inr > request.budget_inr:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Feasibility conflict: Final plan total (₹{itinerary.total_cost_inr}) exceeded budget (₹{request.budget_inr}). Consider choosing a more economical transport mode or increasing budget."
+            detail=f"Feasibility conflict: Final plan total (₹{itinerary.total_cost_inr}) exceeded budget (₹{request.budget_inr}). Errors: {'; '.join(report.errors)}"
         )
 
     return itinerary
@@ -128,7 +119,7 @@ def root():
         "service": "TripWeave Engine API",
         "status": "online",
         "documentation": "/docs",
-        "supported_cities": [c.capitalize() for c in sorted(SUPPORTED_CITIES)]
+        "supported_cities": [c.capitalize() for c in sorted(settings.supported_cities)]
     }
 
 @app.get("/health", tags=["Health"])

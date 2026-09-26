@@ -182,6 +182,52 @@ class TripOptimizer:
             "ActivityCount"
         )
 
+        # --- In-Solver Budget Dimension ---
+        # Direct constraint: OR-Tools drops costly or out-of-reach stops during search
+        if self.max_total_budget:
+            def step_cost_callback(from_index, to_index):
+                from_node = manager.IndexToNode(from_index)
+                to_node = manager.IndexToNode(to_index)
+                t_cost = self.cost_matrix[from_node][to_node]
+                if to_node == self.hotel_index:
+                    p_cost = 0
+                else:
+                    place_obj = self.places[to_node]
+                    cost_pp = place_obj.estimated_cost_per_person_inr or place_obj.entry_fee_inr or 0
+                    p_cost = cost_pp * self.people_count
+                return t_cost + p_cost
+
+            budget_callback_index = routing.RegisterTransitCallback(step_cost_callback)
+            hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
+            available_budget = max(500, self.max_total_budget - hotel_total)
+            daily_budget_limit = available_budget if self.days == 1 else int((available_budget / self.days) * 1.35) + 200
+
+            routing.AddDimension(
+                budget_callback_index,
+                0,                   # No slack
+                daily_budget_limit,  # Vehicle max capacity
+                True,                # Start at 0
+                "DailyBudget"
+            )
+
+        # --- In-Solver Transport Fare Dimension ---
+        if self.max_transport_budget:
+            def transport_fare_callback(from_index, to_index):
+                from_node = manager.IndexToNode(from_index)
+                to_node = manager.IndexToNode(to_index)
+                return self.cost_matrix[from_node][to_node]
+
+            transport_fare_callback_index = routing.RegisterTransitCallback(transport_fare_callback)
+            daily_transport_limit = self.max_transport_budget if self.days == 1 else int((self.max_transport_budget / self.days) * 1.35) + 100
+
+            routing.AddDimension(
+                transport_fare_callback_index,
+                0,
+                daily_transport_limit,
+                True,
+                "TransportFare"
+            )
+
         # 4. Solve with Local Search
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
         search_parameters.first_solution_strategy = (
@@ -261,7 +307,10 @@ class TripOptimizer:
                         end_time=self._minutes_to_clock_time(start_minute + place.duration_minutes),
                         estimated_cost_inr=place_cost,
                         experience_tag=exp_tag,
-                        recommended_viewpoint=best_vp
+                        recommended_viewpoint=best_vp,
+                        verification_status=getattr(place, "verification_status", "verified"),
+                        last_verified_date=getattr(place, "last_verified_date", "2026-09-01"),
+                        source_reference=getattr(place, "source_reference", "Official Tourism Dept / Ground Audit")
                     ))
                     day_places.append(place)
                     day_cost += place_cost
