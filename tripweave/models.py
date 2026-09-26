@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import date, timedelta
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 
 # --- ENUMS (Strict Typed Allowed Values) ---
@@ -180,6 +180,8 @@ class DayPlan(BaseModel):
     cluster_name: Optional[str] = None   # e.g. "Historic Heritage Hub"
     activities: List[ScheduledActivity]
     day_cost_inr: int
+    fatigue_score: Optional[int] = Field(None, description="Physical exertion index (0-100)")
+    fatigue_level: Optional[str] = Field(None, description="Pacing description e.g. Gentle Pace, Moderate, High Exertion")
 
 class VerificationReport(BaseModel):
     is_valid: bool = Field(default=True, description="True if all hard physics, time-window, and budget constraints hold")
@@ -199,6 +201,7 @@ class TripPlan(BaseModel):
     days: List[DayPlan]
     total_cost_inr: int
     verification_report: Optional[VerificationReport] = Field(default=None, description="Independent verification and physics audit")
+    fatigue_report: Optional[Dict[str, Any]] = Field(default=None, description="Physical exertion and pace report")
     disclaimer: str = Field(
         default="Estimated local subtotal. Excludes intercity transit, lodging taxes/GST, and unmodeled expenses.",
         description="Cost transparency disclaimer"

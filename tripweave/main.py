@@ -102,7 +102,21 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
     report = ItineraryVerifier.verify(itinerary, request, all_places)
     itinerary.verification_report = report
 
-    # 7. Post-Optimization Budget Guardrail
+    # 7. Stage 7: Physical Exertion & Pace Evaluation
+    from tripweave.fatigue import FatigueAnalyzer
+    try:
+        total_km = float(report.metrics.get("total_transit_km", "30.0 km").replace(" km", ""))
+    except Exception:
+        total_km = 30.0
+    fatigue_info = FatigueAnalyzer.evaluate_trip(itinerary.days, pace=request.pace, total_transit_km=total_km)
+    itinerary.fatigue_report = fatigue_info
+    for day in itinerary.days:
+        matched = next((d for d in fatigue_info["daily_breakdown"] if d["day_number"] == day.day_number), None)
+        if matched:
+            day.fatigue_score = matched["score"]
+            day.fatigue_level = matched["level"]
+
+    # 8. Post-Optimization Budget Guardrail
     if not report.is_valid and itinerary.total_cost_inr > request.budget_inr:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

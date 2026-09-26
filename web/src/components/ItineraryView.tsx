@@ -1,23 +1,96 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Building2, Camera, Compass, Sparkles, Layers,
-  ShieldCheck, CheckCircle2
+  ShieldCheck, CheckCircle2, Calendar, Share2,
+  Copy, Check, Activity, Download
 } from 'lucide-react';
 import { TripPlan } from '../types/trip';
+import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
 
 interface ItineraryViewProps {
   plan: TripPlan;
+  destination?: string;
+  selectedDay?: number | 'all';
+  onSelectDay?: (day: number | 'all') => void;
 }
 
-export default function ItineraryView({ plan }: ItineraryViewProps) {
+export default function ItineraryView({ 
+  plan, 
+  destination = 'City',
+  selectedDay = 'all',
+  onSelectDay 
+}: ItineraryViewProps) {
+  const [copied, setCopied] = useState(false);
   const hotel = plan.hotel_summary;
   const totalActivitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
   const totalStops = plan.days.reduce((acc, d) => acc + d.activities.length, 0);
 
+  const handleCopy = () => {
+    const text = formatItineraryForShare(plan, destination);
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleExportIcs = () => {
+    exportToIcs(plan, destination);
+  };
+
+  const visibleDays = selectedDay === 'all' 
+    ? plan.days 
+    : plan.days.filter(d => d.day_number === selectedDay);
+
   return (
     <div className="space-y-6">
+      {/* Action Toolbar: Calendar Export & Share */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#11131b] border border-[#1e2230] rounded-2xl p-4 shadow-lg">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+            <Compass className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-bold text-sm text-white">{plan.plan_name}</h3>
+            <p className="text-[11px] text-gray-400">
+              {plan.days.length} Days • ₹{plan.total_cost_inr.toLocaleString('en-IN')} Total Subtotal
+              {plan.fatigue_report?.overall_pace && ` • ${plan.fatigue_report.overall_pace}`}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <button
+            type="button"
+            onClick={handleExportIcs}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#161922] hover:bg-[#1e2230] border border-[#222736] hover:border-gray-500 text-gray-200 text-xs font-semibold transition-all shadow-sm active:scale-95"
+            title="Download standard .ics file for Google Calendar, Apple Calendar, or Outlook"
+          >
+            <Calendar className="w-3.5 h-3.5 text-amber-400" />
+            <span>Export .ics</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
+            title="Copy formatted text itinerary to clipboard"
+          >
+            {copied ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-black" />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Share2 className="w-3.5 h-3.5 text-black" />
+                <span>Share Plan</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Stat Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[#11131b] border border-[#1e2230] rounded-xl p-3.5 shadow-md">
@@ -128,12 +201,43 @@ export default function ItineraryView({ plan }: ItineraryViewProps) {
 
       {/* Day by Day Itinerary */}
       <div className="space-y-5">
-        <h3 className="text-base font-bold text-white tracking-tight flex items-center space-x-2">
-          <Compass className="w-5 h-5 text-amber-400" />
-          <span>Optimized Daily Schedule</span>
-        </h3>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h3 className="text-base font-bold text-white tracking-tight flex items-center space-x-2">
+            <Compass className="w-5 h-5 text-amber-400" />
+            <span>Optimized Daily Schedule</span>
+          </h3>
 
-        {plan.days.map(day => (
+          {/* Day Filter Pills */}
+          <div className="flex items-center space-x-1 bg-[#161922] border border-[#222736] p-1 rounded-xl">
+            <button
+              type="button"
+              onClick={() => onSelectDay?.('all')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                selectedDay === 'all'
+                  ? 'bg-amber-500 text-black'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              All Days
+            </button>
+            {plan.days.map(d => (
+              <button
+                key={d.day_number}
+                type="button"
+                onClick={() => onSelectDay?.(d.day_number)}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                  selectedDay === d.day_number
+                    ? 'bg-amber-500 text-black'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Day {d.day_number}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {visibleDays.map(day => (
           <div 
             key={day.day_number}
             className="bg-[#11131b] border border-[#1e2230] rounded-2xl p-5 shadow-lg space-y-4"
@@ -157,8 +261,16 @@ export default function ItineraryView({ plan }: ItineraryViewProps) {
                 </div>
               </div>
 
-              <div className="text-xs font-semibold text-gray-400">
-                Day Tickets: <span className="text-white">₹{day.day_cost_inr.toLocaleString('en-IN')}</span>
+              <div className="flex items-center space-x-3">
+                {day.fatigue_level && (
+                  <span className="inline-flex items-center space-x-1 text-[11px] text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                    <Activity className="w-3 h-3 text-amber-400" />
+                    <span>{day.fatigue_level} ({day.fatigue_score}/100)</span>
+                  </span>
+                )}
+                <div className="text-xs font-semibold text-gray-400">
+                  Day Tickets: <span className="text-white">₹{day.day_cost_inr.toLocaleString('en-IN')}</span>
+                </div>
               </div>
             </div>
 

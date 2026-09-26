@@ -23,6 +23,8 @@ export interface DayPlan {
   cluster_name?: string | null;
   activities: ScheduledActivity[];
   day_cost_inr: number;
+  fatigue_score?: number | null;
+  fatigue_level?: string | null;
 }
 
 export interface HotelStaySummary {
@@ -49,6 +51,22 @@ export interface VerificationReport {
   metrics: Record<string, string>;
 }
 
+export interface DailyFatigue {
+  day_number: number;
+  score: number;
+  level: string;
+  badge_color: string;
+  advice: string;
+  stops_count: number;
+  est_transit_km: number;
+}
+
+export interface FatigueReport {
+  trip_fatigue_score: number;
+  overall_pace: string;
+  daily_breakdown: DailyFatigue[];
+}
+
 export interface TripPlan {
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
@@ -59,6 +77,7 @@ export interface TripPlan {
   days: DayPlan[];
   total_cost_inr: number;
   verification_report?: VerificationReport | null;
+  fatigue_report?: FatigueReport | null;
   disclaimer?: string;
 }
 

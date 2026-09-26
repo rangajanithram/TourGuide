@@ -176,9 +176,15 @@ def run_tests():
     tight_plan = generate_itinerary(tight_req)
     assert tight_plan.total_cost_inr <= 1500, f"Plan cost ₹{tight_plan.total_cost_inr} exceeded tight budget ₹1500!"
     assert tight_plan.verification_report.is_valid is True
-    print(f"   ✅ In-Solver Budget Succeeded: Plan total ₹{tight_plan.total_cost_inr} <= Budget ₹1500 (Stops: {[a.place_name for a in tight_plan.days[0].activities]})")
+    # Test 12: Stage 7 Physical Exertion & Fatigue Analytics
+    print("\n1️⃣2️⃣ Testing Stage 7 Fatigue & Pace Engine...")
+    assert tight_plan.fatigue_report is not None, "TripPlan must have fatigue_report"
+    assert "trip_fatigue_score" in tight_plan.fatigue_report
+    assert tight_plan.days[0].fatigue_score is not None
+    assert tight_plan.days[0].fatigue_level is not None
+    print(f"   ✅ Fatigue Analytics Verified: Score {tight_plan.fatigue_report['trip_fatigue_score']}/100 ({tight_plan.fatigue_report['overall_pace']}) | Day 1: {tight_plan.days[0].fatigue_level} ({tight_plan.days[0].fatigue_score}/100)")
 
-    print("\n🎉 ALL 11 VERIFICATION, CODEX AUDIT & ENGINE TESTS PASSED PERFECTLY!")
+    print("\n🎉 ALL 12 VERIFICATION, CODEX AUDIT & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

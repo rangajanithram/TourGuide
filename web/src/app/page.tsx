@@ -23,12 +23,14 @@ const MapComponent = dynamic(() => import('../components/MapComponent'), {
 export default function Home() {
   const [multiPlan, setMultiPlan] = useState<MultiVariantTripPlan | null>(null);
   const [activeVariant, setActiveVariant] = useState<'budget' | 'balanced' | 'comfort'>('balanced');
+  const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchTripPlan = async (formData: TripFormData) => {
     setIsLoading(true);
     setError(null);
+    setSelectedDay('all');
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -127,7 +129,10 @@ export default function Home() {
               <VariantSwitcher
                 multiPlan={multiPlan}
                 activeVariant={activeVariant}
-                onSelectVariant={setActiveVariant}
+                onSelectVariant={(v) => {
+                  setActiveVariant(v);
+                  setSelectedDay('all');
+                }}
               />
             )}
 
@@ -135,11 +140,20 @@ export default function Home() {
               <>
                 {/* Interactive Leaflet Map */}
                 <div className="h-[420px] w-full">
-                  <MapComponent plan={currentPlan} />
+                  <MapComponent 
+                    plan={currentPlan} 
+                    selectedDay={selectedDay}
+                    onSelectDay={setSelectedDay}
+                  />
                 </div>
 
                 {/* Itinerary Schedule and Hotel Details */}
-                <ItineraryView plan={currentPlan} />
+                <ItineraryView 
+                  plan={currentPlan}
+                  destination={multiPlan?.destination || 'City'}
+                  selectedDay={selectedDay}
+                  onSelectDay={setSelectedDay}
+                />
               </>
             ) : (
               !isLoading && (
