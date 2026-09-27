@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from typing import List, Optional
-from tripweave.models import Place, DayPlan, ScheduledActivity, TripPlan, HotelStaySummary, ViewpointRecommendation, TransportMode, PacePreference, PlanVariantType
+from tripweave.models import Place, DayPlan, ScheduledActivity, TripPlan, HotelStaySummary, ViewpointRecommendation, TransportMode, PacePreference, PlanVariantType, GroupProfile
 from tripweave.distance import get_travel_metrics
 from tripweave.solar import get_golden_hour_window
 from tripweave.clustering import GeoClusterer
@@ -22,7 +22,8 @@ class TripOptimizer:
         max_transport_budget: Optional[int] = None,
         start_date: Optional[date] = None,
         variant_type: PlanVariantType = PlanVariantType.BALANCED,
-        locked_activities: Optional[List[str]] = None
+        locked_activities: Optional[List[str]] = None,
+        group_profile: Optional[GroupProfile] = None
     ):
         self.places = places
         self.days = days
@@ -36,6 +37,16 @@ class TripOptimizer:
         self.start_date = start_date
         self.variant_type = variant_type
         self.locked_activities = [a.strip().lower() for a in (locked_activities or []) if a.strip()]
+        self.group_profile = group_profile
+
+        # Direct solver calibration for GroupProfile:
+        is_elderly = (
+            self.group_profile == GroupProfile.ELDERLY or 
+            str(getattr(self.group_profile, "value", self.group_profile)).lower() == "elderly"
+        )
+        if is_elderly and self.transport_mode == "walk":
+            # Senior travelers: avoid strenuous cross-city walking journeys; default to auto/cab
+            self.transport_mode = "auto"
         
         # Find which place is our hotel (the start and end point of every day)
         self.hotel_index = next((i for i, p in enumerate(places) if p.place_id == hotel_id), 0)
@@ -157,19 +168,17 @@ class TripOptimizer:
                 time_dimension.SetCumulVarSoftUpperBound(index, min(max_arrival, gh_end), 15)
 
             # --- Disjunction (Drop Penalty) ---
-            # Crucial: Allows the solver to drop places instead of failing when schedule is packed!
+            # Crucial: If an activity is pinned, DO NOT add a disjunction!
+            # In OR-Tools, omitting AddDisjunction makes the node an absolute mandatory visit.
             is_locked = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
-            if is_locked:
-                base_drop_penalty = 1_000_000  # Strict user pin constraint
-            else:
+            if not is_locked:
                 base_drop_penalty = 2000
                 # Higher penalty if it matches user's interests (solver works harder to keep it)
                 if any(interest.lower() in [t.lower() for t in place.tags] for interest in self.interests):
                     base_drop_penalty += 1500
                 if place.golden_hour_recommended:
                     base_drop_penalty += 1000
-                
-            routing.AddDisjunction([index], base_drop_penalty)
+                routing.AddDisjunction([index], base_drop_penalty)
 
         # --- Dynamic Pace Dimension ---
         # Start depot is 0. Each stop adds 1.
@@ -181,6 +190,14 @@ class TripOptimizer:
             max_stops_per_day = 5  # 4 activities + return depot (0 -> 1 -> 2 -> 3 -> 4 -> 5)
         else: # balanced
             max_stops_per_day = 4  # 3 activities + return depot (0 -> 1 -> 2 -> 3 -> 4)
+
+        is_elderly = (
+            self.group_profile == GroupProfile.ELDERLY or 
+            str(getattr(self.group_profile, "value", self.group_profile)).lower() == "elderly"
+        )
+        if is_elderly:
+            # Senior travelers: reduce max stops to build in rest buffers (min 2: 1 activity + return depot)
+            max_stops_per_day = max(2, max_stops_per_day - 1)
             
         routing.AddConstantDimension(
             1,
@@ -358,11 +375,17 @@ class TripOptimizer:
         if budget_exceeded or transport_exceeded:
             pruned_any = False
             for day in reversed(day_plans):
-                while day.activities and (
+                while (
                     (self.max_total_budget and grand_total > self.max_total_budget) or
                     (self.max_transport_budget and total_transport_cost > self.max_transport_budget)
                 ):
-                    pruned = day.activities.pop()
+                    # Find last unpinned activity in day
+                    unpinned_idx = next((i for i in range(len(day.activities) - 1, -1, -1) if not day.activities[i].is_locked), -1)
+                    if unpinned_idx == -1:
+                        # Cannot prune further on this day without violating pinned visits
+                        break
+
+                    pruned = day.activities.pop(unpinned_idx)
                     pruned_any = True
                     total_activities_cost -= pruned.estimated_cost_inr
                     day.day_cost_inr -= pruned.estimated_cost_inr
@@ -380,6 +403,11 @@ class TripOptimizer:
                             total_transport_cost += self.cost_matrix[stop_nodes[s]][stop_nodes[s+1]]
 
                     grand_total = total_activities_cost + total_transport_cost + hotel_total
+
+            # If still over budget after pruning all unpinned stops, fail gracefully
+            if (self.max_total_budget and grand_total > self.max_total_budget) or \
+               (self.max_transport_budget and total_transport_cost > self.max_transport_budget):
+                raise Exception("Cannot fit all requested pinned attractions within your specified budget and transport caps.")
 
             # If pruning occurred, physically re-accumulate clock times along surviving stops!
             if pruned_any:
@@ -441,6 +469,16 @@ class TripOptimizer:
         total_visits = sum(len(d.activities) for d in day_plans)
         if total_visits == 0:
             raise Exception("No feasible sightseeing visits could be scheduled within the specified budget, time, and transit constraints.")
+
+        # Validate that all requested pinned activities survived and are scheduled
+        if self.locked_activities:
+            scheduled_names_ids = {a.place_name.lower() for d in day_plans for a in d.activities}
+            for p in self.places:
+                if p.name.lower() in scheduled_names_ids:
+                    scheduled_names_ids.add(p.place_id.lower())
+            for pin in self.locked_activities:
+                if pin.lower() not in scheduled_names_ids:
+                    raise Exception(f"Pinned attraction '{pin}' could not be scheduled within physical opening hours, day windows, or budget limits.")
 
         return TripPlan(
             plan_name=f"TripWeave Prototype Itinerary ({self.variant_type.value.capitalize()} Variant)",

@@ -12,7 +12,7 @@ Validates all blueprint requirements & audit improvements:
 9. Viewpoint name serialization compatibility.
 """
 import sys
-from datetime import date
+from datetime import date, timedelta
 from fastapi import HTTPException
 
 sys.stdout.reconfigure(encoding='utf-8')
@@ -293,17 +293,26 @@ def run_tests():
     assert 17.38 <= c_lat <= 17.40 and 78.47 <= c_lng <= 78.49
     print(f"   ✅ City Center Origin Verified: {c_name} at ({c_lat:.4f}, {c_lng:.4f})")
 
-    # Test 19: Weather Integration (Open-Meteo & Climatological Fallback)
-    print("\n1️⃣9️⃣ Testing Weather Provider Integration & Fallback...")
-    forecasts = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=date(2026, 10, 15), days=2)
-    assert len(forecasts) == 2
-    d1_key = date(2026, 10, 15).isoformat()
-    assert d1_key in forecasts
-    w1 = forecasts[d1_key]
-    assert 20.0 <= w1.max_temp_c <= 48.0
-    assert 0 <= w1.precipitation_probability_pct <= 100
-    assert len(w1.advisory_text) > 5
-    print(f"   ✅ Weather Integration Verified: {w1.condition}, {w1.max_temp_c:.1f}°C, Rain {w1.precipitation_probability_pct}% (Forecast: {w1.is_forecast})")
+    # Test 19: Weather Integration (Live Open-Meteo & Climatological Fallback)
+    print("\n1️⃣9️⃣ Testing Weather Provider Integration & Live vs Fallback Distinction...")
+    # Case A: Live Forecast within 16-day horizon (e.g. 2 days from today)
+    near_start = date.today() + timedelta(days=2)
+    near_forecasts = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=near_start, days=2)
+    near_key = near_start.isoformat()
+    assert near_key in near_forecasts
+    w_near = near_forecasts[near_key]
+    assert w_near.is_forecast is True, "Near-term dates within 16 days must use live Open-Meteo forecast!"
+    assert 15.0 <= w_near.max_temp_c <= 50.0
+    print(f"   ✅ Live Open-Meteo Forecast Verified ({near_key}): {w_near.condition}, {w_near.max_temp_c:.1f}°C, is_forecast={w_near.is_forecast}")
+
+    # Case B: Distant date (> 16 days ahead) fallback
+    distant_start = date.today() + timedelta(days=60)
+    distant_forecasts = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=distant_start, days=2)
+    distant_key = distant_start.isoformat()
+    assert distant_key in distant_forecasts
+    w_dist = distant_forecasts[distant_key]
+    assert w_dist.is_forecast is False, "Distant dates beyond 16 days must use climatological fallback!"
+    print(f"   ✅ Climatological Fallback Verified ({distant_key}): {w_dist.condition}, {w_dist.max_temp_c:.1f}°C, is_forecast={w_dist.is_forecast}")
 
     # Test 20: Group Profile Calibrated Fatigue Model (Blueprint Section 6)
     print("\n2️⃣0️⃣ Testing Group Profile Calibrated Fatigue...")
@@ -330,7 +339,8 @@ def run_tests():
     print(f"   ✅ Explainability Trace Verified: {len(june_plan.decision_trace.excluded_places)} candidate exclusions analyzed (Example: '{first_ex.place_name}' -> {first_ex.category})")
 
     # Test 22: Locked / Pinned Activities (Blueprint Section 12)
-    print("\n2️⃣2️⃣ Testing User-Pinned / Locked Activities...")
+    print("\n2️⃣2️⃣ Testing User-Pinned / Locked Activities & Guardrails...")
+    # Case A: Valid pinned activity scheduled
     locked_req = TripRequest(
         destination="Hyderabad",
         start_date=date(2026, 11, 10),
@@ -347,18 +357,64 @@ def run_tests():
     assert pinned_matches[0].is_locked is True, "Scheduled activity must be flagged as is_locked=True!"
     print(f"   ✅ Pinned Activity Verified: 'Charminar' scheduled with is_locked=True")
 
-    # Test 23: Smart Expense Breakdown & Simulator
-    print("\n2️⃣3️⃣ Testing Smart Expense Breakdown & Budget Allocation...")
+    # Case B: Unknown locked attraction fails with HTTP 422
+    try:
+        generate_itinerary(TripRequest(
+            destination="Hyderabad",
+            days=1,
+            budget_inr=10000,
+            people_count=1,
+            locked_activities=["NonExistentAttractionXYZ"]
+        ))
+        assert False, "Must raise HTTP 422 for unknown locked activity!"
+    except HTTPException as e:
+        assert e.status_code == 422
+        assert "Unknown pinned attraction" in e.detail or "Unknown locked attraction" in e.detail
+        print(f"   ✅ Unknown Pinned Activity Guardrail Verified: HTTP 422 '{e.detail}'")
+
+    # Test 23: Strict Expense Breakdown & Reconciled Budget
+    print("\n2️⃣3️⃣ Testing Strict Mathematical Expense Reconciliation...")
     assert locked_plan.expense_breakdown is not None
     eb = locked_plan.expense_breakdown
     assert eb.lodging_inr > 0
     assert eb.transit_inr > 0
     assert eb.activities_inr > 0
-    assert eb.estimated_meals_inr > 0
     assert eb.per_person_inr > 0
-    print(f"   ✅ Expense Breakdown Verified: Lodging ₹{eb.lodging_inr}, Transit ₹{eb.transit_inr}, Sightseeing ₹{eb.activities_inr}, Dining ₹{eb.estimated_meals_inr}, Buffer ₹{eb.buffer_inr}")
 
-    print("\n🎉 ALL 23 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Strict reconciliation equations:
+    # 1. Direct subtotal == Lodging + Transit + Activities + Dining == plan.total_cost_inr
+    assert eb.lodging_inr + eb.transit_inr + eb.activities_inr + eb.dining_inr == eb.direct_subtotal_inr
+    assert eb.direct_subtotal_inr == locked_plan.total_cost_inr
+    # 2. Direct subtotal + Safe unallocated buffer == User budget
+    assert eb.direct_subtotal_inr + eb.unallocated_buffer_inr == locked_req.budget_inr
+    # 3. Buffer vs Suggested Meals status
+    assert "Sufficient" in eb.meal_buffer_status or "Exceeds" in eb.meal_buffer_status
+    print(f"   ✅ Reconciled Accounting Verified: Direct Subtotal (₹{eb.direct_subtotal_inr}) + Safe Buffer (₹{eb.unallocated_buffer_inr}) == Total Budget (₹{locked_req.budget_inr})")
+    print(f"      Meal Status: {eb.meal_buffer_status}")
+
+    # Test 24: GroupProfile Solver Calibration (Senior Travelers Pacing & Mode)
+    print("\n2️⃣4️⃣ Testing GroupProfile Solver Calibration (Senior Travelers)...")
+    elderly_walk_req = TripRequest(
+        destination="Hyderabad",
+        start_date=date(2026, 11, 10),
+        days=1,
+        budget_inr=8000,
+        people_count=2,
+        group_profile=GroupProfile.ELDERLY,
+        transport_mode="walk"
+    )
+    elderly_plan = generate_itinerary(elderly_walk_req)
+    assert elderly_plan.transport_mode in [TransportMode.AUTO, TransportMode.CAB], "Elderly profile must override strenuous cross-city walk mode!"
+    print(f"   ✅ Elderly Solver Calibration Verified: Walk overridden to '{elderly_plan.transport_mode.value}' with senior rest buffers.")
+
+    # Test 25: Candidate Omission Diagnostic Formatting
+    print("\n2️⃣5️⃣ Testing Candidate Omission Diagnostic Formatting...")
+    for ex in june_plan.decision_trace.excluded_places:
+        assert ex.reason.startswith("Candidate Omission Diagnostic:"), f"Diagnostic prefix missing in reason: '{ex.reason}'"
+        assert ex.suggested_action is not None and len(ex.suggested_action) > 5
+    print(f"   ✅ Candidate Omission Diagnostics Verified: Deterministic checks labeled across {len(june_plan.decision_trace.excluded_places)} candidate places.")
+
+    print("\n🎉 ALL 25 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

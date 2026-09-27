@@ -48,6 +48,7 @@ export default function Home() {
           budget_inr: formData.budget_inr,
           people_count: formData.people_count,
           group_profile: formData.group_profile || 'default',
+          locked_activities: formData.locked_activities || [],
           pace: formData.pace,
           transport_mode: formData.transport_mode,
           interests: formData.interests
@@ -70,7 +71,7 @@ export default function Home() {
     }
   };
 
-  // Initial load with curated default values
+  // Initial load with curated default values or URL query params
   useEffect(() => {
     const getFutureDate = (daysAhead: number): string => {
       const d = new Date();
@@ -78,16 +79,61 @@ export default function Home() {
       return d.toISOString().split('T')[0];
     };
 
+    let dest = 'hyderabad';
+    let sDate = getFutureDate(7);
+    let eDate = getFutureDate(9);
+    let mode: 'cab' | 'auto' | 'metro' | 'walk' = 'cab';
+    let budget = 15000;
+    let people = 2;
+    let pace: 'relaxed' | 'balanced' | 'intensive' = 'balanced';
+    let profile: 'default' | 'young_solo' | 'family' | 'elderly' = 'default';
+
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const urlDest = params.get('dest') || params.get('destination');
+      if (urlDest && ['hyderabad', 'delhi', 'jaipur'].includes(urlDest.toLowerCase())) {
+        dest = urlDest.toLowerCase();
+      }
+      const urlStart = params.get('start') || params.get('start_date');
+      if (urlStart && /^\d{4}-\d{2}-\d{2}$/.test(urlStart)) {
+        sDate = urlStart;
+      }
+      const urlEnd = params.get('end') || params.get('end_date');
+      if (urlEnd && /^\d{4}-\d{2}-\d{2}$/.test(urlEnd)) {
+        eDate = urlEnd;
+      }
+      const urlMode = params.get('mode');
+      if (urlMode && ['cab', 'auto', 'metro', 'walk'].includes(urlMode)) {
+        mode = urlMode as 'cab' | 'auto' | 'metro' | 'walk';
+      }
+      const urlBudget = params.get('budget');
+      if (urlBudget && !isNaN(Number(urlBudget))) {
+        budget = Number(urlBudget);
+      }
+      const urlPeople = params.get('people');
+      if (urlPeople && !isNaN(Number(urlPeople))) {
+        people = Number(urlPeople);
+      }
+      const urlPace = params.get('pace');
+      if (urlPace && ['relaxed', 'balanced', 'intensive'].includes(urlPace)) {
+        pace = urlPace as 'relaxed' | 'balanced' | 'intensive';
+      }
+      const urlProfile = params.get('profile');
+      if (urlProfile && ['default', 'young_solo', 'family', 'elderly'].includes(urlProfile)) {
+        profile = urlProfile as 'default' | 'young_solo' | 'family' | 'elderly';
+      }
+    }
+
     fetchTripPlan({
-      destination: 'hyderabad',
+      destination: dest,
       origin_type: 'hotel',
-      start_date: getFutureDate(7),
-      end_date: getFutureDate(9),
-      budget_inr: 15000,
-      people_count: 2,
-      group_profile: 'default',
-      pace: 'balanced',
-      transport_mode: 'cab',
+      start_date: sDate,
+      end_date: eDate,
+      budget_inr: budget,
+      people_count: people,
+      group_profile: profile,
+      pace: pace,
+      transport_mode: mode,
       interests: ['unesco', 'history', 'sunset']
     });
   }, []);

@@ -46,6 +46,16 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
     # 1. Load city places
     all_places = get_database_places(request.destination)
     
+    # 1.1 Validate requested locked_activities against destination catalog
+    if request.locked_activities:
+        catalog_names_ids = {p.place_id.lower() for p in all_places} | {p.name.lower() for p in all_places}
+        for pin in request.locked_activities:
+            if pin.strip().lower() not in catalog_names_ids:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Unknown pinned attraction '{pin}'. Not found in {request.destination.capitalize()} attraction catalog."
+                )
+
     # 2. Feasibility Filter & Hotel Selection
     filter_engine = FeasibilityFilter()
     try:
@@ -89,15 +99,16 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
         max_transport_budget=request.transport_pref.max_budget_inr if request.transport_pref else None,
         start_date=request.start_date,
         variant_type=variant,
-        locked_activities=request.locked_activities
+        locked_activities=request.locked_activities,
+        group_profile=request.group_profile
     )
     
     try:
         itinerary = optimizer.generate_plan()
     except Exception as e:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Optimization failed: {str(e)}"
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Feasibility conflict: {str(e)}"
         )
 
     # 6. Stage 8: Independent Verification & Audit Report
@@ -131,7 +142,8 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
         selected_hotel.lat, 
         selected_hotel.lng, 
         start_date=request.start_date, 
-        days=len(itinerary.days)
+        end_date=request.end_date,
+        days=request.days
     )
     for day in itinerary.days:
         if day.date and day.date in weather_map:

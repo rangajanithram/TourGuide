@@ -194,8 +194,15 @@ class ExpenseBreakdown(BaseModel):
     lodging_inr: int = 0
     transit_inr: int = 0
     activities_inr: int = 0
-    estimated_meals_inr: int = 0
+    dining_inr: int = 0
+    direct_subtotal_inr: int = 0
+    unallocated_buffer_inr: int = 0
+    suggested_meals_inr: int = 0
+    meal_buffer_status: str = Field(default="Sufficient", description="Status comparing buffer against estimated meal needs")
+
+    # Backwards-compatibility aliases
     buffer_inr: int = 0
+    estimated_meals_inr: int = 0
     total_inr: int = 0
     per_person_inr: int = 0
 

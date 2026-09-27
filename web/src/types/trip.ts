@@ -26,6 +26,11 @@ export interface ExpenseBreakdown {
   lodging_inr: number;
   transit_inr: number;
   activities_inr: number;
+  dining_inr?: number;
+  direct_subtotal_inr?: number;
+  unallocated_buffer_inr?: number;
+  suggested_meals_inr?: number;
+  meal_buffer_status?: string;
   estimated_meals_inr: number;
   buffer_inr: number;
   total_inr: number;

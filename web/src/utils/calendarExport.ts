@@ -70,10 +70,12 @@ export function exportToIcs(plan: TripPlan, destination: string) {
           const parts = timeStr.trim().split(' ');
           const timePart = parts[0];
           const modifier = parts[1] || 'AM';
-          let [hours, minutes] = timePart.split(':').map(Number);
+          const timeTokens = timePart.split(':').map(Number);
+          let hours = timeTokens[0];
+          const minutes = timeTokens[1] || 0;
           if (modifier === 'PM' && hours < 12) hours += 12;
           if (modifier === 'AM' && hours === 12) hours = 0;
-          return `${String(hours).padStart(2, '0')}${String(minutes || 0).padStart(2, '0')}00`;
+          return `${String(hours).padStart(2, '0')}${String(minutes).padStart(2, '0')}00`;
         } catch {
           return '090000';
         }

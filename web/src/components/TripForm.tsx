@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { 
   Calendar, Users, IndianRupee, Gauge, 
   Car, Sparkles, Check, Compass, Building,
-  Train, Plane, MapPin
+  Train, Plane, MapPin, Pin
 } from 'lucide-react';
 import { TripFormData } from '../types/trip';
 
@@ -12,6 +12,12 @@ interface TripFormProps {
   onSubmit: (formData: TripFormData) => void;
   isLoading: boolean;
 }
+
+const CITY_MUST_VISIT_PINS: Record<string, string[]> = {
+  hyderabad: ['Charminar', 'Golconda Fort', 'Chowmahalla Palace', 'Salar Jung Museum'],
+  delhi: ['Qutub Minar', "Humayun's Tomb", 'Red Fort (Lal Qila)'],
+  jaipur: ['Amber Fort', 'Hawa Mahal', 'City Palace', 'Jantar Mantar'],
+};
 
 const CITIES = [
   { id: 'hyderabad', name: 'Hyderabad', tagline: 'Charminar, Golconda & Nizam Heritage' },
@@ -61,20 +67,83 @@ const getFutureDate = (daysAhead: number): string => {
 };
 
 export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
-  const [destination, setDestination] = useState('hyderabad');
+  const [destination, setDestination] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const d = p.get('dest') || p.get('destination');
+      if (d && ['hyderabad', 'delhi', 'jaipur'].includes(d.toLowerCase())) return d.toLowerCase();
+    }
+    return 'hyderabad';
+  });
   const [originType, setOriginType] = useState<'center' | 'station' | 'airport'>('center');
-  const [startDate, setStartDate] = useState(() => getFutureDate(7));
-  const [endDate, setEndDate] = useState(() => getFutureDate(9));
-  const [budget, setBudget] = useState(15000);
-  const [peopleCount, setPeopleCount] = useState(2);
-  const [groupProfile, setGroupProfile] = useState<'default' | 'young_solo' | 'family' | 'elderly'>('default');
-  const [pace, setPace] = useState<'relaxed' | 'balanced' | 'intensive'>('balanced');
-  const [transportMode, setTransportMode] = useState<'cab' | 'auto' | 'metro' | 'walk'>('cab');
+  const [startDate, setStartDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const s = p.get('start') || p.get('start_date');
+      if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    }
+    return getFutureDate(7);
+  });
+  const [endDate, setEndDate] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const e = p.get('end') || p.get('end_date');
+      if (e && /^\d{4}-\d{2}-\d{2}$/.test(e)) return e;
+    }
+    return getFutureDate(9);
+  });
+  const [budget, setBudget] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const b = p.get('budget');
+      if (b && !isNaN(Number(b))) return Number(b);
+    }
+    return 15000;
+  });
+  const [peopleCount, setPeopleCount] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const pc = p.get('people');
+      if (pc && !isNaN(Number(pc))) return Number(pc);
+    }
+    return 2;
+  });
+  const [lockedActivities, setLockedActivities] = useState<string[]>([]);
+  const [groupProfile, setGroupProfile] = useState<'default' | 'young_solo' | 'family' | 'elderly'>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const pr = p.get('profile');
+      if (pr && ['default', 'young_solo', 'family', 'elderly'].includes(pr)) return pr as 'default' | 'young_solo' | 'family' | 'elderly';
+    }
+    return 'default';
+  });
+  const [pace, setPace] = useState<'relaxed' | 'balanced' | 'intensive'>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const pc = p.get('pace');
+      if (pc && ['relaxed', 'balanced', 'intensive'].includes(pc)) return pc as 'relaxed' | 'balanced' | 'intensive';
+    }
+    return 'balanced';
+  });
+  const [transportMode, setTransportMode] = useState<'cab' | 'auto' | 'metro' | 'walk'>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const m = p.get('mode');
+      if (m && ['cab', 'auto', 'metro', 'walk'].includes(m)) return m as 'cab' | 'auto' | 'metro' | 'walk';
+    }
+    return 'cab';
+  });
   const [interests, setInterests] = useState<string[]>(['unesco', 'history', 'sunset']);
 
   const toggleInterest = (tag: string) => {
     setInterests(prev => 
       prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const togglePin = (placeName: string) => {
+    setLockedActivities(prev => 
+      prev.includes(placeName) ? prev.filter(p => p !== placeName) : [...prev, placeName]
     );
   };
 
@@ -88,6 +157,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
       budget_inr: budget,
       people_count: peopleCount,
       group_profile: groupProfile,
+      locked_activities: lockedActivities,
       pace,
       transport_mode: transportMode,
       interests
@@ -306,6 +376,37 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
               ))}
             </select>
           </div>
+        </div>
+
+        {/* Must-Visit Pins (Strict In-Solver Constraint) */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center space-x-1.5">
+            <Pin className="w-3.5 h-3.5 text-amber-400" />
+            <span>Must-Visit Places (Strict Pins 🔒)</span>
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {(CITY_MUST_VISIT_PINS[destination] || []).map(placeName => {
+              const active = lockedActivities.includes(placeName);
+              return (
+                <button
+                  type="button"
+                  key={placeName}
+                  onClick={() => togglePin(placeName)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors flex items-center space-x-1.5 ${
+                    active
+                      ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 font-semibold shadow-sm'
+                      : 'bg-[#161922] border-[#222736] text-gray-400 hover:text-gray-200'
+                  }`}
+                >
+                  <Pin className={`w-3 h-3 ${active ? 'text-amber-400' : 'text-gray-500'}`} />
+                  <span>{placeName}</span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-gray-500 mt-1.5">
+            Pinned stops become mandatory solver nodes protected against budget trimming.
+          </p>
         </div>
 
         {/* Interests & Themes */}

@@ -4,9 +4,12 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
 [![OR-Tools](https://img.shields.io/badge/Google_OR--Tools-9.10-4285F4?style=flat-square&logo=google&logoColor=white)](https://developers.google.com/optimization)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/Tests-23%2F23_Passing-brightgreen?style=flat-square)](#automated-testing)
+[![Tests](https://img.shields.io/badge/Tests-25%2F25_Passing-brightgreen?style=flat-square)](#automated-testing)
 
-TripWeave is an end-to-end, anti-hallucination travel synthesis and route optimization engine. Unlike generative AI itineraries that frequently suggest closed venues, impossible transit times, or fictional budgets, TripWeave pairs **Google OR-Tools VRPTW (Vehicle Routing Problem with Time Windows)** with deterministic physics and astronomical calculation to construct verified, mathematically optimal travel itineraries.
+TripWeave is an end-to-end travel synthesis and route optimization engine. Unlike generative AI itineraries that frequently invent closed venues, impossible transit times, or fictional budgets, TripWeave pairs **Google OR-Tools VRPTW (Vehicle Routing Problem with Time Windows)** with deterministic physics and astronomical calculation to construct verified travel itineraries with strict constraint checking.
+
+> [!NOTE]
+> **Prototype Scope & Solver Mechanics**: TripWeave's optimization engine employs Google OR-Tools Guided Local Search (GLS) heuristics bounded by a 2-second compute budget. The current prototype catalog supports curated seed datasets for **Hyderabad**, **Delhi**, and **Jaipur**.
 
 ---
 
@@ -17,19 +20,20 @@ TripWeave is an end-to-end, anti-hallucination travel synthesis and route optimi
 - **Trip-Wide Global Budget Constraints**: Uses in-solver cumulative vehicle variables (`solver.Sum([dim.CumulVar(routing.End(v)) for v in range(days)]) <= cap`) allowing flexible budget allocation across days while guaranteeing the overall trip cap.
 - **Strict Transport Cap Enforcement**: User-selected transport limits (`max_budget_inr`) are strictly maintained across all generated variants (*Budget*, *Balanced*, *Comfort*).
 - **Minimum Useful Plan Guardrail**: Guarantees itineraries contain substantive sightseeing visits; tight-constraint infeasibility returns explicit HTTP 422 errors instead of 0-visit plans.
-- **Pinned / Locked Activities (v0.2)**: Travelers can pin specific must-visit attractions (`locked_activities`), which the solver treats with strict high-penalty non-drop disjunctions.
+- **Strict Pinned / Locked Activities (v0.2)**: Travelers can pin specific must-visit attractions (`locked_activities`). The solver omits drop penalties for pinned stops, making them mandatory visits, and guards them against budget pruning (failing with HTTP 422 if impossible).
+- **Group Profile Pacing Calibration**: For senior travelers (`elderly`), the solver builds in additional rest buffers by reducing maximum daily stops and automatically calibrates away strenuous cross-city walking.
 
 ### 2. Physical, Astronomical & Climatological Modeling
 - **Great-Circle Haversine Routing**: Point-to-point transit distances modeled using spherical trigonometry with mode-specific Indian urban velocity calibrations (Cab: 22 km/h, Auto: 18 km/h, Metro: 32 km/h, Walk: 4.5 km/h).
 - **Date-Specific NOAA Solar Calculations**: Accurately computes solar noon, twilight, and sunset for any day of the year, scheduling scenic viewpoints during actual golden hour windows.
-- **Open-Meteo Weather Integration**: Real-time daily forecast querying temperature, rain probability, and heat advisories (> 38°C) with deterministic climatological fallback for 100% offline resilience.
+- **16-Day Open-Meteo Weather Integration**: Real-time daily forecast querying temperature, rain probability, and heat advisories (> 38°C) up to 16 days in advance, with deterministic climatological fallback and distinct UI badges ("Live Forecast" vs "Climate").
 - **Day-of-Week Closures**: Automatically accounts for museum and monument rest days (e.g., Salar Jung Museum Friday closures).
 - **Full-Day Return Window Audit**: Verifies complete return journeys to the hotel depot, ensuring travelers return safely before late-night cutoffs (9:00 PM cutoff error, 8:00 PM warning).
 
 ### 3. Explainability & Transparent Decision Audits
 - **"Why This Hotel?" Rationale**: Clear decision trace explaining centroid transit savings, budget tier alignment, and room capacity.
-- **"Why Not X?" Candidate Omission Audit**: Comprehensive analysis of every omitted attraction from the city pool, categorizing reasons (`closed_on_day`, `budget_limit`, `pace_limit`, `geographic_detour`) and giving actionable traveler guidance.
-- **Smart Expense Simulator**: Interactive category breakdown (Lodging, Local Transit, Sightseeing, Estimated Dining, Safe Unallocated Buffer).
+- **"Why Not X?" Candidate Omission Diagnostic**: Comprehensive deterministic analysis of omitted attractions from the city pool, categorizing reasons (`closed_on_day`, `operating_hours`, `budget_limit`, `pace_limit`, `geographic_detour`) and giving actionable traveler guidance.
+- **Reconciled Expense Simulator**: Strictly reconciled financial accounting: `Lodging + Transit + Sightseeing + Dining == Direct Subtotal (Itinerary Spend) == Total Plan Cost`, and `Direct Subtotal + Safe Buffer == Total Budget`, with explicit meal affordability status.
 
 ### 4. Multi-City Hubs & Calibrated Fatigue
 - **Supported Cities**: Curated, verified destination datasets for **Hyderabad**, **Delhi**, and **Jaipur**.
@@ -40,7 +44,7 @@ TripWeave is an end-to-end, anti-hallucination travel synthesis and route optimi
 - **Next.js 14 Dark-Mode Cockpit**: Responsive dual-column layout with instant interactive synthesis.
 - **Interactive Leaflet Routing**: Day-by-day route visualization, numbered stop markers, and dynamic map fitting via coordinate digests.
 - **RFC 5545 Calendar (.ics) Export**: One-click download compatible with Apple Calendar, Google Calendar, and Outlook, complete with strict 75-octet line folding and timezone support.
-- **Shareable Trip Links**: Encodes complete trip parameters for one-click sharing.
+- **Shareable Trip URLs**: Encodes complete trip parameters in browser search parameters (`?dest=...&start=...&mode=...`) for instant cross-device sharing.
 
 ---
 

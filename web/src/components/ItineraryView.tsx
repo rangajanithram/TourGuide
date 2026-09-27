@@ -3,10 +3,10 @@
 import React, { useState } from 'react';
 import { 
   Building2, Camera, Compass, Sparkles, Layers,
-  ShieldCheck, CheckCircle2, Calendar, Share2,
-  Copy, Check, Activity, Download, CloudSun,
-  CloudRain, Sun, Flame, Utensils, Wallet,
-  HelpCircle, ChevronDown, ChevronUp, Pin, AlertTriangle
+  ShieldCheck, CheckCircle2, Calendar,
+  Copy, Check, Activity, CloudSun,
+  CloudRain, Flame, Utensils, Wallet,
+  HelpCircle, ChevronDown, ChevronUp, Pin, Link2
 } from 'lucide-react';
 import { TripPlan } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
@@ -24,17 +24,36 @@ export default function ItineraryView({
   selectedDay = 'all',
   onSelectDay 
 }: ItineraryViewProps) {
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedText, setCopiedText] = useState(false);
   const [showWhyNot, setShowWhyNot] = useState(false);
   const hotel = plan.hotel_summary;
   const totalActivitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
   const totalStops = plan.days.reduce((acc, d) => acc + d.activities.length, 0);
 
-  const handleCopy = () => {
+  const handleCopyLink = () => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.origin + window.location.pathname);
+    url.searchParams.set('dest', destination.toLowerCase());
+    const startDate = plan.days[0]?.date;
+    if (startDate) {
+      url.searchParams.set('start', startDate);
+    }
+    const endDate = plan.days[plan.days.length - 1]?.date;
+    if (endDate) {
+      url.searchParams.set('end', endDate);
+    }
+    url.searchParams.set('mode', plan.transport_mode);
+    navigator.clipboard.writeText(url.toString());
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2500);
+  };
+
+  const handleCopyText = () => {
     const text = formatItineraryForShare(plan, destination);
     navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
+    setCopiedText(true);
+    setTimeout(() => setCopiedText(false), 2500);
   };
 
   const handleExportIcs = () => {
@@ -75,19 +94,38 @@ export default function ItineraryView({
 
           <button
             type="button"
-            onClick={handleCopy}
+            onClick={handleCopyLink}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
-            title="Copy formatted text itinerary to clipboard"
+            title="Copy shareable browser URL with trip parameters"
           >
-            {copied ? (
+            {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-black" />
-                <span>Copied!</span>
+                <span>Link Copied!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-3.5 h-3.5 text-black" />
-                <span>Share Plan</span>
+                <Link2 className="w-3.5 h-3.5 text-black" />
+                <span>Share Link</span>
+              </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCopyText}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#161922] hover:bg-[#1e2230] border border-[#222736] hover:border-gray-500 text-gray-200 text-xs font-semibold transition-all shadow-sm active:scale-95"
+            title="Copy formatted text itinerary to clipboard"
+          >
+            {copiedText ? (
+              <>
+                <Check className="w-3.5 h-3.5 text-amber-400" />
+                <span>Text Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-3.5 h-3.5 text-gray-400" />
+                <span>Copy Text</span>
               </>
             )}
           </button>
@@ -209,8 +247,8 @@ export default function ItineraryView({
             <div className="flex items-center space-x-2.5">
               <Wallet className="w-5 h-5 text-amber-400" />
               <div>
-                <h4 className="font-bold text-sm text-white">Smart Budget Allocation & Expense Simulator</h4>
-                <p className="text-[11px] text-gray-400">Deterministic cost category distribution and unallocated buffer</p>
+                <h4 className="font-bold text-sm text-white">Smart Budget Allocation & Expense Reconciliation</h4>
+                <p className="text-[11px] text-gray-400">Strictly reconciled cost distribution: Direct Subtotal + Safe Buffer = Total Budget</p>
               </div>
             </div>
             <div className="text-right">
@@ -233,13 +271,37 @@ export default function ItineraryView({
               <span className="text-sm font-bold text-white mt-0.5 block">₹{plan.expense_breakdown.activities_inr.toLocaleString('en-IN')}</span>
             </div>
             <div className="bg-[#161922] border border-[#222736] rounded-xl p-3 text-center">
-              <span className="text-[10px] uppercase font-semibold text-gray-400 block tracking-wider">Est. Dining</span>
-              <span className="text-sm font-bold text-white mt-0.5 block">₹{plan.expense_breakdown.estimated_meals_inr.toLocaleString('en-IN')}</span>
+              <span className="text-[10px] uppercase font-semibold text-gray-400 block tracking-wider">
+                {plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0 ? 'Dining (Itinerary)' : 'Est. Dining'}
+              </span>
+              <span className="text-sm font-bold text-white mt-0.5 block">
+                ₹{((plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0) ? plan.expense_breakdown.dining_inr : plan.expense_breakdown.suggested_meals_inr || plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}
+              </span>
             </div>
             <div className="bg-[#161922] border border-emerald-500/20 bg-emerald-500/5 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
               <span className="text-[10px] uppercase font-semibold text-emerald-400 block tracking-wider">Safe Buffer</span>
-              <span className="text-sm font-bold text-emerald-300 mt-0.5 block">₹{plan.expense_breakdown.buffer_inr.toLocaleString('en-IN')}</span>
+              <span className="text-sm font-bold text-emerald-300 mt-0.5 block">₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}</span>
             </div>
+          </div>
+
+          {/* Reconciled Accounting Status Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#161922] border border-[#222736] rounded-xl px-4 py-2.5 text-xs gap-2">
+            <div className="flex items-center space-x-2 text-gray-300">
+              <span className="font-semibold text-white">Direct Subtotal:</span>
+              <span className="text-amber-400 font-bold">₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')}</span>
+              <span className="text-gray-500">•</span>
+              <span className="text-gray-400">Meals Guidance:</span>
+              <span className="text-gray-200">₹{(plan.expense_breakdown.suggested_meals_inr ?? plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}</span>
+            </div>
+            {plan.expense_breakdown.meal_buffer_status && (
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
+                plan.expense_breakdown.meal_buffer_status.toLowerCase().includes('sufficient')
+                  ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                  : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
+              }`}>
+                {plan.expense_breakdown.meal_buffer_status}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -330,6 +392,13 @@ export default function ItineraryView({
                     {day.weather.precipitation_probability_pct > 0 && (
                       <span className="text-[10px] text-gray-400">({day.weather.precipitation_probability_pct}% rain)</span>
                     )}
+                    <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-bold ${
+                      day.weather.is_forecast 
+                        ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' 
+                        : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
+                    }`} title={day.weather.is_forecast ? 'Live Open-Meteo meteorological forecast' : 'Seasonal historical climate model'}>
+                      {day.weather.is_forecast ? 'Live Forecast' : 'Climate'}
+                    </span>
                   </div>
                 )}
 
