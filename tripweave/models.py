@@ -21,6 +21,12 @@ class PlanVariantType(str, Enum):
     BALANCED = "balanced"    # Optimal trade-off, iconic moments
     COMFORT = "comfort"      # Premium stay, intensive sightseeing
 
+class GroupProfile(str, Enum):
+    DEFAULT = "default"        # General travelers
+    YOUNG_SOLO = "young_solo"  # Solo / young active explorer
+    FAMILY = "family"          # Family with children / moderate pace
+    ELDERLY = "elderly"        # Seniors / accessibility conscious
+
 # --- INPUT INTENT (What the user wants) ---
 
 class HotelPreference(BaseModel):
@@ -46,6 +52,8 @@ class TripRequest(BaseModel):
     start_location: Optional[str] = Field(None, description="Optional starting hub for day trips (e.g. 'Secunderabad Railway Station')")
     origin_type: Optional[str] = Field("hotel", description="Trip starting origin type: 'hotel', 'station', 'airport', 'custom'")
     transport_mode: Optional[TransportMode] = Field(None, description="Primary transport mode shorthand")
+    group_profile: GroupProfile = Field(default=GroupProfile.DEFAULT, description="Traveler group profile for calibrated pacing & fatigue")
+    locked_activities: List[str] = Field(default_factory=list, description="User-pinned activities that must be included")
     hotel_pref: Optional[HotelPreference] = None
     transport_pref: Optional[TransportPreference] = None
 
@@ -161,13 +169,45 @@ class HotelStaySummary(BaseModel):
     provenance: str = Field(..., description="Clear provenance note of the rate")
     why_this_hotel: Optional[str] = Field(None, description="Decision trace explaining why this hotel was selected")
 
+class WeatherSummary(BaseModel):
+    condition: str = Field(default="Clear", description="Dominant weather condition: Clear, Partly Cloudy, Rain, etc.")
+    max_temp_c: float = Field(default=30.0, description="Forecast peak temperature in Celsius")
+    precipitation_probability_pct: int = Field(default=0, description="Probability of rain (0-100%)")
+    heat_advisory: bool = Field(default=False, description="True if temp > 38C or intense sun warning")
+    advisory_text: str = Field(default="Pleasant outdoor exploration conditions.", description="Actionable traveler weather guidance")
+    is_forecast: bool = Field(default=True, description="True if live forecast from Open-Meteo, False if climatological heuristic")
+
+class ExclusionReason(BaseModel):
+    place_name: str
+    category: str = Field(..., description="Category: 'closed_on_day', 'budget_limit', 'pace_limit', 'operating_hours', 'geographic_detour'")
+    reason: str = Field(..., description="Human-readable explanation of why this attraction was omitted")
+    suggested_action: Optional[str] = Field(None, description="Actionable suggestion to include this place")
+
+class DecisionTrace(BaseModel):
+    hotel_rationale: str
+    pacing_rationale: str
+    weather_rationale: Optional[str] = None
+    group_profile_rationale: Optional[str] = None
+    excluded_places: List[ExclusionReason] = Field(default_factory=list, description="Why not X: Reasons why candidate places were excluded")
+
+class ExpenseBreakdown(BaseModel):
+    lodging_inr: int = 0
+    transit_inr: int = 0
+    activities_inr: int = 0
+    estimated_meals_inr: int = 0
+    buffer_inr: int = 0
+    total_inr: int = 0
+    per_person_inr: int = 0
+
 class ScheduledActivity(BaseModel):
     place_name: str
+    place_type: str = Field(default="attraction", description="'attraction' or 'restaurant'")
     lat: float = Field(default=0.0, description="Activity latitude for map pin")
     lng: float = Field(default=0.0, description="Activity longitude for map pin")
     start_time: str
     end_time: str
     estimated_cost_inr: int
+    is_locked: bool = Field(default=False, description="True if pinned/locked by user")
     experience_tag: Optional[str] = None
     recommended_viewpoint: Optional[ViewpointRecommendation] = None
     verification_status: Optional[str] = Field(default="curated_seed", description="Data provenance status")
@@ -183,6 +223,7 @@ class DayPlan(BaseModel):
     day_cost_inr: int
     fatigue_score: Optional[int] = Field(None, description="Physical exertion index (0-100)")
     fatigue_level: Optional[str] = Field(None, description="Pacing description e.g. Gentle Pace, Moderate, High Exertion")
+    weather: Optional[WeatherSummary] = Field(None, description="Day weather forecast and advisory")
 
 class VerificationReport(BaseModel):
     is_valid: bool = Field(default=True, description="True if all hard physics, time-window, and budget constraints hold")
@@ -203,6 +244,8 @@ class TripPlan(BaseModel):
     total_cost_inr: int
     verification_report: Optional[VerificationReport] = Field(default=None, description="Independent verification and physics audit")
     fatigue_report: Optional[Dict[str, Any]] = Field(default=None, description="Physical exertion and pace report")
+    decision_trace: Optional[DecisionTrace] = Field(default=None, description="Why this hotel and why not X explainability trace")
+    expense_breakdown: Optional[ExpenseBreakdown] = Field(default=None, description="Category-wise budget breakdown and simulator")
     disclaimer: str = Field(
         default="Estimated local subtotal. Excludes intercity transit, lodging taxes/GST, and unmodeled expenses.",
         description="Cost transparency disclaimer"

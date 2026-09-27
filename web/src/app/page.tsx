@@ -47,6 +47,7 @@ export default function Home() {
           end_date: formData.end_date,
           budget_inr: formData.budget_inr,
           people_count: formData.people_count,
+          group_profile: formData.group_profile || 'default',
           pace: formData.pace,
           transport_mode: formData.transport_mode,
           interests: formData.interests
@@ -84,6 +85,7 @@ export default function Home() {
       end_date: getFutureDate(9),
       budget_inr: 15000,
       people_count: 2,
+      group_profile: 'default',
       pace: 'balanced',
       transport_mode: 'cab',
       interests: ['unesco', 'history', 'sunset']

@@ -88,7 +88,8 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
         max_total_budget=request.budget_inr,
         max_transport_budget=request.transport_pref.max_budget_inr if request.transport_pref else None,
         start_date=request.start_date,
-        variant_type=variant
+        variant_type=variant,
+        locked_activities=request.locked_activities
     )
     
     try:
@@ -103,7 +104,7 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
     report = ItineraryVerifier.verify(itinerary, request, all_places)
     itinerary.verification_report = report
 
-    # 7. Stage 7: Physical Exertion & Pace Evaluation
+    # 7. Stage 7: Physical Exertion & Pace Evaluation (Calibrated by GroupProfile)
     from tripweave.fatigue import FatigueAnalyzer
     try:
         total_km = float(report.metrics.get("total_transit_km", "30.0 km").replace(" km", ""))
@@ -112,6 +113,7 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
     fatigue_info = FatigueAnalyzer.evaluate_trip(
         itinerary.days, 
         pace=request.pace, 
+        group_profile=request.group_profile,
         total_transit_km=total_km,
         hotel_lat=selected_hotel.lat,
         hotel_lng=selected_hotel.lng
@@ -123,7 +125,24 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
             day.fatigue_score = matched["score"]
             day.fatigue_level = matched["level"]
 
-    # 8. Minimum Useful Plan Guarantee
+    # 8. Weather Integration (Blueprint Section 12)
+    from tripweave.weather import WeatherProvider
+    weather_map = WeatherProvider.get_daily_forecasts(
+        selected_hotel.lat, 
+        selected_hotel.lng, 
+        start_date=request.start_date, 
+        days=len(itinerary.days)
+    )
+    for day in itinerary.days:
+        if day.date and day.date in weather_map:
+            day.weather = weather_map[day.date]
+
+    # 9. Stage 10: Explainability & Decision Trace ("Why this hotel?" & "Why not X?")
+    from tripweave.explainability import ExplainabilityEngine
+    itinerary.decision_trace = ExplainabilityEngine.generate_decision_trace(itinerary, request, all_places)
+    itinerary.expense_breakdown = ExplainabilityEngine.calculate_expense_breakdown(itinerary, request)
+
+    # 10. Minimum Useful Plan Guarantee
     total_activities = sum(len(day.activities) for day in itinerary.days)
     if total_activities == 0 or not itinerary.days:
         raise HTTPException(
@@ -131,7 +150,7 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
             detail=f"Feasibility conflict: No feasible sightseeing visits could be scheduled within your budget (₹{request.budget_inr}) and transport constraints."
         )
 
-    # 9. Post-Optimization Budget & Feasibility Guardrail
+    # 11. Post-Optimization Budget & Feasibility Guardrail
     if itinerary.total_cost_inr > request.budget_inr or not report.is_valid:
         error_msgs = report.errors if report.errors else [f"Final plan total ₹{itinerary.total_cost_inr} exceeded requested budget ₹{request.budget_inr}"]
         raise HTTPException(

@@ -1,10 +1,46 @@
+export interface WeatherSummary {
+  condition: string;
+  max_temp_c: number;
+  precipitation_probability_pct: number;
+  heat_advisory: boolean;
+  advisory_text: string;
+  is_forecast: boolean;
+}
+
+export interface ExclusionReason {
+  place_name: string;
+  category: string;
+  reason: string;
+  suggested_action?: string | null;
+}
+
+export interface DecisionTrace {
+  hotel_rationale: string;
+  pacing_rationale: string;
+  weather_rationale?: string | null;
+  group_profile_rationale?: string | null;
+  excluded_places: ExclusionReason[];
+}
+
+export interface ExpenseBreakdown {
+  lodging_inr: number;
+  transit_inr: number;
+  activities_inr: number;
+  estimated_meals_inr: number;
+  buffer_inr: number;
+  total_inr: number;
+  per_person_inr: number;
+}
+
 export interface ScheduledActivity {
   place_name: string;
+  place_type?: string;
   lat?: number;
   lng?: number;
   start_time: string;
   end_time: string;
   estimated_cost_inr: number;
+  is_locked?: boolean;
   experience_tag?: string | null;
   recommended_viewpoint?: {
     name?: string;
@@ -25,6 +61,7 @@ export interface DayPlan {
   day_cost_inr: number;
   fatigue_score?: number | null;
   fatigue_level?: string | null;
+  weather?: WeatherSummary | null;
 }
 
 export interface HotelStaySummary {
@@ -64,6 +101,7 @@ export interface DailyFatigue {
 export interface FatigueReport {
   trip_fatigue_score: number;
   overall_pace: string;
+  group_profile?: string;
   daily_breakdown: DailyFatigue[];
 }
 
@@ -78,6 +116,8 @@ export interface TripPlan {
   total_cost_inr: number;
   verification_report?: VerificationReport | null;
   fatigue_report?: FatigueReport | null;
+  decision_trace?: DecisionTrace | null;
+  expense_breakdown?: ExpenseBreakdown | null;
   disclaimer?: string;
 }
 
@@ -99,6 +139,8 @@ export interface TripFormData {
   people_count: number;
   pace: 'relaxed' | 'balanced' | 'intensive';
   transport_mode: 'cab' | 'auto' | 'metro' | 'walk';
+  group_profile?: 'default' | 'young_solo' | 'family' | 'elderly';
+  locked_activities?: string[];
   origin_type?: 'hotel' | 'center' | 'station' | 'airport';
   start_location?: string;
   interests: string[];

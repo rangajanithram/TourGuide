@@ -19,10 +19,13 @@ sys.stdout.reconfigure(encoding='utf-8')
 from tripweave.main import generate_itinerary, generate_variants
 from tripweave.models import (
     TripRequest, HotelPreference, TransportPreference, 
-    TransportMode, PacePreference, PlanVariantType
+    TransportMode, PacePreference, PlanVariantType, GroupProfile
 )
 from tripweave.distance import calculate_distance_km, get_travel_metrics
 from tripweave.solar import get_golden_hour_window
+from tripweave.geocoding import LocationResolver
+from tripweave.weather import WeatherProvider
+from tripweave.fatigue import FatigueAnalyzer
 
 def run_tests():
     print("🧪 Running TripWeave Master Verification Test Suite...\n")
@@ -290,7 +293,72 @@ def run_tests():
     assert 17.38 <= c_lat <= 17.40 and 78.47 <= c_lng <= 78.49
     print(f"   ✅ City Center Origin Verified: {c_name} at ({c_lat:.4f}, {c_lng:.4f})")
 
-    print("\n🎉 ALL 18 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 19: Weather Integration (Open-Meteo & Climatological Fallback)
+    print("\n1️⃣9️⃣ Testing Weather Provider Integration & Fallback...")
+    forecasts = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=date(2026, 10, 15), days=2)
+    assert len(forecasts) == 2
+    d1_key = date(2026, 10, 15).isoformat()
+    assert d1_key in forecasts
+    w1 = forecasts[d1_key]
+    assert 20.0 <= w1.max_temp_c <= 48.0
+    assert 0 <= w1.precipitation_probability_pct <= 100
+    assert len(w1.advisory_text) > 5
+    print(f"   ✅ Weather Integration Verified: {w1.condition}, {w1.max_temp_c:.1f}°C, Rain {w1.precipitation_probability_pct}% (Forecast: {w1.is_forecast})")
+
+    # Test 20: Group Profile Calibrated Fatigue Model (Blueprint Section 6)
+    print("\n2️⃣0️⃣ Testing Group Profile Calibrated Fatigue...")
+    solo_eval = FatigueAnalyzer.evaluate_trip(
+        june_plan.days, pace=PacePreference.BALANCED, group_profile=GroupProfile.YOUNG_SOLO
+    )
+    elderly_eval = FatigueAnalyzer.evaluate_trip(
+        june_plan.days, pace=PacePreference.BALANCED, group_profile=GroupProfile.ELDERLY
+    )
+    assert elderly_eval["trip_fatigue_score"] > solo_eval["trip_fatigue_score"], "Elderly fatigue score must be strictly higher than young solo!"
+    assert any("senior" in d["advice"].lower() or "wheelchair" in d["advice"].lower() for d in elderly_eval["daily_breakdown"])
+    print(f"   ✅ Group Profile Fatigue Calibrated: Young Solo ({solo_eval['trip_fatigue_score']}/100) vs Elderly ({elderly_eval['trip_fatigue_score']}/100)")
+
+    # Test 21: Stage 10 Explainability Engine & "Why Not X?" Decision Trace
+    print("\n2️⃣1️⃣ Testing Stage 10 Explainability & 'Why Not X?' Decision Trace...")
+    assert june_plan.decision_trace is not None
+    assert len(june_plan.decision_trace.hotel_rationale) > 10
+    assert len(june_plan.decision_trace.pacing_rationale) > 10
+    assert len(june_plan.decision_trace.excluded_places) > 0
+    # At least one excluded place should have a clear category and suggested action
+    first_ex = june_plan.decision_trace.excluded_places[0]
+    assert first_ex.category in ["closed_on_day", "budget_limit", "pace_limit", "operating_hours", "geographic_detour"]
+    assert len(first_ex.reason) > 5
+    print(f"   ✅ Explainability Trace Verified: {len(june_plan.decision_trace.excluded_places)} candidate exclusions analyzed (Example: '{first_ex.place_name}' -> {first_ex.category})")
+
+    # Test 22: Locked / Pinned Activities (Blueprint Section 12)
+    print("\n2️⃣2️⃣ Testing User-Pinned / Locked Activities...")
+    locked_req = TripRequest(
+        destination="Hyderabad",
+        start_date=date(2026, 11, 10),
+        days=2,
+        budget_inr=15000,
+        people_count=2,
+        locked_activities=["Charminar"]
+    )
+    locked_plan = generate_itinerary(locked_req)
+    pinned_matches = [
+        act for d in locked_plan.days for act in d.activities if act.place_name == "Charminar"
+    ]
+    assert len(pinned_matches) == 1, "Pinned activity 'Charminar' must be scheduled!"
+    assert pinned_matches[0].is_locked is True, "Scheduled activity must be flagged as is_locked=True!"
+    print(f"   ✅ Pinned Activity Verified: 'Charminar' scheduled with is_locked=True")
+
+    # Test 23: Smart Expense Breakdown & Simulator
+    print("\n2️⃣3️⃣ Testing Smart Expense Breakdown & Budget Allocation...")
+    assert locked_plan.expense_breakdown is not None
+    eb = locked_plan.expense_breakdown
+    assert eb.lodging_inr > 0
+    assert eb.transit_inr > 0
+    assert eb.activities_inr > 0
+    assert eb.estimated_meals_inr > 0
+    assert eb.per_person_inr > 0
+    print(f"   ✅ Expense Breakdown Verified: Lodging ₹{eb.lodging_inr}, Transit ₹{eb.transit_inr}, Sightseeing ₹{eb.activities_inr}, Dining ₹{eb.estimated_meals_inr}, Buffer ₹{eb.buffer_inr}")
+
+    print("\n🎉 ALL 23 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

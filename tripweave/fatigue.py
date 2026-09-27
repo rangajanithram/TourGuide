@@ -4,19 +4,26 @@ Computes physical fatigue scores based on transit distance, transfers,
 activity density, and user pace preferences.
 """
 from typing import Dict, Any, List, Optional
-from tripweave.models import DayPlan, PacePreference
+from tripweave.models import DayPlan, PacePreference, GroupProfile
 from tripweave.distance import calculate_distance_km
 
 class FatigueAnalyzer:
     """
     Evaluates physical exertion, travel density, and pacing realism
-    to ensure itineraries remain enjoyable and sustainable.
+    calibrated by GroupProfile (Blueprint Section 6) and PacePreference.
     """
 
-    FATIGUE_COEFFICIENTS = {
-        "relaxed":   {"per_km": 0.8, "per_activity": 6.0, "per_transfer": 3.0},
-        "balanced":  {"per_km": 1.2, "per_activity": 8.0, "per_transfer": 4.5},
-        "intensive": {"per_km": 1.6, "per_activity": 11.0, "per_transfer": 6.0},
+    PROFILE_COEFFICIENTS = {
+        "young_solo": {"per_km": 5.0,  "per_activity": 4.0,  "per_transfer": 3.0},
+        "family":     {"per_km": 10.0, "per_activity": 7.0,  "per_transfer": 6.0},
+        "elderly":    {"per_km": 20.0, "per_activity": 12.0, "per_transfer": 10.0},
+        "default":    {"per_km": 10.0, "per_activity": 8.0,  "per_transfer": 5.0},
+    }
+
+    PACE_MULTIPLIERS = {
+        "relaxed": 0.85,
+        "balanced": 1.0,
+        "intensive": 1.25,
     }
 
     @classmethod
@@ -24,21 +31,25 @@ class FatigueAnalyzer:
         cls, 
         day: DayPlan, 
         pace: PacePreference = PacePreference.BALANCED,
+        group_profile: GroupProfile = GroupProfile.DEFAULT,
         est_transit_km: float = 15.0
     ) -> Dict[str, Any]:
+        profile_key = group_profile.value if hasattr(group_profile, "value") else str(group_profile).lower()
+        coeffs = cls.PROFILE_COEFFICIENTS.get(profile_key, cls.PROFILE_COEFFICIENTS["default"])
+
         pace_key = pace.value if hasattr(pace, "value") else str(pace).lower()
-        coeffs = cls.FATIGUE_COEFFICIENTS.get(pace_key, cls.FATIGUE_COEFFICIENTS["balanced"])
+        pace_multiplier = cls.PACE_MULTIPLIERS.get(pace_key, 1.0)
 
         act_count = len(day.activities)
         # Transfers: Hotel -> 1 -> 2 -> ... -> N -> Hotel (N + 1 legs if N > 0)
         transfers = (act_count + 1) if act_count > 0 else 0
 
-        # Raw score
+        # Raw score based on Blueprint Section 6 formulas
         raw_score = (
-            est_transit_km * coeffs["per_km"] +
-            act_count * coeffs["per_activity"] +
-            transfers * coeffs["per_transfer"]
-        )
+            (est_transit_km * coeffs["per_km"] * 0.3) +
+            (act_count * coeffs["per_activity"] * 2.5) +
+            (transfers * coeffs["per_transfer"] * 2.0)
+        ) * pace_multiplier
 
         score = max(5, min(100, int(raw_score)))
 
@@ -53,7 +64,13 @@ class FatigueAnalyzer:
         else:
             level = "High Exertion"
             badge_color = "rose"
-            advice = "Demanding day with multiple stops. Stay hydrated and take rest pauses."
+            advice = "Demanding day with multiple stops. Stay hydrated and schedule restful pauses."
+
+        if profile_key == "elderly":
+            if est_transit_km > 15.0 or act_count > 2:
+                advice = "⚠️ High walking load for senior travelers. Recommend wheelchair/golf-cart rentals where available."
+        elif profile_key == "family":
+            advice += " Child-friendly buffer times included."
 
         return {
             "score": score,
@@ -61,7 +78,8 @@ class FatigueAnalyzer:
             "badge_color": badge_color,
             "advice": advice,
             "stops_count": act_count,
-            "est_transit_km": round(est_transit_km, 1)
+            "est_transit_km": round(est_transit_km, 1),
+            "group_profile": profile_key
         }
 
     @classmethod
@@ -69,6 +87,7 @@ class FatigueAnalyzer:
         cls, 
         days: List[DayPlan], 
         pace: PacePreference = PacePreference.BALANCED,
+        group_profile: GroupProfile = GroupProfile.DEFAULT,
         total_transit_km: float = 30.0,
         hotel_lat: Optional[float] = None,
         hotel_lng: Optional[float] = None
@@ -77,6 +96,7 @@ class FatigueAnalyzer:
             return {
                 "trip_fatigue_score": 0,
                 "overall_pace": "Relaxed",
+                "group_profile": group_profile.value if hasattr(group_profile, "value") else str(group_profile),
                 "daily_breakdown": []
             }
 
@@ -98,7 +118,7 @@ class FatigueAnalyzer:
             else:
                 actual_km = fallback_km_per_day
 
-            eval_day = cls.evaluate_day(day, pace=pace, est_transit_km=actual_km)
+            eval_day = cls.evaluate_day(day, pace=pace, group_profile=group_profile, est_transit_km=actual_km)
             daily_results.append({
                 "day_number": day.day_number,
                 **eval_day
@@ -113,9 +133,12 @@ class FatigueAnalyzer:
         else:
             overall_level = "High-Intensity Sightseeing"
 
+        profile_key = group_profile.value if hasattr(group_profile, "value") else str(group_profile)
+
         return {
             "trip_fatigue_score": avg_score,
             "overall_pace": overall_level,
+            "group_profile": profile_key,
             "daily_breakdown": daily_results
         }
 

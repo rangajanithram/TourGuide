@@ -25,6 +25,13 @@ const ORIGIN_HUBS = [
   { id: 'airport', label: 'Airport Hub', desc: 'Flight Terminal', icon: Plane },
 ];
 
+const GROUP_PROFILES = [
+  { id: 'default', label: 'General Group', desc: 'Standard leisure pacing' },
+  { id: 'young_solo', label: 'Solo / Active', desc: 'Fast-paced, low fatigue sensitivity' },
+  { id: 'family', label: 'Family with Kids', desc: 'Rest buffers & kid-friendly pacing' },
+  { id: 'elderly', label: 'Senior Travelers', desc: 'Accessibility-first & minimal walking' },
+];
+
 const PACES = [
   { id: 'relaxed', label: 'Relaxed', desc: 'Max 2 stops/day' },
   { id: 'balanced', label: 'Balanced', desc: 'Max 3 stops/day (Recommended)' },
@@ -60,6 +67,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
   const [endDate, setEndDate] = useState(() => getFutureDate(9));
   const [budget, setBudget] = useState(15000);
   const [peopleCount, setPeopleCount] = useState(2);
+  const [groupProfile, setGroupProfile] = useState<'default' | 'young_solo' | 'family' | 'elderly'>('default');
   const [pace, setPace] = useState<'relaxed' | 'balanced' | 'intensive'>('balanced');
   const [transportMode, setTransportMode] = useState<'cab' | 'auto' | 'metro' | 'walk'>('cab');
   const [interests, setInterests] = useState<string[]>(['unesco', 'history', 'sunset']);
@@ -79,6 +87,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
       end_date: endDate,
       budget_inr: budget,
       people_count: peopleCount,
+      group_profile: groupProfile,
       pace,
       transport_mode: transportMode,
       interests
@@ -229,6 +238,34 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
               <span>₹25k</span>
               <span>₹50k (Luxury)</span>
             </div>
+          </div>
+        </div>
+
+        {/* Traveler Group Profile */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center space-x-1.5">
+            <Users className="w-3.5 h-3.5 text-amber-400" />
+            <span>Traveler Group Profile (Calibrated Fatigue)</span>
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {GROUP_PROFILES.map(gp => {
+              const active = groupProfile === gp.id;
+              return (
+                <button
+                  type="button"
+                  key={gp.id}
+                  onClick={() => setGroupProfile(gp.id as 'default' | 'young_solo' | 'family' | 'elderly')}
+                  className={`p-2.5 rounded-xl border text-left transition-all ${
+                    active
+                      ? 'bg-amber-500/10 border-amber-500/60 text-white shadow-sm'
+                      : 'bg-[#161922] border-[#222736] text-gray-400 hover:border-gray-700'
+                  }`}
+                >
+                  <div className="text-xs font-semibold text-white">{gp.label}</div>
+                  <div className="text-[10px] text-gray-500 line-clamp-1 mt-0.5">{gp.desc}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 

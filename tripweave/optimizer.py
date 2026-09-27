@@ -21,7 +21,8 @@ class TripOptimizer:
         max_total_budget: Optional[int] = None,
         max_transport_budget: Optional[int] = None,
         start_date: Optional[date] = None,
-        variant_type: PlanVariantType = PlanVariantType.BALANCED
+        variant_type: PlanVariantType = PlanVariantType.BALANCED,
+        locked_activities: Optional[List[str]] = None
     ):
         self.places = places
         self.days = days
@@ -34,6 +35,7 @@ class TripOptimizer:
         self.max_transport_budget = max_transport_budget
         self.start_date = start_date
         self.variant_type = variant_type
+        self.locked_activities = [a.strip().lower() for a in (locked_activities or []) if a.strip()]
         
         # Find which place is our hotel (the start and end point of every day)
         self.hotel_index = next((i for i, p in enumerate(places) if p.place_id == hotel_id), 0)
@@ -156,12 +158,16 @@ class TripOptimizer:
 
             # --- Disjunction (Drop Penalty) ---
             # Crucial: Allows the solver to drop places instead of failing when schedule is packed!
-            base_drop_penalty = 2000
-            # Higher penalty if it matches user's interests (solver works harder to keep it)
-            if any(interest.lower() in [t.lower() for t in place.tags] for interest in self.interests):
-                base_drop_penalty += 1500
-            if place.golden_hour_recommended:
-                base_drop_penalty += 1000
+            is_locked = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
+            if is_locked:
+                base_drop_penalty = 1_000_000  # Strict user pin constraint
+            else:
+                base_drop_penalty = 2000
+                # Higher penalty if it matches user's interests (solver works harder to keep it)
+                if any(interest.lower() in [t.lower() for t in place.tags] for interest in self.interests):
+                    base_drop_penalty += 1500
+                if place.golden_hour_recommended:
+                    base_drop_penalty += 1000
                 
             routing.AddDisjunction([index], base_drop_penalty)
 
@@ -304,14 +310,17 @@ class TripOptimizer:
                         exp_tag = "🌙 Scheduled for Evening Illumination"
                         
                     best_vp = place.best_viewpoints[0] if place.best_viewpoints else None
+                    is_pinned = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
 
                     activities.append(ScheduledActivity(
                         place_name=place.name,
+                        place_type=getattr(place, "place_type", "attraction"),
                         lat=place.lat,
                         lng=place.lng,
                         start_time=self._minutes_to_clock_time(start_minute),
                         end_time=self._minutes_to_clock_time(start_minute + place.duration_minutes),
                         estimated_cost_inr=place_cost,
+                        is_locked=is_pinned,
                         experience_tag=exp_tag,
                         recommended_viewpoint=best_vp,
                         verification_status=getattr(place, "verification_status", "curated_seed"),

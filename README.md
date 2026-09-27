@@ -4,7 +4,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-14.2-black?style=flat-square&logo=next.js&logoColor=white)](https://nextjs.org)
 [![OR-Tools](https://img.shields.io/badge/Google_OR--Tools-9.10-4285F4?style=flat-square&logo=google&logoColor=white)](https://developers.google.com/optimization)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
-[![Tests](https://img.shields.io/badge/Tests-18%2F18_Passing-brightgreen?style=flat-square)](#automated-testing)
+[![Tests](https://img.shields.io/badge/Tests-23%2F23_Passing-brightgreen?style=flat-square)](#automated-testing)
 
 TripWeave is an end-to-end, anti-hallucination travel synthesis and route optimization engine. Unlike generative AI itineraries that frequently suggest closed venues, impossible transit times, or fictional budgets, TripWeave pairs **Google OR-Tools VRPTW (Vehicle Routing Problem with Time Windows)** with deterministic physics and astronomical calculation to construct verified, mathematically optimal travel itineraries.
 
@@ -17,21 +17,24 @@ TripWeave is an end-to-end, anti-hallucination travel synthesis and route optimi
 - **Trip-Wide Global Budget Constraints**: Uses in-solver cumulative vehicle variables (`solver.Sum([dim.CumulVar(routing.End(v)) for v in range(days)]) <= cap`) allowing flexible budget allocation across days while guaranteeing the overall trip cap.
 - **Strict Transport Cap Enforcement**: User-selected transport limits (`max_budget_inr`) are strictly maintained across all generated variants (*Budget*, *Balanced*, *Comfort*).
 - **Minimum Useful Plan Guardrail**: Guarantees itineraries contain substantive sightseeing visits; tight-constraint infeasibility returns explicit HTTP 422 errors instead of 0-visit plans.
+- **Pinned / Locked Activities (v0.2)**: Travelers can pin specific must-visit attractions (`locked_activities`), which the solver treats with strict high-penalty non-drop disjunctions.
 
-### 2. Physical & Astronomical Modeling
+### 2. Physical, Astronomical & Climatological Modeling
 - **Great-Circle Haversine Routing**: Point-to-point transit distances modeled using spherical trigonometry with mode-specific Indian urban velocity calibrations (Cab: 22 km/h, Auto: 18 km/h, Metro: 32 km/h, Walk: 4.5 km/h).
 - **Date-Specific NOAA Solar Calculations**: Accurately computes solar noon, twilight, and sunset for any day of the year, scheduling scenic viewpoints during actual golden hour windows.
+- **Open-Meteo Weather Integration**: Real-time daily forecast querying temperature, rain probability, and heat advisories (> 38°C) with deterministic climatological fallback for 100% offline resilience.
 - **Day-of-Week Closures**: Automatically accounts for museum and monument rest days (e.g., Salar Jung Museum Friday closures).
 - **Full-Day Return Window Audit**: Verifies complete return journeys to the hotel depot, ensuring travelers return safely before late-night cutoffs (9:00 PM cutoff error, 8:00 PM warning).
 
-### 3. Multi-City Hubs & Overnight Bases
+### 3. Explainability & Transparent Decision Audits
+- **"Why This Hotel?" Rationale**: Clear decision trace explaining centroid transit savings, budget tier alignment, and room capacity.
+- **"Why Not X?" Candidate Omission Audit**: Comprehensive analysis of every omitted attraction from the city pool, categorizing reasons (`closed_on_day`, `budget_limit`, `pace_limit`, `geographic_detour`) and giving actionable traveler guidance.
+- **Smart Expense Simulator**: Interactive category breakdown (Lodging, Local Transit, Sightseeing, Estimated Dining, Safe Unallocated Buffer).
+
+### 4. Multi-City Hubs & Calibrated Fatigue
 - **Supported Cities**: Curated, verified destination datasets for **Hyderabad**, **Delhi**, and **Jaipur**.
 - **Accurate Geocoding**: Real coordinate resolution for City Center hubs (Abids, Connaught Place, MI Road), Railway Stations, and Airports (RGIA, IGI T3, JAI).
-- **Centroid Hotel Depot**: Multi-day itineraries select an optimal geographic centroid hotel by tier (*Dorm/Hostel*, *Budget Hotel*, *Premium Boutique*), ensuring minimal commute overhead.
-
-### 4. Verification & Fatigue Analytics
-- **Independent Feasibility Verifier**: A decoupled audit engine scores every plan (0–100) across 7 objective criteria: activity density, closure compliance, transit physics, budget bounds, transport cap, accounting reconciliation, and return transit feasibility.
-- **Fatigue & Pace Engine**: Analyzes cumulative daily walking vs vehicle transit against traveler pace preferences (*Relaxed*, *Balanced*, *Packed*), alerting travelers to excessive walking loads.
+- **Group Profile Calibrated Fatigue**: Calibrates physical exertion across *Solo Travelers*, *Families with Children*, *Senior Travelers*, and *General Groups* with accessibility warnings.
 
 ### 5. Frontend & Export
 - **Next.js 14 Dark-Mode Cockpit**: Responsive dual-column layout with instant interactive synthesis.
@@ -54,6 +57,9 @@ TourGuide/
 │   ├── models.py                 # Pydantic v2 schemas and validation
 │   ├── optimizer.py              # OR-Tools VRPTW solver & budget dimension
 │   ├── verifier.py               # Independent physics & feasibility audit
+│   ├── explainability.py         # Decision trace & "Why Not X?" audit engine
+│   ├── weather.py                # Open-Meteo weather forecast provider
+│   ├── fatigue.py                # GroupProfile calibrated fatigue model
 │   ├── geocoding.py              # Haversine distance & origin hub resolver
 │   ├── solar.py                  # NOAA astronomical solar calculation
 │   └── config.py                 # Application settings and CORS configuration
@@ -64,7 +70,7 @@ TourGuide/
 │   │   ├── types/                # TypeScript contract matching backend models
 │   │   └── utils/                # Calendar .ics generator & formatting
 │   └── package.json
-├── test_api.py                   # 18 comprehensive automated tests
+├── test_api.py                   # 23 comprehensive automated tests
 ├── requirements.txt              # Backend dependencies
 ├── start.ps1                     # PowerShell launch script
 └── start.bat                     # Windows Batch launch script
@@ -162,6 +168,11 @@ python test_api.py
 16. **Full-Day Return Window Audit**: Verifies depot return travel time within operating limits.
 17. **Variant Transport Cap Preservation**: Confirms user transport budget is preserved across all variants.
 18. **City Center Origin Resolution**: Verifies city center hubs for all supported cities.
+19. **Weather Provider Integration**: Live Open-Meteo forecasts and seasonal climatological fallbacks.
+20. **Group Profile Calibrated Fatigue**: Verifies higher exertion weighting and customized advice for elderly vs solo travelers.
+21. **Stage 10 Explainability & "Why Not X?"**: Verifies structured reasons and suggested fixes for omitted attractions.
+22. **User-Pinned Activities**: Verifies strict non-drop enforcement and `is_locked` tagging on pinned stops.
+23. **Smart Expense Breakdown**: Verifies accurate category-wise cost allocation across lodging, transit, activities, and dining.
 
 ### Run Frontend Type Check
 From the `web/` directory:
