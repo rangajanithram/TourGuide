@@ -203,29 +203,61 @@ def run_tests():
         print(f"   ✅ Infeasible Budget Successfully Blocked by Guardrail: {e.detail}")
     assert caught_guard, "Expected HTTPException 422 for budget violation!"
 
-    # Test 14: Strict Transport Budget Cap Enforcement
-    print("\n1️⃣4️⃣ Testing Strict Transport Budget Cap Enforcement...")
+    # Test 14: Strict Transport Budget Cap Enforcement & Minimum Useful Plan Guarantee
+    print("\n1️⃣4️⃣ Testing Strict Transport Budget Cap Enforcement & Useful Plan...")
     transport_cap_req = TripRequest(
         destination="Hyderabad",
         days=1,
         budget_inr=15000,
         people_count=1,
-        transport_mode="cab",
-        transport_pref=TransportPreference(mode=TransportMode.CAB, max_budget_inr=300)
+        transport_mode="auto",
+        transport_pref=TransportPreference(mode=TransportMode.AUTO, max_budget_inr=400)
     )
     cap_plan = generate_itinerary(transport_cap_req)
-    assert cap_plan.estimated_transport_cost_inr <= 300, f"Transport cost ₹{cap_plan.estimated_transport_cost_inr} exceeded cap ₹300!"
+    total_visits = sum(len(d.activities) for d in cap_plan.days)
+    assert total_visits >= 2, f"Expected at least 2 visits, got {total_visits}"
+    assert 0 < cap_plan.estimated_transport_cost_inr <= 400, f"Transport cost ₹{cap_plan.estimated_transport_cost_inr} exceeded cap ₹400 or was 0!"
     assert cap_plan.verification_report.is_valid is True, f"Verifier flagged valid capped plan: {cap_plan.verification_report.errors}"
     assert any("Transport Cap Verified" in chk for chk in cap_plan.verification_report.checks_passed)
-    print(f"   ✅ Transport Cap Strictly Enforced: ₹{cap_plan.estimated_transport_cost_inr} <= ₹300 limit")
+    print(f"   ✅ Transport Cap Strictly Enforced: ₹{cap_plan.estimated_transport_cost_inr} <= ₹400 with {total_visits} useful visits")
 
-    # Test 15: Astronomical Golden Hour Uses Exact Trip Date
-    print("\n1️⃣5️⃣ Testing Date-Specific NOAA Sunset Shift (June vs Dec)...")
+    # Impossible transport cap must raise HTTPException 422
+    impossible_cap_req = TripRequest(
+        destination="Hyderabad",
+        days=1,
+        budget_inr=15000,
+        people_count=1,
+        transport_mode="cab",
+        transport_pref=TransportPreference(mode=TransportMode.CAB, max_budget_inr=10)
+    )
+    caught_cap = False
+    try:
+        generate_itinerary(impossible_cap_req)
+    except HTTPException:
+        caught_cap = True
+        print("   ✅ Impossible Transport Cap Successfully Blocked by 422 Guardrail")
+    assert caught_cap, "Expected HTTPException 422 for impossible transport cap"
+
+    # Test 15: Astronomical Golden Hour Uses Exact Trip Date & Receives Experience Tag
+    print("\n1️⃣5️⃣ Testing Date-Specific NOAA Sunset Shift & Optimizer Tagging...")
     gh_june_start, sunset_june = get_golden_hour_window(17.3850, 78.4867, target_date=date(2026, 6, 21))
     gh_dec_start, sunset_dec = get_golden_hour_window(17.3850, 78.4867, target_date=date(2026, 12, 21))
-    # In Hyderabad, summer solstice sunset (~18:50 IST = 650m) is ~1 hr later than winter solstice (~17:45 IST = 585m)
-    assert sunset_june > sunset_dec + 45, f"Expected summer sunset to be at least 45m later than winter! June: {sunset_june}m, Dec: {sunset_dec}m"
-    print(f"   ✅ Astronomical Shift Verified: June Sunset {sunset_june}m from 8am vs Dec Sunset {sunset_dec}m from 8am (Δ = {sunset_june - sunset_dec} mins)")
+    assert sunset_june > sunset_dec + 45, f"Expected summer sunset to be at least 45m later than winter!"
+    print(f"   ✅ Astronomical Shift: June Sunset {sunset_june}m from 8am vs Dec Sunset {sunset_dec}m from 8am (Δ = {sunset_june - sunset_dec} mins)")
+
+    # Verify optimizer assigns golden hour tag on June 21
+    june_req = TripRequest(
+        destination="Hyderabad",
+        start_date=date(2026, 6, 21),
+        days=1,
+        budget_inr=8000,
+        people_count=1,
+        interests=["sunset", "history"]
+    )
+    june_plan = generate_itinerary(june_req)
+    gh_tagged = [a for a in june_plan.days[0].activities if a.experience_tag and "Golden Hour" in a.experience_tag]
+    assert len(gh_tagged) > 0, "Optimizer must schedule and tag a visit during June golden hour!"
+    print(f"   ✅ Date-Specific Golden Hour Scheduled & Tagged: '{gh_tagged[0].place_name}' at {gh_tagged[0].start_time} - {gh_tagged[0].end_time}")
 
     # Test 16: Verifier Audits Full Day Schedule & Hotel Return Commute
     print("\n1️⃣6️⃣ Testing Full Physical Schedule & Daily Hotel Return Commute...")
@@ -233,9 +265,32 @@ def run_tests():
     assert "total_transit_km" in ver_metrics
     assert cap_plan.verification_report.is_valid is True
     assert "Transit Physics: Routes physically feasible with realistic traffic speeds." in cap_plan.verification_report.checks_passed
-    print(f"   ✅ Full Day Schedule Audited: Transit {ver_metrics['total_transit_km']} across all daily return commutes.")
+    print(f"   ✅ Full Day Schedule Audited: Transit {ver_metrics['total_transit_km']} across daily return commutes.")
 
-    print("\n🎉 ALL 16 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 17: Variants Endpoint Preserves User Transport Cap
+    print("\n1️⃣7️⃣ Testing Variant Generation Preserves User Transport Cap...")
+    multi_cap_req = TripRequest(
+        destination="Hyderabad",
+        days=1,
+        budget_inr=15000,
+        people_count=1,
+        transport_mode="cab",
+        transport_pref=TransportPreference(mode=TransportMode.CAB, max_budget_inr=500)
+    )
+    multi_cap_plan = generate_variants(multi_cap_req)
+    for v_name, v_plan in multi_cap_plan.variants.items():
+        assert v_plan.estimated_transport_cost_inr <= 500, f"Variant '{v_name}' transport ₹{v_plan.estimated_transport_cost_inr} exceeded cap ₹500!"
+        assert v_plan.verification_report.is_valid is True
+    print(f"   ✅ All 3 Variants Respected User Transport Cap: Budget (₹{multi_cap_plan.variants['budget'].estimated_transport_cost_inr}), Balanced (₹{multi_cap_plan.variants['balanced'].estimated_transport_cost_inr}), Comfort (₹{multi_cap_plan.variants['comfort'].estimated_transport_cost_inr})")
+
+    # Test 18: City Center Origin Resolution
+    print("\n1️⃣8️⃣ Testing City Center Origin Hub Resolution...")
+    c_name, c_lat, c_lng = LocationResolver.resolve_origin("hyderabad", origin_type="center")
+    assert "Abids" in c_name or "Center" in c_name, f"Unexpected center name: {c_name}"
+    assert 17.38 <= c_lat <= 17.40 and 78.47 <= c_lng <= 78.49
+    print(f"   ✅ City Center Origin Verified: {c_name} at ({c_lat:.4f}, {c_lng:.4f})")
+
+    print("\n🎉 ALL 18 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

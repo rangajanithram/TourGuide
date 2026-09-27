@@ -58,6 +58,13 @@ class ItineraryVerifier:
         hotel_lng = plan.hotel_summary.lng if plan.hotel_summary else 0.0
         mode = plan.transport_mode.value if hasattr(plan.transport_mode, "value") else str(plan.transport_mode)
 
+        # 0. Minimum Activity Density Check
+        total_activities_count = sum(len(d.activities) for d in plan.days)
+        if total_activities_count == 0:
+            errors.append("Empty Itinerary: No sightseeing activities could be scheduled within constraints.")
+        else:
+            checks_passed.append(f"Itinerary Activity Density: {total_activities_count} visits scheduled across {len(plan.days)} day(s).")
+
         # 1. Audit Each Day's Schedule
         for day in plan.days:
             prev_lat = hotel_lat

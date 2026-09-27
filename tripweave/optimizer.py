@@ -201,15 +201,17 @@ class TripOptimizer:
             budget_callback_index = routing.RegisterTransitCallback(step_cost_callback)
             hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
             available_budget = max(500, self.max_total_budget - hotel_total)
-            daily_budget_limit = available_budget // self.days
 
             routing.AddDimension(
                 budget_callback_index,
                 0,                   # No slack
-                daily_budget_limit,  # Vehicle max capacity strictly apportioned
+                available_budget,    # Allow vehicles to flex up to available budget
                 True,                # Start at 0
                 "DailyBudget"
             )
+            budget_dim = routing.GetDimensionOrDie("DailyBudget")
+            solver = routing.solver()
+            solver.Add(solver.Sum([budget_dim.CumulVar(routing.End(v)) for v in range(self.days)]) <= available_budget)
 
         # --- In-Solver Transport Fare Dimension ---
         if self.max_transport_budget:
@@ -219,15 +221,17 @@ class TripOptimizer:
                 return self.cost_matrix[from_node][to_node]
 
             transport_fare_callback_index = routing.RegisterTransitCallback(transport_fare_callback)
-            daily_transport_limit = self.max_transport_budget // self.days
 
             routing.AddDimension(
                 transport_fare_callback_index,
                 0,
-                daily_transport_limit,
+                self.max_transport_budget,
                 True,
                 "TransportFare"
             )
+            transport_dim = routing.GetDimensionOrDie("TransportFare")
+            solver = routing.solver()
+            solver.Add(solver.Sum([transport_dim.CumulVar(routing.End(v)) for v in range(self.days)]) <= self.max_transport_budget)
 
         # 4. Solve with Local Search
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
@@ -291,9 +295,10 @@ class TripOptimizer:
                     
                     exp_tag = None
                     day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
+                    end_minute = start_minute + place.duration_minutes
                     if place.golden_hour_recommended:
                         gh_start, gh_end = get_golden_hour_window(place.lat, place.lng, target_date=day_date)
-                        if start_minute >= gh_start and start_minute <= (gh_end + 30):
+                        if end_minute >= gh_start and start_minute <= (gh_end + 30):
                             exp_tag = "🌅 Scheduled for Astronomical Golden Hour Sunset"
                     elif place.night_view_recommended and start_minute >= 600:
                         exp_tag = "🌙 Scheduled for Evening Illumination"
@@ -422,6 +427,11 @@ class TripOptimizer:
                 transport_status = f"✅ ₹{total_transport_cost} (Within cap of ₹{self.max_transport_budget})"
             else:
                 transport_status = f"⚠️ ₹{total_transport_cost} (Exceeds cap of ₹{self.max_transport_budget})"
+
+        # Validate that the itinerary contains actual visits
+        total_visits = sum(len(d.activities) for d in day_plans)
+        if total_visits == 0:
+            raise Exception("No feasible sightseeing visits could be scheduled within the specified budget, time, and transit constraints.")
 
         return TripPlan(
             plan_name=f"TripWeave Prototype Itinerary ({self.variant_type.value.capitalize()} Variant)",

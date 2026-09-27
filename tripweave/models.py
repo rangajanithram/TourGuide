@@ -55,7 +55,8 @@ class TripRequest(BaseModel):
         if isinstance(data, dict):
             # 1. Map top-level transport_mode to transport_pref if not already set
             if "transport_mode" in data and not data.get("transport_pref"):
-                mode_str = str(data["transport_mode"]).lower()
+                raw_mode = data["transport_mode"]
+                mode_str = raw_mode.value if hasattr(raw_mode, "value") else str(raw_mode).lower()
                 data["transport_pref"] = TransportPreference(mode=TransportMode(mode_str))
 
             start = data.get("start_date")

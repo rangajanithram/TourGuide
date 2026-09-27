@@ -42,6 +42,12 @@ CITY_HUBS: Dict[str, Dict[str, Dict[str, Any]]] = {
             "lat": 17.4504,
             "lng": 78.3808,
             "aliases": ["hitec", "cyber towers", "madhapur", "gachibowli"]
+        },
+        "center": {
+            "name": "Abids / MG Road Central Hub",
+            "lat": 17.3895,
+            "lng": 78.4770,
+            "aliases": ["abids", "center", "city center", "mg road", "koti", "central hub", "hotel"]
         }
     },
     "delhi": {
@@ -76,7 +82,7 @@ CITY_HUBS: Dict[str, Dict[str, Dict[str, Any]]] = {
             "aliases": ["isbt", "kashmere gate", "bus stand", "bus terminal"]
         },
         "center": {
-            "name": "Connaught Place Central Hub",
+            "name": "Connaught Place Central Hub (Delhi)",
             "lat": 28.6315,
             "lng": 77.2167,
             "aliases": ["connaught place", "cp", "central delhi", "rajiv chowk"]
@@ -102,7 +108,7 @@ CITY_HUBS: Dict[str, Dict[str, Dict[str, Any]]] = {
             "aliases": ["sindhi camp", "bus stand", "bus station", "isbt jaipur"]
         },
         "center": {
-            "name": "Ajmeri Gate / MI Road",
+            "name": "Ajmeri Gate / MI Road (Jaipur)",
             "lat": 26.9168,
             "lng": 75.8202,
             "aliases": ["mi road", "ajmeri gate", "pink city center", "walled city"]
@@ -152,9 +158,13 @@ class LocationResolver:
             # If user typed a custom label without a known alias, return custom name with default hub coords
             return start_location.strip(), default_hub["lat"], default_hub["lng"]
 
-        # If origin_type was passed (e.g. 'airport', 'station', 'bus')
-        if origin_type and origin_type.lower() in city_dict:
-            hub = city_dict[origin_type.lower()]
+        # If origin_type was passed (e.g. 'airport', 'station', 'bus', 'center', 'hotel')
+        clean_origin = origin_type.lower().strip() if origin_type else "center"
+        if clean_origin in ["hotel", "center"]:
+            hub = city_dict.get("center") or default_hub
+            return hub["name"], hub["lat"], hub["lng"]
+        elif clean_origin in city_dict:
+            hub = city_dict[clean_origin]
             return hub["name"], hub["lat"], hub["lng"]
 
         return default_hub["name"], default_hub["lat"], default_hub["lng"]

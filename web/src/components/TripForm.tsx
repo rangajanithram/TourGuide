@@ -20,7 +20,7 @@ const CITIES = [
 ];
 
 const ORIGIN_HUBS = [
-  { id: 'hotel', label: 'Hotel Base', desc: 'Optimal Central Stay', icon: Building },
+  { id: 'center', label: 'City Center Hub', desc: 'Central Downtown Landmark Base', icon: Building },
   { id: 'station', label: 'Railway Station', desc: 'Central Train Station', icon: Train },
   { id: 'airport', label: 'Airport Hub', desc: 'Flight Terminal', icon: Plane },
 ];
@@ -55,7 +55,7 @@ const getFutureDate = (daysAhead: number): string => {
 
 export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
   const [destination, setDestination] = useState('hyderabad');
-  const [originType, setOriginType] = useState<'hotel' | 'station' | 'airport'>('hotel');
+  const [originType, setOriginType] = useState<'center' | 'station' | 'airport'>('center');
   const [startDate, setStartDate] = useState(() => getFutureDate(7));
   const [endDate, setEndDate] = useState(() => getFutureDate(9));
   const [budget, setBudget] = useState(15000);
@@ -137,7 +137,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
                 <button
                   key={hub.id}
                   type="button"
-                  onClick={() => setOriginType(hub.id as 'hotel' | 'station' | 'airport')}
+                  onClick={() => setOriginType(hub.id as 'center' | 'station' | 'airport')}
                   className={`p-2.5 text-left rounded-xl border transition-all ${
                     isSelected 
                       ? 'bg-amber-500/10 border-amber-500/50 text-white ring-1 ring-amber-500/30' 
@@ -153,6 +153,9 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
               );
             })}
           </div>
+          <p className="text-[11px] text-gray-500 mt-2">
+            * Day trips start and finish at this origin hub. Multi-day trips base overnight stays at an optimal centroid hotel.
+          </p>
         </div>
 
         {/* Date Range */}

@@ -123,7 +123,15 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
             day.fatigue_score = matched["score"]
             day.fatigue_level = matched["level"]
 
-    # 8. Post-Optimization Budget & Feasibility Guardrail
+    # 8. Minimum Useful Plan Guarantee
+    total_activities = sum(len(day.activities) for day in itinerary.days)
+    if total_activities == 0 or not itinerary.days:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Feasibility conflict: No feasible sightseeing visits could be scheduled within your budget (₹{request.budget_inr}) and transport constraints."
+        )
+
+    # 9. Post-Optimization Budget & Feasibility Guardrail
     if itinerary.total_cost_inr > request.budget_inr or not report.is_valid:
         error_msgs = report.errors if report.errors else [f"Final plan total ₹{itinerary.total_cost_inr} exceeded requested budget ₹{request.budget_inr}"]
         raise HTTPException(
@@ -169,17 +177,22 @@ def generate_variants(request: TripRequest):
     2. Balanced: Optimal trade-off with iconic golden-hour highlights.
     3. Comfort: Intensive pace (4 places/day) with cab transit.
     """
+    user_transport_cap = request.transport_pref.max_budget_inr if request.transport_pref else None
+
     # 1. Budget Variant (Relaxed pace, Auto transit, smart budget stay)
     budget_req = request.model_copy(deep=True)
     budget_req.pace = PacePreference.RELAXED
-    budget_req.transport_pref = TransportPreference(mode=TransportMode.AUTO)
+    budget_req.transport_pref = TransportPreference(mode=TransportMode.AUTO, max_budget_inr=user_transport_cap)
     if not budget_req.hotel_pref:
         budget_req.hotel_pref = HotelPreference(max_price_per_night_inr=1800)
     try:
         plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET)
-    except Exception:
-        budget_req.hotel_pref = request.hotel_pref
-        plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET)
+    except HTTPException as e:
+        if "hotel" in e.detail.lower() and budget_req.hotel_pref != request.hotel_pref:
+            budget_req.hotel_pref = request.hotel_pref
+            plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET)
+        else:
+            raise
 
     # 2. Balanced Variant (User default)
     plan_balanced = _build_single_plan(request, variant=PlanVariantType.BALANCED)
@@ -187,14 +200,17 @@ def generate_variants(request: TripRequest):
     # 3. Comfort Variant (Intensive pace, Cab transit, upgraded boutique lodging)
     comfort_req = request.model_copy(deep=True)
     comfort_req.pace = PacePreference.INTENSIVE
-    comfort_req.transport_pref = TransportPreference(mode=TransportMode.CAB)
+    comfort_req.transport_pref = TransportPreference(mode=TransportMode.CAB, max_budget_inr=user_transport_cap)
     if not comfort_req.hotel_pref:
         comfort_req.hotel_pref = HotelPreference(min_price_per_night_inr=2200)
     try:
         plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT)
-    except Exception:
-        comfort_req.hotel_pref = request.hotel_pref
-        plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT)
+    except HTTPException as e:
+        if "hotel" in e.detail.lower() and comfort_req.hotel_pref != request.hotel_pref:
+            comfort_req.hotel_pref = request.hotel_pref
+            plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT)
+        else:
+            raise
 
     travel_dates_str = f"{request.start_date.isoformat()} to {request.end_date.isoformat()}" if request.start_date and request.end_date else f"{request.days} Days"
 

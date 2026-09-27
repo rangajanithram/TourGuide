@@ -99,7 +99,7 @@ export interface TripFormData {
   people_count: number;
   pace: 'relaxed' | 'balanced' | 'intensive';
   transport_mode: 'cab' | 'auto' | 'metro' | 'walk';
-  origin_type?: 'hotel' | 'station' | 'airport';
+  origin_type?: 'hotel' | 'center' | 'station' | 'airport';
   start_location?: string;
   interests: string[];
 }
