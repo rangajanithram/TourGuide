@@ -147,6 +147,18 @@ class ItineraryVerifier:
                 total_transit_mins += ret_mins
                 total_computed_transport_cost += ret_cost
 
+                # Verify full physical day schedule window
+                hotel_arrival_min = prev_end_minute + ret_mins
+                # 8:00 AM is 0 min. 8:00 PM is 720 mins. 9:00 PM is 780 mins.
+                if hotel_arrival_min > 780:
+                    errors.append(
+                        f"Day Window Overflow: Day {day.day_number} return commute reaches hotel at {cls._minutes_to_clock_time(hotel_arrival_min)}, past the 9:00 PM physical cutoff."
+                    )
+                elif hotel_arrival_min > 720:
+                    warnings.append(
+                        f"Late Hotel Return: Day {day.day_number} return commute reaches hotel at {cls._minutes_to_clock_time(hotel_arrival_min)}, past the 8:00 PM target window."
+                    )
+
             # Check Day Cost accounting
             if day.day_cost_inr != day_activities_cost:
                 warnings.append(
@@ -181,14 +193,17 @@ class ItineraryVerifier:
         else:
             checks_passed.append(f"Budget Verified: ₹{plan.total_cost_inr} is within budget ₹{request.budget_inr}.")
 
+        # Enforce transport cap strictly as a hard error if exceeded
         if request.transport_pref and request.transport_pref.max_budget_inr:
-            if plan.estimated_transport_cost_inr > request.transport_pref.max_budget_inr:
-                warnings.append(
-                    f"Transport Cap Exceeded: Estimated ₹{plan.estimated_transport_cost_inr} exceeds target cap of ₹{request.transport_pref.max_budget_inr}."
+            reported_transport = plan.estimated_transport_cost_inr
+            actual_transport = total_computed_transport_cost
+            if reported_transport > request.transport_pref.max_budget_inr or actual_transport > request.transport_pref.max_budget_inr:
+                errors.append(
+                    f"Transport Cap Violation: Estimated transport ₹{max(reported_transport, actual_transport)} exceeds requested cap of ₹{request.transport_pref.max_budget_inr}."
                 )
             else:
                 checks_passed.append(
-                    f"Transport Cap Verified: ₹{plan.estimated_transport_cost_inr} <= ₹{request.transport_pref.max_budget_inr}."
+                    f"Transport Cap Verified: ₹{reported_transport} <= ₹{request.transport_pref.max_budget_inr}."
                 )
 
         if not errors:

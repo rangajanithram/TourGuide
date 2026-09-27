@@ -33,8 +33,6 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
   const hotelLat = hotel?.lat || 17.3850;
   const hotelLng = hotel?.lng || 78.4867;
 
-  const filterKey = `${plan.variant_type}-${selectedDay}-${plan.days.length}`;
-
   // Memoize coordinates based on selectedDay filter for auto-zoom
   const filteredCoords = useMemo(() => {
     const coords: [number, number][] = [];
@@ -53,6 +51,13 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
     });
     return coords;
   }, [hotel?.lat, hotel?.lng, plan.days, selectedDay]);
+
+  // Coordinate digest detects when a plan is re-synthesized for a different city or stops
+  const coordDigest = useMemo(() => {
+    return filteredCoords.map(c => `${c[0].toFixed(3)},${c[1].toFixed(3)}`).join(';');
+  }, [filteredCoords]);
+
+  const filterKey = `${plan.variant_type}-${selectedDay}-${coordDigest}`;
 
   const hotelIcon = L.divIcon({
     className: 'custom-hotel-pin',

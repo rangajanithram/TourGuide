@@ -146,7 +146,8 @@ class TripOptimizer:
 
             # Soft Golden Hour Preference (Respects closing time!)
             if place.golden_hour_recommended:
-                gh_start, gh_end = get_golden_hour_window(place.lat, place.lng)
+                trip_mid_date = (self.start_date + timedelta(days=self.days // 2)) if self.start_date else (date.today() + timedelta(days=self.days // 2))
+                gh_start, gh_end = get_golden_hour_window(place.lat, place.lng, target_date=trip_mid_date)
                 # If place closes before sunset, ideal arrival is bounded by max_arrival
                 # so the visitor is inside at the summit during sunset before gates close!
                 ideal_arrival = min(max_arrival, max(min_arrival, gh_start - (place.duration_minutes // 2)))
@@ -218,7 +219,7 @@ class TripOptimizer:
                 return self.cost_matrix[from_node][to_node]
 
             transport_fare_callback_index = routing.RegisterTransitCallback(transport_fare_callback)
-            daily_transport_limit = self.max_transport_budget if self.days == 1 else int((self.max_transport_budget / self.days) * 1.35) + 100
+            daily_transport_limit = self.max_transport_budget // self.days
 
             routing.AddDimension(
                 transport_fare_callback_index,
@@ -336,11 +337,17 @@ class TripOptimizer:
         hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
         grand_total = total_activities_cost + total_transport_cost + hotel_total
 
-        # --- Graceful Budget Trimming & Physically Coherent Schedule Recalculation ---
-        if self.max_total_budget and grand_total > self.max_total_budget:
+        # --- Graceful Budget & Transport Trimming & Physically Coherent Schedule Recalculation ---
+        budget_exceeded = bool(self.max_total_budget and grand_total > self.max_total_budget)
+        transport_exceeded = bool(self.max_transport_budget and total_transport_cost > self.max_transport_budget)
+
+        if budget_exceeded or transport_exceeded:
             pruned_any = False
             for day in reversed(day_plans):
-                while day.activities and grand_total > self.max_total_budget:
+                while day.activities and (
+                    (self.max_total_budget and grand_total > self.max_total_budget) or
+                    (self.max_transport_budget and total_transport_cost > self.max_transport_budget)
+                ):
                     pruned = day.activities.pop()
                     pruned_any = True
                     total_activities_cost -= pruned.estimated_cost_inr
