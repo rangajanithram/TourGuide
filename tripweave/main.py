@@ -24,11 +24,12 @@ app = FastAPI(
 # 2. Add CORS Middleware from Centralized Config
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 def get_database_places(destination: str = "hyderabad") -> List[Place]:
     """Loads curated places via the PlacesDataProvider abstraction."""
@@ -108,7 +109,13 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
         total_km = float(report.metrics.get("total_transit_km", "30.0 km").replace(" km", ""))
     except Exception:
         total_km = 30.0
-    fatigue_info = FatigueAnalyzer.evaluate_trip(itinerary.days, pace=request.pace, total_transit_km=total_km)
+    fatigue_info = FatigueAnalyzer.evaluate_trip(
+        itinerary.days, 
+        pace=request.pace, 
+        total_transit_km=total_km,
+        hotel_lat=selected_hotel.lat,
+        hotel_lng=selected_hotel.lng
+    )
     itinerary.fatigue_report = fatigue_info
     for day in itinerary.days:
         matched = next((d for d in fatigue_info["daily_breakdown"] if d["day_number"] == day.day_number), None)
@@ -116,11 +123,12 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
             day.fatigue_score = matched["score"]
             day.fatigue_level = matched["level"]
 
-    # 8. Post-Optimization Budget Guardrail
-    if not report.is_valid and itinerary.total_cost_inr > request.budget_inr:
+    # 8. Post-Optimization Budget & Feasibility Guardrail
+    if itinerary.total_cost_inr > request.budget_inr or not report.is_valid:
+        error_msgs = report.errors if report.errors else [f"Final plan total ₹{itinerary.total_cost_inr} exceeded requested budget ₹{request.budget_inr}"]
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Feasibility conflict: Final plan total (₹{itinerary.total_cost_inr}) exceeded budget (₹{request.budget_inr}). Errors: {'; '.join(report.errors)}"
+            detail=f"Feasibility conflict: {'; '.join(error_msgs)}"
         )
 
     return itinerary

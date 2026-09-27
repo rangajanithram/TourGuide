@@ -1,5 +1,13 @@
 import { TripPlan } from '../types/trip';
 
+function escapeIcsText(str: string): string {
+  return str
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n');
+}
+
 /**
  * Exports the complete TripPlan to a standard RFC 5545 iCalendar (.ics) file
  * compatible with Google Calendar, Apple Calendar, and Microsoft Outlook.
@@ -11,7 +19,18 @@ export function exportToIcs(plan: TripPlan, destination: string) {
     'PRODID:-//TourGuide//TripWeave Engine 1.0//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:TourGuide - ${destination} Itinerary`
+    `X-WR-CALNAME:TourGuide - ${escapeIcsText(destination)} Itinerary`,
+    'X-WR-TIMEZONE:Asia/Kolkata',
+    'BEGIN:VTIMEZONE',
+    'TZID:Asia/Kolkata',
+    'X-LIC-LOCATION:Asia/Kolkata',
+    'BEGIN:STANDARD',
+    'TZOFFSETFROM:+0530',
+    'TZOFFSETTO:+0530',
+    'TZNAME:IST',
+    'DTSTART:19700101T000000',
+    'END:STANDARD',
+    'END:VTIMEZONE'
   ];
 
   plan.days.forEach(day => {
@@ -36,25 +55,26 @@ export function exportToIcs(plan: TripPlan, destination: string) {
 
       const dtStart = `${year}${month}${d}T${parseTime(act.start_time)}`;
       const dtEnd = `${year}${month}${d}T${parseTime(act.end_time)}`;
-      const uid = `tourguide-${day.day_number}-${actIdx}-${Date.now()}@tourguide.local`;
+      // Deterministic RFC 5545 UID
+      const uid = `tourguide-${destination.toLowerCase()}-${plan.variant_type || 'bal'}-d${day.day_number}-${actIdx}-${dayDate}@tourguide.local`;
 
-      let description = `TourGuide Scheduled Visit: ${act.place_name}\\nEst Cost: ₹${act.estimated_cost_inr}\\nTime: ${act.start_time} - ${act.end_time}`;
+      let rawDesc = `TourGuide Scheduled Visit: ${act.place_name}\nEst Cost: ₹${act.estimated_cost_inr}\nTime: ${act.start_time} - ${act.end_time}`;
       if (act.recommended_viewpoint) {
         const vpName = act.recommended_viewpoint.viewpoint_name || act.recommended_viewpoint.name || 'Vantage Point';
-        description += `\\nBest Spot: ${vpName} - ${act.recommended_viewpoint.description}`;
+        rawDesc += `\nBest Spot: ${vpName} - ${act.recommended_viewpoint.description}`;
       }
       if (act.experience_tag) {
-        description += `\\nHighlight: ${act.experience_tag}`;
+        rawDesc += `\nHighlight: ${act.experience_tag}`;
       }
 
       icsLines.push(
         'BEGIN:VEVENT',
         `UID:${uid}`,
-        `SUMMARY:${act.place_name} (${destination})`,
-        `DESCRIPTION:${description.replace(/,/g, '\\,')}`,
-        `DTSTART:${dtStart}`,
-        `DTEND:${dtEnd}`,
-        `LOCATION:${act.lat && act.lng ? `${act.lat}, ${act.lng}` : destination}`,
+        `SUMMARY:${escapeIcsText(`${act.place_name} (${destination})`)}`,
+        `DESCRIPTION:${escapeIcsText(rawDesc)}`,
+        `DTSTART;TZID=Asia/Kolkata:${dtStart}`,
+        `DTEND;TZID=Asia/Kolkata:${dtEnd}`,
+        `LOCATION:${escapeIcsText(act.lat && act.lng ? `${act.lat}, ${act.lng}` : destination)}`,
         'STATUS:CONFIRMED',
         'END:VEVENT'
       );

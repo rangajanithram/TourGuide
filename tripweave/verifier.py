@@ -25,6 +25,17 @@ class ItineraryVerifier:
     Detects physical impossibilities, schedule overflows, and accounting discrepancies.
     """
 
+    @staticmethod
+    def _minutes_to_clock_time(mins_from_8am: int) -> str:
+        total_mins = 480 + mins_from_8am
+        hours = (total_mins // 60) % 24
+        minutes = total_mins % 60
+        period = "AM" if hours < 12 else "PM"
+        display_hour = hours if hours <= 12 else hours - 12
+        if display_hour == 0:
+            display_hour = 12
+        return f"{display_hour}:{minutes:02d} {period}"
+
     @classmethod
     def verify(
         cls, 
@@ -84,9 +95,9 @@ class ItineraryVerifier:
                     errors.append(
                         f"Opening Hour Violation: '{place.name}' scheduled at {act.start_time} before opening time ({place.open_time_mins}m from 8am)."
                     )
-                if place.close_time_mins is not None and end_min > (place.close_time_mins + 15): # 15 min grace
-                    warnings.append(
-                        f"Closing Hour Warning: '{place.name}' scheduled until {act.end_time}, which nears or passes closing time."
+                if place.close_time_mins is not None and end_min > place.close_time_mins:
+                    errors.append(
+                        f"Closing Hour Violation: '{place.name}' scheduled until {act.end_time}, which passes closing time ({place.close_time_mins}m from 8am)."
                     )
 
                 # Check 3: Transit Physics & Speed Feasibility
@@ -99,19 +110,27 @@ class ItineraryVerifier:
                 total_transit_mins += min_transit_mins
                 total_computed_transport_cost += leg_cost
 
-                # Elapsed time between previous departure and this arrival
-                elapsed_transit = start_min - prev_end_minute
-                if elapsed_transit < (min_transit_mins - 5): # Allow 5m buffer
-                    warnings.append(
-                        f"Tight Transit: Day {day.day_number} leg to '{act.place_name}' allocates {elapsed_transit}m vs estimated {min_transit_mins}m."
-                    )
-                
-                if elapsed_transit > 0:
-                    implied_speed = (leg_km / (elapsed_transit / 60.0))
-                    if implied_speed > 80.0:
+                if i == 0:
+                    # First leg: departure from hotel
+                    hotel_dep_min = start_min - min_transit_mins
+                    if hotel_dep_min < -60: # Departs before 7:00 AM (8am is 0)
                         warnings.append(
-                            f"High Speed Warning: Day {day.day_number} commute to '{act.place_name}' implies {implied_speed:.1f} km/h urban transit."
+                            f"Early Departure: Day {day.day_number} requires departing hotel at {cls._minutes_to_clock_time(hotel_dep_min)} to reach '{act.place_name}' by {act.start_time}."
                         )
+                else:
+                    # Subsequent legs: elapsed time between previous departure and this arrival
+                    elapsed_transit = start_min - prev_end_minute
+                    if elapsed_transit < (min_transit_mins - 5): # Allow 5m buffer
+                        warnings.append(
+                            f"Tight Transit: Day {day.day_number} leg to '{act.place_name}' allocates {elapsed_transit}m vs estimated {min_transit_mins}m."
+                        )
+                    
+                    if elapsed_transit > 0:
+                        implied_speed = (leg_km / (elapsed_transit / 60.0))
+                        if implied_speed > 80.0:
+                            warnings.append(
+                                f"High Speed Warning: Day {day.day_number} commute to '{act.place_name}' implies {implied_speed:.1f} km/h urban transit."
+                            )
 
                 prev_lat = act.lat
                 prev_lng = act.lng
@@ -137,11 +156,27 @@ class ItineraryVerifier:
 
         # 2. Budget & Accounting Consistency Audit
         hotel_cost = plan.hotel_summary.total_cost_inr if plan.hotel_summary else 0
-        computed_grand_total = total_computed_activities_cost + plan.estimated_transport_cost_inr + hotel_cost
+        computed_grand_total = total_computed_activities_cost + total_computed_transport_cost + hotel_cost
 
-        if plan.total_cost_inr > request.budget_inr:
+        # Reconcile transport cost
+        if abs(total_computed_transport_cost - plan.estimated_transport_cost_inr) > 25:
             errors.append(
-                f"Budget Violation: Plan total ₹{plan.total_cost_inr} exceeds requested budget ₹{request.budget_inr}."
+                f"Transport Cost Accounting Mismatch: recalculated route transit ₹{total_computed_transport_cost} does not match reported plan transit ₹{plan.estimated_transport_cost_inr}."
+            )
+        else:
+            checks_passed.append("Transport Cost Reconciled: Route legs match estimated transport cost.")
+
+        # Reconcile grand total
+        if abs(computed_grand_total - plan.total_cost_inr) > 25:
+            errors.append(
+                f"Grand Total Accounting Mismatch: recalculated total ₹{computed_grand_total} (activities: ₹{total_computed_activities_cost}, transit: ₹{total_computed_transport_cost}, lodging: ₹{hotel_cost}) does not match reported plan total ₹{plan.total_cost_inr}."
+            )
+        else:
+            checks_passed.append("Grand Total Reconciled: Sum of activities, transit, and lodging matches total cost.")
+
+        if plan.total_cost_inr > request.budget_inr or computed_grand_total > request.budget_inr:
+            errors.append(
+                f"Budget Violation: Plan total ₹{max(plan.total_cost_inr, computed_grand_total)} exceeds requested budget ₹{request.budget_inr}."
             )
         else:
             checks_passed.append(f"Budget Verified: ₹{plan.total_cost_inr} is within budget ₹{request.budget_inr}.")
@@ -172,7 +207,7 @@ class ItineraryVerifier:
             "total_transit_time": f"{total_transit_mins} mins",
             "total_sightseeing_time": f"{total_activity_time_mins} mins",
             "budget_utilization": f"{(plan.total_cost_inr / request.budget_inr * 100):.1f}%",
-            "data_provenance": "100% Curated & Ground-Audited"
+            "data_provenance": "Curated Prototype Seed Dataset"
         }
 
         return VerificationReport(

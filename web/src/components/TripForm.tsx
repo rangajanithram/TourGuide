@@ -47,11 +47,17 @@ const INTEREST_TAGS = [
   { id: 'sunset', label: 'Golden Hour Photography' },
 ];
 
+const getFutureDate = (daysAhead: number): string => {
+  const d = new Date();
+  d.setDate(d.getDate() + daysAhead);
+  return d.toISOString().split('T')[0];
+};
+
 export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
   const [destination, setDestination] = useState('hyderabad');
   const [originType, setOriginType] = useState<'hotel' | 'station' | 'airport'>('hotel');
-  const [startDate, setStartDate] = useState('2026-10-15');
-  const [endDate, setEndDate] = useState('2026-10-17');
+  const [startDate, setStartDate] = useState(() => getFutureDate(7));
+  const [endDate, setEndDate] = useState(() => getFutureDate(9));
   const [budget, setBudget] = useState(15000);
   const [peopleCount, setPeopleCount] = useState(2);
   const [pace, setPace] = useState<'relaxed' | 'balanced' | 'intensive'>('balanced');

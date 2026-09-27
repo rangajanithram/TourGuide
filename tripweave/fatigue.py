@@ -3,8 +3,9 @@ Fatigue & Pace Engine (Stage 7 of Engineering Blueprint).
 Computes physical fatigue scores based on transit distance, transfers,
 activity density, and user pace preferences.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from tripweave.models import DayPlan, PacePreference
+from tripweave.distance import calculate_distance_km
 
 class FatigueAnalyzer:
     """
@@ -29,7 +30,8 @@ class FatigueAnalyzer:
         coeffs = cls.FATIGUE_COEFFICIENTS.get(pace_key, cls.FATIGUE_COEFFICIENTS["balanced"])
 
         act_count = len(day.activities)
-        transfers = max(0, act_count) # transfers between stops + depot return
+        # Transfers: Hotel -> 1 -> 2 -> ... -> N -> Hotel (N + 1 legs if N > 0)
+        transfers = (act_count + 1) if act_count > 0 else 0
 
         # Raw score
         raw_score = (
@@ -67,7 +69,9 @@ class FatigueAnalyzer:
         cls, 
         days: List[DayPlan], 
         pace: PacePreference = PacePreference.BALANCED,
-        total_transit_km: float = 30.0
+        total_transit_km: float = 30.0,
+        hotel_lat: Optional[float] = None,
+        hotel_lng: Optional[float] = None
     ) -> Dict[str, Any]:
         if not days:
             return {
@@ -77,10 +81,24 @@ class FatigueAnalyzer:
             }
 
         daily_results = []
-        km_per_day = total_transit_km / len(days) if days else 10.0
+        fallback_km_per_day = total_transit_km / len(days) if days else 10.0
 
         for day in days:
-            eval_day = cls.evaluate_day(day, pace=pace, est_transit_km=km_per_day)
+            # Calculate actual route transit km for this specific day
+            if hotel_lat is not None and hotel_lng is not None and day.activities:
+                prev_lat, prev_lng = hotel_lat, hotel_lng
+                day_km = 0.0
+                for act in day.activities:
+                    if act.lat is not None and act.lng is not None:
+                        day_km += calculate_distance_km(prev_lat, prev_lng, act.lat, act.lng)
+                        prev_lat, prev_lng = act.lat, act.lng
+                # Return leg to hotel
+                day_km += calculate_distance_km(prev_lat, prev_lng, hotel_lat, hotel_lng)
+                actual_km = day_km
+            else:
+                actual_km = fallback_km_per_day
+
+            eval_day = cls.evaluate_day(day, pace=pace, est_transit_km=actual_km)
             daily_results.append({
                 "day_number": day.day_number,
                 **eval_day
@@ -100,3 +118,4 @@ class FatigueAnalyzer:
             "overall_pace": overall_level,
             "daily_breakdown": daily_results
         }
+

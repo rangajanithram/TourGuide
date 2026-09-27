@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { TripPlan } from '../types/trip';
@@ -11,15 +11,18 @@ interface MapComponentProps {
   onSelectDay?: (day: number | 'all') => void;
 }
 
-// Map Auto-Fitter to zoom & fit all markers into viewport
-function MapAutoFitter({ coordinates }: { coordinates: [number, number][] }) {
+// Map Auto-Fitter to zoom & fit all markers into viewport only when day filter or variant changes
+function MapAutoFitter({ coordinates, filterKey }: { coordinates: [number, number][]; filterKey: string }) {
   const map = useMap();
+  const prevKeyRef = useRef<string>('');
+
   useEffect(() => {
-    if (coordinates.length > 0) {
+    if (coordinates.length > 0 && prevKeyRef.current !== filterKey) {
+      prevKeyRef.current = filterKey;
       const bounds = L.latLngBounds(coordinates);
       map.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
     }
-  }, [coordinates, map]);
+  }, [coordinates, filterKey, map]);
   return null;
 }
 
@@ -30,21 +33,26 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
   const hotelLat = hotel?.lat || 17.3850;
   const hotelLng = hotel?.lng || 78.4867;
 
-  // Collect coordinates based on selectedDay filter for auto-zoom
-  const filteredCoords: [number, number][] = [];
-  if (hotel?.lat && hotel?.lng) {
-    filteredCoords.push([hotel.lat, hotel.lng]);
-  }
+  const filterKey = `${plan.variant_type}-${selectedDay}-${plan.days.length}`;
 
-  plan.days.forEach(day => {
-    if (selectedDay === 'all' || selectedDay === day.day_number) {
-      day.activities.forEach(act => {
-        if (act.lat && act.lng) {
-          filteredCoords.push([act.lat, act.lng]);
-        }
-      });
+  // Memoize coordinates based on selectedDay filter for auto-zoom
+  const filteredCoords = useMemo(() => {
+    const coords: [number, number][] = [];
+    if (hotel?.lat && hotel?.lng) {
+      coords.push([hotel.lat, hotel.lng]);
     }
-  });
+
+    plan.days.forEach(day => {
+      if (selectedDay === 'all' || selectedDay === day.day_number) {
+        day.activities.forEach(act => {
+          if (act.lat && act.lng) {
+            coords.push([act.lat, act.lng]);
+          }
+        });
+      }
+    });
+    return coords;
+  }, [hotel?.lat, hotel?.lng, plan.days, selectedDay]);
 
   const hotelIcon = L.divIcon({
     className: 'custom-hotel-pin',
@@ -139,7 +147,7 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {filteredCoords.length > 0 && <MapAutoFitter coordinates={filteredCoords} />}
+        {filteredCoords.length > 0 && <MapAutoFitter coordinates={filteredCoords} filterKey={filterKey} />}
 
         {/* Hotel Pin */}
         {hotel?.lat && hotel?.lng && (

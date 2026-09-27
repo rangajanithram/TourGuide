@@ -131,9 +131,9 @@ class Place(BaseModel):
         return data
     
     # Data Provenance & Verification
-    verification_status: str = Field(default="verified", description="Data verification status: 'verified', 'estimated', 'unknown'")
+    verification_status: str = Field(default="curated_seed", description="Data verification status: 'curated_seed', 'verified', 'estimated'")
     last_verified_date: Optional[str] = Field(default="2026-09-01", description="Last date ticket rates and hours were audited")
-    source_reference: Optional[str] = Field(default="Official Tourism Dept / Ground Audit", description="Source of opening hours and fees")
+    source_reference: Optional[str] = Field(default="Curated City Seed Dataset", description="Source of opening hours and fees")
     
     # Hotel specific fields
     price_per_night_inr: Optional[int] = Field(None, ge=0)
@@ -169,9 +169,9 @@ class ScheduledActivity(BaseModel):
     estimated_cost_inr: int
     experience_tag: Optional[str] = None
     recommended_viewpoint: Optional[ViewpointRecommendation] = None
-    verification_status: Optional[str] = Field(default="verified", description="Data provenance status")
+    verification_status: Optional[str] = Field(default="curated_seed", description="Data provenance status")
     last_verified_date: Optional[str] = Field(default="2026-09-01", description="Last date ticket rates and hours were audited")
-    source_reference: Optional[str] = Field(default="Official Tourism Dept / Ground Audit", description="Source of opening hours and fees")
+    source_reference: Optional[str] = Field(default="Curated City Seed Dataset", description="Source of opening hours and fees")
 
 class DayPlan(BaseModel):
     day_number: int

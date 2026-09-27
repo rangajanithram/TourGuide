@@ -200,12 +200,12 @@ class TripOptimizer:
             budget_callback_index = routing.RegisterTransitCallback(step_cost_callback)
             hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
             available_budget = max(500, self.max_total_budget - hotel_total)
-            daily_budget_limit = available_budget if self.days == 1 else int((available_budget / self.days) * 1.35) + 200
+            daily_budget_limit = available_budget // self.days
 
             routing.AddDimension(
                 budget_callback_index,
                 0,                   # No slack
-                daily_budget_limit,  # Vehicle max capacity
+                daily_budget_limit,  # Vehicle max capacity strictly apportioned
                 True,                # Start at 0
                 "DailyBudget"
             )
@@ -308,9 +308,9 @@ class TripOptimizer:
                         estimated_cost_inr=place_cost,
                         experience_tag=exp_tag,
                         recommended_viewpoint=best_vp,
-                        verification_status=getattr(place, "verification_status", "verified"),
+                        verification_status=getattr(place, "verification_status", "curated_seed"),
                         last_verified_date=getattr(place, "last_verified_date", "2026-09-01"),
-                        source_reference=getattr(place, "source_reference", "Official Tourism Dept / Ground Audit")
+                        source_reference=getattr(place, "source_reference", "Curated City Seed Dataset")
                     ))
                     day_places.append(place)
                     day_cost += place_cost
@@ -340,7 +340,7 @@ class TripOptimizer:
         if self.max_total_budget and grand_total > self.max_total_budget:
             pruned_any = False
             for day in reversed(day_plans):
-                while len(day.activities) > 1 and grand_total > self.max_total_budget:
+                while day.activities and grand_total > self.max_total_budget:
                     pruned = day.activities.pop()
                     pruned_any = True
                     total_activities_cost -= pruned.estimated_cost_inr
@@ -367,20 +367,46 @@ class TripOptimizer:
                     curr_minute = 60  # Start tour at 9:00 AM (60 minutes from 8:00 AM)
                     prev_lat, prev_lng = hotel_place.lat, hotel_place.lng
                     surviving_places = []
+                    valid_activities = []
+                    recalc_day_cost = 0
+
                     for act in day.activities:
                         act_place = next(p for p in self.places if p.name == act.place_name)
-                        surviving_places.append(act_place)
                         travel_mins, _ = get_travel_metrics(prev_lat, prev_lng, act_place.lat, act_place.lng, mode=self.transport_mode, people_count=self.people_count)
                         arrival_minute = curr_minute + travel_mins
                         start_minute = max(arrival_minute, act_place.open_time_mins if act_place.open_time_mins is not None else 0)
                         end_minute = start_minute + act_place.duration_minutes
+
+                        # Hard constraint: Skip if exceeding closing hours
+                        if act_place.close_time_mins is not None and end_minute > act_place.close_time_mins:
+                            continue
+
                         act.start_time = self._minutes_to_clock_time(start_minute)
                         act.end_time = self._minutes_to_clock_time(end_minute)
                         curr_minute = end_minute
                         prev_lat, prev_lng = act_place.lat, act_place.lng
+                        valid_activities.append(act)
+                        surviving_places.append(act_place)
+                        recalc_day_cost += act.estimated_cost_inr
 
+                    day.activities = valid_activities
+                    day.day_cost_inr = recalc_day_cost
                     if surviving_places:
                         day.cluster_name = clusterer.get_cluster_name(surviving_places)
+
+                # Recompute total activities and transport costs after time-filtering
+                total_activities_cost = sum(d.day_cost_inr for d in day_plans)
+                total_transport_cost = 0
+                for d in day_plans:
+                    if not d.activities:
+                        continue
+                    stop_nodes = [self.hotel_index] + [
+                        next(i for i, p in enumerate(self.places) if p.name == a.place_name)
+                        for a in d.activities
+                    ] + [self.hotel_index]
+                    for s in range(len(stop_nodes) - 1):
+                        total_transport_cost += self.cost_matrix[stop_nodes[s]][stop_nodes[s+1]]
+                grand_total = total_activities_cost + total_transport_cost + hotel_total
 
         # Evaluate Transport Budget Status
         transport_status = "Within budget"

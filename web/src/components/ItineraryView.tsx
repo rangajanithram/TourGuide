@@ -163,7 +163,7 @@ export default function ItineraryView({
               <ShieldCheck className="w-5 h-5 text-emerald-400" />
               <div>
                 <h4 className="font-bold text-sm text-white">Independent Physics & Feasibility Audit</h4>
-                <p className="text-[11px] text-gray-400">100% verified against real-world opening hours, traffic physics & budget limits</p>
+                <p className="text-[11px] text-gray-400">Deterministic audit against opening hours, traffic physics & budget limits (Curated Seed Data)</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">

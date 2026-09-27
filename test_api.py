@@ -148,7 +148,7 @@ def run_tests():
     # Test 9: Data Freshness & Provenance Fields
     print("\n9️⃣ Testing Data Freshness & Verification Status on Activities...")
     sample_act = multi_result.variants["balanced"].days[0].activities[0]
-    assert sample_act.verification_status == "verified", "Activity must have verification status"
+    assert sample_act.verification_status in ["curated_seed", "verified"], "Activity must have valid provenance status"
     assert sample_act.last_verified_date is not None, "Activity must have last_verified_date"
     assert sample_act.source_reference is not None, "Activity must have source_reference"
     print(f"   ✅ Provenance Verified on '{sample_act.place_name}': {sample_act.verification_status} (Audited: {sample_act.last_verified_date}) - '{sample_act.source_reference}'")
@@ -160,6 +160,7 @@ def run_tests():
     assert ver_rep.is_valid is True, f"Plan failed independent verification: {ver_rep.errors}"
     assert ver_rep.audit_score >= 80, f"Audit score too low: {ver_rep.audit_score}"
     assert len(ver_rep.checks_passed) >= 3, "Must have passed core validation checks"
+    assert any("Reconciled" in chk for chk in ver_rep.checks_passed), "Must reconcile transport and grand total"
     print(f"   ✅ Verification Report: Score {ver_rep.audit_score}/100 | Status: {'VALID' if ver_rep.is_valid else 'INVALID'}")
     print(f"      Metrics: {ver_rep.metrics}")
     print(f"      Checks Passed: {ver_rep.checks_passed}")
@@ -176,6 +177,7 @@ def run_tests():
     tight_plan = generate_itinerary(tight_req)
     assert tight_plan.total_cost_inr <= 1500, f"Plan cost ₹{tight_plan.total_cost_inr} exceeded tight budget ₹1500!"
     assert tight_plan.verification_report.is_valid is True
+
     # Test 12: Stage 7 Physical Exertion & Fatigue Analytics
     print("\n1️⃣2️⃣ Testing Stage 7 Fatigue & Pace Engine...")
     assert tight_plan.fatigue_report is not None, "TripPlan must have fatigue_report"
@@ -184,7 +186,24 @@ def run_tests():
     assert tight_plan.days[0].fatigue_level is not None
     print(f"   ✅ Fatigue Analytics Verified: Score {tight_plan.fatigue_report['trip_fatigue_score']}/100 ({tight_plan.fatigue_report['overall_pace']}) | Day 1: {tight_plan.days[0].fatigue_level} ({tight_plan.days[0].fatigue_score}/100)")
 
-    print("\n🎉 ALL 12 VERIFICATION, CODEX AUDIT & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 13: Strict Budget Guardrail Rejection on Impossible Budget
+    print("\n1️⃣3️⃣ Testing Strict Budget Guardrail on Infeasible Budget...")
+    impossible_req = TripRequest(
+        destination="Hyderabad",
+        days=2,
+        budget_inr=500,  # Impossible for 2 days + hotel stay
+        people_count=2,
+        transport_mode="cab"
+    )
+    caught_guard = False
+    try:
+        generate_itinerary(impossible_req)
+    except HTTPException as e:
+        caught_guard = True
+        print(f"   ✅ Infeasible Budget Successfully Blocked by Guardrail: {e.detail}")
+    assert caught_guard, "Expected HTTPException 422 for budget violation!"
+
+    print("\n🎉 ALL 13 VERIFICATION, CODEX AUDIT & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

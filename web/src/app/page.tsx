@@ -71,11 +71,17 @@ export default function Home() {
 
   // Initial load with curated default values
   useEffect(() => {
+    const getFutureDate = (daysAhead: number): string => {
+      const d = new Date();
+      d.setDate(d.getDate() + daysAhead);
+      return d.toISOString().split('T')[0];
+    };
+
     fetchTripPlan({
       destination: 'hyderabad',
       origin_type: 'hotel',
-      start_date: '2026-10-15',
-      end_date: '2026-10-17',
+      start_date: getFutureDate(7),
+      end_date: getFutureDate(9),
       budget_inr: 15000,
       people_count: 2,
       pace: 'balanced',
