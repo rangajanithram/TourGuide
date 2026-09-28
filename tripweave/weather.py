@@ -4,9 +4,10 @@ Fetches live astronomical temperature and precipitation forecasts up to 16 days
 with deterministic climatological fallback for 100% offline resilience and dates beyond 16 days.
 """
 import json
+import time
 import urllib.request
 from datetime import date, timedelta
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 from tripweave.models import WeatherSummary
 
 def _wmo_code_to_condition(code: int) -> str:
@@ -67,9 +68,11 @@ def _seasonal_fallback(target_date: Optional[date] = None) -> WeatherSummary:
 class WeatherProvider:
     """
     Retrieves weather forecasts for destination coordinates and trip dates.
-    Requests Open-Meteo with 16-day forecast window with in-memory caching to prevent duplicate API hits.
+    Requests Open-Meteo with 16-day forecast window with in-memory bounded TTL caching.
     """
-    _cache: Dict[str, Dict[str, WeatherSummary]] = {}
+    _cache: Dict[str, Tuple[float, Dict[str, WeatherSummary]]] = {}
+    _CACHE_MAX_SIZE: int = 128
+    _CACHE_TTL_SECONDS: float = 3600.0  # 1 hour fresh forecast TTL
 
     @classmethod
     def get_daily_forecasts(
@@ -89,8 +92,13 @@ class WeatherProvider:
             total_days = 3
 
         cache_key = f"{round(lat, 2)}_{round(lng, 2)}_{start.isoformat()}_{total_days}"
+        now = time.time()
         if cache_key in cls._cache:
-            return cls._cache[cache_key].copy()
+            cached_at, cached_forecasts = cls._cache[cache_key]
+            if (now - cached_at) <= cls._CACHE_TTL_SECONDS:
+                return {k: v.model_copy(deep=True) for k, v in cached_forecasts.items()}
+            else:
+                del cls._cache[cache_key]
 
         forecasts: Dict[str, WeatherSummary] = {}
 
@@ -155,5 +163,10 @@ class WeatherProvider:
             if not matched:
                 forecasts[day_str] = _seasonal_fallback(day_d)
 
-        cls._cache[cache_key] = forecasts
+        # Evict oldest entry if cache capacity reached
+        if len(cls._cache) >= cls._CACHE_MAX_SIZE:
+            oldest_key = min(cls._cache.keys(), key=lambda k: cls._cache[k][0])
+            del cls._cache[oldest_key]
+
+        cls._cache[cache_key] = (now, forecasts)
         return forecasts

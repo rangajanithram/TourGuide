@@ -9,7 +9,7 @@ import {
   HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users,
   Train, Plane, Car, ArrowRight, CheckSquare, Square
 } from 'lucide-react';
-import { TripPlan } from '../types/trip';
+import { TripPlan, TripFormData } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
 
 interface ItineraryViewProps {
@@ -17,13 +17,15 @@ interface ItineraryViewProps {
   destination?: string;
   selectedDay?: number | 'all';
   onSelectDay?: (day: number | 'all') => void;
+  formData?: TripFormData | null;
 }
 
 export default function ItineraryView({ 
   plan, 
   destination = 'City',
   selectedDay = 'all',
-  onSelectDay 
+  onSelectDay,
+  formData
 }: ItineraryViewProps) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
@@ -36,7 +38,7 @@ export default function ItineraryView({
   const totalActivitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
   const totalStops = plan.days.reduce((acc, d) => acc + d.activities.length, 0);
 
-  const storageKey = `tripweave_expenses_${destination.toLowerCase()}_${plan.days[0]?.date || 'default'}`;
+  const storageKey = `tripweave_expenses_${destination.toLowerCase()}_${plan.days[0]?.date || 'default'}_${plan.variant_type.toLowerCase()}`;
 
   // Load persisted expenses from localStorage
   useEffect(() => {
@@ -45,6 +47,8 @@ export default function ItineraryView({
       const saved = localStorage.getItem(storageKey);
       if (saved) {
         setVisitedActivities(JSON.parse(saved));
+      } else {
+        setVisitedActivities({});
       }
     } catch {
       // localStorage error fallback
@@ -77,40 +81,74 @@ export default function ItineraryView({
     updateVisitedActivities(next);
   };
 
-  const totalActualSpent = Object.values(visitedActivities).reduce((acc, curr) => acc + (curr.visited ? curr.actualCost : 0), 0);
-  const totalVisitedCount = Object.values(visitedActivities).filter(v => v.visited).length;
+  const activeActivitiesMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    for (const day of plan.days) {
+      for (const act of day.activities) {
+        map.set(act.place_name, act.estimated_cost_inr);
+      }
+    }
+    return map;
+  }, [plan]);
+
+  const totalActualSpent = Object.entries(visitedActivities).reduce((acc, [name, curr]) => {
+    if (curr.visited && activeActivitiesMap.has(name)) {
+      return acc + curr.actualCost;
+    }
+    return acc;
+  }, 0);
+
+  const totalVisitedCount = Object.entries(visitedActivities).filter(
+    ([name, v]) => v.visited && activeActivitiesMap.has(name)
+  ).length;
+
   const totalEstimatedForVisited = Object.entries(visitedActivities).reduce((acc, [placeName, val]) => {
     if (!val.visited) return acc;
-    for (const day of plan.days) {
-      const found = day.activities.find(a => a.place_name === placeName);
-      if (found) return acc + found.estimated_cost_inr;
-    }
-    return acc + val.actualCost;
+    const est = activeActivitiesMap.get(placeName);
+    if (est !== undefined) return acc + est;
+    return acc;
   }, 0);
+
   const remainingBudget = plan.total_cost_inr - totalActualSpent;
 
   const handleCopyLink = () => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.origin + window.location.pathname);
     url.searchParams.set('dest', destination.toLowerCase());
-    const startDate = plan.days[0]?.date;
+    const startDate = formData?.start_date || plan.days[0]?.date;
     if (startDate) {
       url.searchParams.set('start', startDate);
     }
-    const endDate = plan.days[plan.days.length - 1]?.date;
+    const endDate = formData?.end_date || plan.days[plan.days.length - 1]?.date;
     if (endDate) {
       url.searchParams.set('end', endDate);
     }
-    url.searchParams.set('mode', plan.transport_mode);
-    if (plan.intercity_transport?.origin_city) {
-      url.searchParams.set('origin', plan.intercity_transport.origin_city.toLowerCase());
+    url.searchParams.set('mode', formData?.transport_mode || plan.transport_mode);
+    const origin = formData?.origin_city || plan.intercity_transport?.origin_city;
+    if (origin) {
+      url.searchParams.set('origin', origin.toLowerCase());
     }
     if (plan.variant_type) {
       url.searchParams.set('variant', plan.variant_type.toLowerCase());
     }
-    const people = plan.hotel_summary?.people_accommodated || 2;
+    const people = formData?.people_count || plan.hotel_summary?.people_accommodated || 2;
     url.searchParams.set('people', people.toString());
-    url.searchParams.set('budget', plan.total_cost_inr.toString());
+    const budget = formData?.budget_inr || plan.total_cost_inr;
+    url.searchParams.set('budget', budget.toString());
+    const pace = formData?.pace || plan.fatigue_report?.overall_pace?.toLowerCase() || 'balanced';
+    url.searchParams.set('pace', pace);
+    if (formData?.group_profile) {
+      url.searchParams.set('profile', formData.group_profile);
+    }
+    if (formData?.origin_type) {
+      url.searchParams.set('origin_type', formData.origin_type);
+    }
+    if (formData?.interests && formData.interests.length > 0) {
+      url.searchParams.set('interests', formData.interests.join(','));
+    }
+    if (formData?.locked_activities && formData.locked_activities.length > 0) {
+      url.searchParams.set('pins', formData.locked_activities.join(','));
+    }
     navigator.clipboard.writeText(url.toString());
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
@@ -310,24 +348,49 @@ export default function ItineraryView({
             {(() => {
               const party = plan.hotel_summary?.people_accommodated || 1;
               const rec = plan.intercity_transport.recommended_option;
-              const minTransitTotal = rec.typical_fare_min * party;
-              const maxTransitTotal = rec.typical_fare_max * party;
-              const combinedMin = plan.total_cost_inr + minTransitTotal;
-              const combinedMax = plan.total_cost_inr + maxTransitTotal;
+              const lastMileCost = plan.intercity_transport.last_mile?.estimated_cost_inr || 0;
+              // Roundtrip transit: 2 legs (outbound + return) for party
+              const roundtripTransitMin = rec.typical_fare_min * party * 2;
+              const roundtripTransitMax = rec.typical_fare_max * party * 2;
+              // 2 last-mile transfers (arrival to hotel + hotel to terminal on return)
+              const roundtripLastMile = lastMileCost * 2;
+              const combinedMin = plan.total_cost_inr + roundtripTransitMin + roundtripLastMile;
+              const combinedMax = plan.total_cost_inr + roundtripTransitMax + roundtripLastMile;
+              const mealBudget = plan.expense_breakdown?.suggested_meals_inr ?? plan.expense_breakdown?.estimated_meals_inr;
 
               return (
-                <div className="bg-[#11131b] border border-amber-500/20 rounded-lg p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2">
-                  <div>
-                    <span className="font-bold text-amber-400 block">Est. Complete Journey Budget (Party of {party}):</span>
-                    <span className="text-[11px] text-gray-400">
-                      On-Ground Subtotal ₹{plan.total_cost_inr.toLocaleString('en-IN')} + Inter-City {rec.mode.toUpperCase()} (₹{minTransitTotal.toLocaleString('en-IN')} - ₹{maxTransitTotal.toLocaleString('en-IN')})
-                    </span>
+                <div className="bg-[#11131b] border border-amber-500/20 rounded-lg p-3 text-xs space-y-2 mt-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <span className="font-bold text-amber-400 block">Complete Roundtrip Journey Estimate (Party of {party}):</span>
+                      <span className="text-[11px] text-gray-400">
+                        Includes on-ground itinerary + 2-way {rec.mode.toUpperCase()} + 2-way terminal connections
+                      </span>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <span className="text-sm font-extrabold text-white block">
+                        ₹{combinedMin.toLocaleString('en-IN')} - ₹{combinedMax.toLocaleString('en-IN')}
+                      </span>
+                      <span className="text-[10px] text-gray-400 block">Est. Complete Outlay</span>
+                    </div>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <span className="text-sm font-extrabold text-white block">
-                      ₹{combinedMin.toLocaleString('en-IN')} - ₹{combinedMax.toLocaleString('en-IN')}
-                    </span>
-                    <span className="text-[10px] text-gray-400 block">Estimated Complete Journey</span>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#1e2230] text-[10px] text-gray-400">
+                    <div>
+                      <span className="text-gray-500 block">On-Ground Subtotal</span>
+                      <span className="font-semibold text-gray-200">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">Roundtrip Transit (x{party})</span>
+                      <span className="font-semibold text-gray-200">₹{roundtripTransitMin.toLocaleString('en-IN')} - ₹{roundtripTransitMax.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">Roundtrip Last-Mile</span>
+                      <span className="font-semibold text-gray-200">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 block">Meals Buffer</span>
+                      <span className="font-semibold text-amber-300">{mealBudget ? `~₹${mealBudget.toLocaleString('en-IN')}` : 'Included'}</span>
+                    </div>
                   </div>
                 </div>
               );

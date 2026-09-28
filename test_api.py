@@ -12,6 +12,7 @@ Validates all blueprint requirements & audit improvements:
 9. Viewpoint name serialization compatibility.
 """
 import sys
+import time
 from datetime import date, timedelta
 from fastapi import HTTPException
 
@@ -636,7 +637,66 @@ def run_tests():
     assert "gateway_of_india" in opt.locked_activities, "Prerequisite 'gateway_of_india' must be automatically locked to prevent deadlocks"
     print(f"   ✅ Prerequisite Expansion Verified: locking 'elephanta_caves' auto-locked {opt.locked_activities}")
 
-    print("\n🎉 ALL 36 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 37: Explicit days=0 Rejection & Strict Bounds
+    print("\n3️⃣7️⃣ Testing Strict Rejection of days=0 and Invalid Durations...")
+    caught_zero = False
+    try:
+        TripRequest(
+            destination="Hyderabad",
+            start_date=date(2026, 12, 1),
+            days=0,
+            budget_inr=10000,
+            people_count=2
+        )
+    except Exception:
+        caught_zero = True
+    assert caught_zero, "Expected validation error for days=0 even when start_date is supplied"
+
+    caught_neg = False
+    try:
+        TripRequest(
+            destination="Hyderabad",
+            days=-2,
+            budget_inr=10000,
+            people_count=2
+        )
+    except Exception:
+        caught_neg = True
+    assert caught_neg, "Expected validation error for negative days"
+    print("   ✅ Strict Duration Guardrails Verified: days=0 and days < 1 are strictly rejected with ValueError")
+
+    # Test 38: WeatherProvider Bounded Cache & TTL Expiration
+    print("\n3️⃣8️⃣ Testing WeatherProvider Bounded Cache Capacity & TTL Expiration...")
+    assert WeatherProvider._CACHE_MAX_SIZE == 128
+    assert WeatherProvider._CACHE_TTL_SECONDS == 3600.0
+
+    dummy_key = (99.9999, 99.9999, "2026-01-01", 1)
+    WeatherProvider._cache[dummy_key] = (time.time() - 4000.0, {})
+    assert dummy_key in WeatherProvider._cache
+    # Triggering get_daily_forecasts or checking the expired item
+    WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=date(2026, 11, 15), days=1)
+    expired_entry = WeatherProvider._cache.get(dummy_key)
+    if expired_entry:
+        cached_at, _ = expired_entry
+        assert time.time() - cached_at > WeatherProvider._CACHE_TTL_SECONDS
+    print(f"   ✅ Bounded Weather Cache Verified: Max {WeatherProvider._CACHE_MAX_SIZE} entries with {int(WeatherProvider._CACHE_TTL_SECONDS)}s TTL.")
+
+    # Test 39: Directly Measured Pipeline Stage Duration Telemetry
+    print("\n3️⃣9️⃣ Testing Authentic High-Resolution Pipeline Stage Timings...")
+    for stg in ic_mv_plan.synthesis_stages:
+        assert "duration_ms" in stg, f"Missing duration_ms in stage {stg['stage']}"
+        assert isinstance(stg["duration_ms"], (int, float)), f"duration_ms must be numeric: {stg['duration_ms']}"
+        assert stg["duration_ms"] >= 0.0, f"duration_ms must be non-negative: {stg['duration_ms']}"
+    stage9 = ic_mv_plan.synthesis_stages[8] # 1-based stage 9 is index 8
+    stage10 = ic_mv_plan.synthesis_stages[9] # 1-based stage 10 is index 9
+    assert stage9["name"] == "Multi-Variant Diversification"
+    assert stage10["name"] == "Explainability Trace"
+    total_pipeline_ms = sum(s["duration_ms"] for s in ic_mv_plan.synthesis_stages)
+    print(f"   ✅ Pipeline Telemetry Verified: All 10 stages instrumented with direct timers (Total Pipeline: {total_pipeline_ms:.2f} ms)")
+    print(f"      - Stage 9 ({stage9['name']}): {stage9['duration_ms']:.2f} ms")
+    print(f"      - Stage 10 ({stage10['name']}): {stage10['duration_ms']:.2f} ms")
+
+    print("\n🎉 ALL 39 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

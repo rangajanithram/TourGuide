@@ -26,11 +26,13 @@ export default function Home() {
   const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeFormData, setActiveFormData] = useState<TripFormData | null>(null);
 
   const fetchTripPlan = async (formData: TripFormData) => {
     setIsLoading(true);
     setError(null);
     setSelectedDay('all');
+    setActiveFormData(formData);
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
@@ -89,6 +91,9 @@ export default function Home() {
     let people = 2;
     let pace: 'relaxed' | 'balanced' | 'intensive' = 'balanced';
     let profile: 'default' | 'young_solo' | 'family' | 'elderly' = 'default';
+    let interests = ['unesco', 'history', 'sunset'];
+    let lockedActs: string[] = [];
+    let originType: 'hotel' | 'center' | 'station' | 'airport' = 'hotel';
 
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -132,12 +137,24 @@ export default function Home() {
       if (urlVariant && ['budget', 'balanced', 'comfort'].includes(urlVariant.toLowerCase())) {
         setActiveVariant(urlVariant.toLowerCase() as 'budget' | 'balanced' | 'comfort');
       }
+      const urlInterests = params.get('interests');
+      if (urlInterests) {
+        interests = urlInterests.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      const urlPins = params.get('pins') || params.get('locked');
+      if (urlPins) {
+        lockedActs = urlPins.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      const urlOriginType = params.get('origin_type');
+      if (urlOriginType && ['hotel', 'center', 'station', 'airport'].includes(urlOriginType)) {
+        originType = urlOriginType as any;
+      }
     }
 
     fetchTripPlan({
       origin_city: orig && orig !== dest ? orig : undefined,
       destination: dest,
-      origin_type: 'hotel',
+      origin_type: originType,
       start_date: sDate,
       end_date: eDate,
       budget_inr: budget,
@@ -145,7 +162,8 @@ export default function Home() {
       group_profile: profile,
       pace: pace,
       transport_mode: mode,
-      interests: ['unesco', 'history', 'sunset']
+      locked_activities: lockedActs,
+      interests: interests
     });
   }, []);
 
@@ -218,6 +236,7 @@ export default function Home() {
                   destination={multiPlan?.destination || 'City'}
                   selectedDay={selectedDay}
                   onSelectDay={setSelectedDay}
+                  formData={activeFormData}
                 />
               </>
             ) : (

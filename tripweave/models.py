@@ -82,6 +82,11 @@ class TripRequest(BaseModel):
                 end = date.fromisoformat(end)
                 data["end_date"] = end
 
+            # Validate explicit days parameter if provided
+            if days is not None:
+                if not isinstance(days, int) or days < 1 or days > 14:
+                    raise ValueError(f"Trip duration must be between 1 and 14 days (got {days}).")
+
             # 2. Comprehensive Date/Days Resolution (Handling all partial inputs)
             if start and end:
                 if end < start:
@@ -90,30 +95,23 @@ class TripRequest(BaseModel):
                 if calculated_days > 14:
                     raise ValueError(f"Trip duration cannot exceed 14 days (requested {calculated_days} days).")
                 data["days"] = calculated_days
-            elif start and days and not end:
-                if days > 14 or days < 1:
-                    raise ValueError(f"Trip duration must be between 1 and 14 days (requested {days} days).")
+            elif start and days is not None and not end:
                 data["end_date"] = start + timedelta(days=days - 1)
-            elif end and days and not start:
-                if days > 14 or days < 1:
-                    raise ValueError(f"Trip duration must be between 1 and 14 days (requested {days} days).")
+            elif end and days is not None and not start:
                 data["start_date"] = end - timedelta(days=days - 1)
-            elif start and not end and not days:
+            elif start and not end and days is None:
                 # Default to 3-day itinerary starting on start_date
                 data["days"] = 3
                 data["end_date"] = start + timedelta(days=2)
-            elif end and not start and not days:
+            elif end and not start and days is None:
                 # Default to 3-day itinerary ending on end_date
                 data["days"] = 3
                 data["start_date"] = end - timedelta(days=2)
-            elif days and not start and not end:
-                if days > 14 or days < 1:
-                    raise ValueError(f"Trip duration must be between 1 and 14 days (requested {days} days).")
-                # Fallback: start today
+            elif days is not None and not start and not end:
                 today = date.today()
                 data["start_date"] = today
                 data["end_date"] = today + timedelta(days=days - 1)
-            elif not days and not start and not end:
+            elif days is None and not start and not end:
                 raise ValueError("Must provide either travel dates or number of days.")
         return data
 
