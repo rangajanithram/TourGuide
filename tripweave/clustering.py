@@ -53,15 +53,20 @@ class GeoClusterer:
                 cluster_assignments[i] = -1  # noise/isolated
             else:
                 cluster_assignments[i] = cluster_id
-                # Expand cluster
-                queue = [idx for idx in neighbors if idx != i]
+                from collections import deque
+                queue = deque(idx for idx in neighbors if idx != i)
+                in_queue = set(queue)
                 while queue:
-                    neighbor_idx = queue.pop(0)
+                    neighbor_idx = queue.popleft()
+                    in_queue.discard(neighbor_idx)
                     if not visited[neighbor_idx]:
                         visited[neighbor_idx] = True
                         n_neighbors = get_neighbors(neighbor_idx)
                         if len(n_neighbors) >= self.min_samples:
-                            queue.extend([k for k in n_neighbors if k not in queue and not visited[k]])
+                            for k in n_neighbors:
+                                if not visited[k] and k not in in_queue:
+                                    queue.append(k)
+                                    in_queue.add(k)
                     if cluster_assignments[neighbor_idx] == -1:
                         cluster_assignments[neighbor_idx] = cluster_id
 

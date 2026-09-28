@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, Camera, Compass, Sparkles, Layers,
   ShieldCheck, CheckCircle2, Calendar,
@@ -36,30 +36,56 @@ export default function ItineraryView({
   const totalActivitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
   const totalStops = plan.days.reduce((acc, d) => acc + d.activities.length, 0);
 
-  const toggleActivityVisited = (dayNum: number, actIdx: number, defaultCost: number) => {
-    const key = `${dayNum}-${actIdx}`;
-    setVisitedActivities(prev => {
-      const current = prev[key];
-      if (current?.visited) {
-        const next = { ...prev };
-        delete next[key];
-        return next;
+  const storageKey = `tripweave_expenses_${destination.toLowerCase()}_${plan.days[0]?.date || 'default'}`;
+
+  // Load persisted expenses from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        setVisitedActivities(JSON.parse(saved));
       }
-      return {
-        ...prev,
-        [key]: { visited: true, actualCost: defaultCost }
+    } catch {
+      // localStorage error fallback
+    }
+  }, [storageKey]);
+
+  const updateVisitedActivities = (nextVal: Record<string, { visited: boolean; actualCost: number }>) => {
+    setVisitedActivities(nextVal);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(nextVal));
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const toggleActivityVisited = (placeName: string, defaultCost: number) => {
+    const current = visitedActivities[placeName];
+    let next: Record<string, { visited: boolean; actualCost: number }>;
+    if (current?.visited) {
+      next = { ...visitedActivities };
+      delete next[placeName];
+    } else {
+      next = {
+        ...visitedActivities,
+        [placeName]: { visited: true, actualCost: defaultCost }
       };
-    });
+    }
+    updateVisitedActivities(next);
   };
 
   const totalActualSpent = Object.values(visitedActivities).reduce((acc, curr) => acc + (curr.visited ? curr.actualCost : 0), 0);
   const totalVisitedCount = Object.values(visitedActivities).filter(v => v.visited).length;
-  const totalEstimatedForVisited = Object.entries(visitedActivities).reduce((acc, [key, val]) => {
+  const totalEstimatedForVisited = Object.entries(visitedActivities).reduce((acc, [placeName, val]) => {
     if (!val.visited) return acc;
-    const [dayStr, actStr] = key.split('-');
-    const day = plan.days.find(d => d.day_number === parseInt(dayStr, 10));
-    const act = day?.activities[parseInt(actStr, 10)];
-    return acc + (act?.estimated_cost_inr || 0);
+    for (const day of plan.days) {
+      const found = day.activities.find(a => a.place_name === placeName);
+      if (found) return acc + found.estimated_cost_inr;
+    }
+    return acc + val.actualCost;
   }, 0);
   const remainingBudget = plan.total_cost_inr - totalActualSpent;
 
@@ -76,6 +102,15 @@ export default function ItineraryView({
       url.searchParams.set('end', endDate);
     }
     url.searchParams.set('mode', plan.transport_mode);
+    if (plan.intercity_transport?.origin_city) {
+      url.searchParams.set('origin', plan.intercity_transport.origin_city.toLowerCase());
+    }
+    if (plan.variant_type) {
+      url.searchParams.set('variant', plan.variant_type.toLowerCase());
+    }
+    const people = plan.hotel_summary?.people_accommodated || 2;
+    url.searchParams.set('people', people.toString());
+    url.searchParams.set('budget', plan.total_cost_inr.toString());
     navigator.clipboard.writeText(url.toString());
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
@@ -270,6 +305,33 @@ export default function ItineraryView({
                 </div>
               </div>
             )}
+
+            {/* Total Budget Transparency: On-Ground Subtotal + Inter-City Transit */}
+            {(() => {
+              const party = plan.hotel_summary?.people_accommodated || 1;
+              const rec = plan.intercity_transport.recommended_option;
+              const minTransitTotal = rec.typical_fare_min * party;
+              const maxTransitTotal = rec.typical_fare_max * party;
+              const combinedMin = plan.total_cost_inr + minTransitTotal;
+              const combinedMax = plan.total_cost_inr + maxTransitTotal;
+
+              return (
+                <div className="bg-[#11131b] border border-amber-500/20 rounded-lg p-3 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-2">
+                  <div>
+                    <span className="font-bold text-amber-400 block">Est. Complete Journey Budget (Party of {party}):</span>
+                    <span className="text-[11px] text-gray-400">
+                      On-Ground Subtotal ₹{plan.total_cost_inr.toLocaleString('en-IN')} + Inter-City {rec.mode.toUpperCase()} (₹{minTransitTotal.toLocaleString('en-IN')} - ₹{maxTransitTotal.toLocaleString('en-IN')})
+                    </span>
+                  </div>
+                  <div className="text-left sm:text-right">
+                    <span className="text-sm font-extrabold text-white block">
+                      ₹{combinedMin.toLocaleString('en-IN')} - ₹{combinedMax.toLocaleString('en-IN')}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block">Estimated Complete Journey</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Toggle All Inter-City Options */}
@@ -568,7 +630,7 @@ export default function ItineraryView({
             {/* Activities Timeline */}
             <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#222736]">
               {day.activities.map((act, actIdx) => {
-                const actKey = `${day.day_number}-${actIdx}`;
+                const actKey = act.place_name;
                 const visitInfo = visitedActivities[actKey];
                 const isVisited = !!visitInfo?.visited;
                 const actSpend = visitInfo?.actualCost ?? act.estimated_cost_inr;
@@ -588,7 +650,7 @@ export default function ItineraryView({
                         {/* Check-off Button */}
                         <button
                           type="button"
-                          onClick={() => toggleActivityVisited(day.day_number, actIdx, act.estimated_cost_inr)}
+                          onClick={() => toggleActivityVisited(act.place_name, act.estimated_cost_inr)}
                           className={`p-1 rounded-md border transition-all ${
                             isVisited 
                               ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm' 
@@ -686,10 +748,10 @@ export default function ItineraryView({
                                 e.preventDefault();
                                 const val = parseFloat(spendInput);
                                 if (!isNaN(val)) {
-                                  setVisitedActivities(prev => ({
-                                    ...prev,
+                                  updateVisitedActivities({
+                                    ...visitedActivities,
                                     [actKey]: { visited: true, actualCost: Math.max(0, val) }
-                                  }));
+                                  });
                                 }
                                 setEditingSpend(null);
                               }}

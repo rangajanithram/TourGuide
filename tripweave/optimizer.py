@@ -8,6 +8,10 @@ from tripweave.crowd import HeuristicCrowdProvider
 from tripweave.solar import get_golden_hour_window
 from tripweave.clustering import GeoClusterer
 
+class InfeasibleItineraryError(ValueError):
+    """Raised when user constraints make generating a valid itinerary mathematically impossible."""
+    pass
+
 class TripOptimizer:
     def __init__(
         self, 
@@ -37,7 +41,21 @@ class TripOptimizer:
         self.max_transport_budget = max_transport_budget
         self.start_date = start_date
         self.variant_type = variant_type
-        self.locked_activities = [a.strip().lower() for a in (locked_activities or []) if a.strip()]
+        
+        # Expand locked activities to automatically include prerequisite dependencies
+        initial_locked = [a.strip().lower() for a in (locked_activities or []) if a.strip()]
+        locked_set = set(initial_locked)
+        changed = True
+        while changed:
+            changed = False
+            for p in self.places:
+                if (p.place_id.lower() in locked_set or p.name.lower() in locked_set) and getattr(p, "depends_on", None):
+                    for dep in p.depends_on:
+                        dep_clean = dep.strip().lower()
+                        if dep_clean not in locked_set:
+                            locked_set.add(dep_clean)
+                            changed = True
+        self.locked_activities = list(locked_set)
         self.group_profile = group_profile
 
         # Direct solver calibration for GroupProfile:
@@ -296,7 +314,7 @@ class TripOptimizer:
         solution = routing.SolveWithParameters(search_parameters)
 
         if not solution:
-            raise Exception("No feasible itinerary could be found with the given constraints.")
+            raise InfeasibleItineraryError("No feasible itinerary could be found with the given constraints.")
 
         # 5. Translate solution into TripPlan
         return self._parse_solution(manager, routing, solution)
@@ -469,7 +487,7 @@ class TripOptimizer:
             # If still over budget after pruning all unpinned stops, fail gracefully
             if (self.max_total_budget and grand_total > self.max_total_budget) or \
                (self.max_transport_budget and total_transport_cost > self.max_transport_budget):
-                raise Exception("Cannot fit all requested pinned attractions within your specified budget and transport caps.")
+                raise InfeasibleItineraryError("Cannot fit all requested pinned attractions within your specified budget and transport caps.")
 
             # If pruning occurred, physically re-accumulate clock times along surviving stops!
             if pruned_any:
@@ -537,7 +555,7 @@ class TripOptimizer:
         # Validate that the itinerary contains actual visits
         total_visits = sum(len(d.activities) for d in day_plans)
         if total_visits == 0:
-            raise Exception("No feasible sightseeing visits could be scheduled within the specified budget, time, and transit constraints.")
+            raise InfeasibleItineraryError("No feasible sightseeing visits could be scheduled within the specified budget, time, and transit constraints.")
 
         # Validate that all requested pinned activities survived and are scheduled
         if self.locked_activities:
@@ -547,7 +565,7 @@ class TripOptimizer:
                     scheduled_names_ids.add(p.place_id.lower())
             for pin in self.locked_activities:
                 if pin.lower() not in scheduled_names_ids:
-                    raise Exception(f"Pinned attraction '{pin}' could not be scheduled within physical opening hours, day windows, or budget limits.")
+                    raise InfeasibleItineraryError(f"Pinned attraction '{pin}' could not be scheduled within physical opening hours, day windows, or budget limits.")
 
         return TripPlan(
             plan_name=f"TripWeave Prototype Itinerary ({self.variant_type.value.capitalize()} Variant)",

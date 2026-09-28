@@ -16,7 +16,7 @@ class FeasibilityFilter:
         sightseeing = [p for p in places if p.place_type != "hotel"]
         
         if not all_hotels and request.days > 1:
-            raise Exception("No hotel candidates found in database for overnight trip!")
+            raise ValueError("No hotel candidates found in database for overnight trip!")
 
         # 1. Day Trip vs Overnight Stay Math
         nights = max(0, request.days - 1)
@@ -64,7 +64,7 @@ class FeasibilityFilter:
         if not candidates:
             min_p = request.hotel_pref.min_price_per_night_inr if request.hotel_pref else "Any"
             max_p = request.hotel_pref.max_price_per_night_inr if request.hotel_pref else "Any"
-            raise Exception(f"No hotels found in user's nightly budget range: ₹{min_p} - ₹{max_p}")
+            raise ValueError(f"No hotels found in user's nightly budget range: ₹{min_p} - ₹{max_p}")
 
         # 3. Centroid-Based Hotel Scoring (Engineering Blueprint requirement)
         # Score each hotel by: Combined Cost = Lodging Stay Total + Commute Cost to Attractions Centroid
@@ -121,7 +121,7 @@ class FeasibilityFilter:
                 break
 
         if not selected_hotel:
-            raise Exception(f"All hotels exceed total trip budget of ₹{request.budget_inr} for {nights} night(s) and {request.people_count} guest(s).")
+            raise ValueError(f"All hotels exceed total trip budget of ₹{request.budget_inr} for {nights} night(s) and {request.people_count} guest(s).")
 
         return selected_hotel, selected_summary
 

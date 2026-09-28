@@ -160,12 +160,20 @@ class InterCityTransportProvider:
         dur_m = rec.typical_duration_min % 60
         dur_str = f"{dur_h}h {dur_m}m" if dur_m > 0 else f"{dur_h}h"
         
+        is_overnight = (
+            "overnight" in rec.departure_window.lower() or 
+            (bool(rec.notes) and "overnight" in rec.notes.lower()) or 
+            (bool(rec.notes) and "saves 1 night" in rec.notes.lower())
+        )
+        
         if rec.mode == "flight":
             return f"Direct air connection via {rec.operator_name} ({dur_str}). Best for saving sightseeing time."
         elif rec.mode == "train":
-            return f"Recommended: {rec.operator_name} ({dur_str}) arriving at {rec.arrival_station}. Comfortable and scenic."
+            overnight_tip = " Overnight journey saves a hotel room night." if is_overnight else " Comfortable and scenic rail connection."
+            return f"Recommended: {rec.operator_name} ({dur_str}) arriving at {rec.arrival_station}.{overnight_tip}"
         else:
-            return f"Economical: {rec.operator_name} ({dur_str}) dropping at {rec.arrival_station}. Overnight schedule saves a hotel room night."
+            overnight_tip = " Overnight schedule saves a hotel room night." if is_overnight else " Economical daytime highway route."
+            return f"Economical: {rec.operator_name} ({dur_str}) dropping at {rec.arrival_station}.{overnight_tip}"
 
 # Singleton instance
 _transport_provider_instance: Optional[InterCityTransportProvider] = None

@@ -1,10 +1,8 @@
 import math
+from functools import lru_cache
 
-def calculate_distance_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-    """
-    Great-Circle Distance using the Haversine formula on Earth sphere (R = 6371.0088 km).
-    Accurate for spherical coordinates worldwide.
-    """
+@lru_cache(maxsize=4096)
+def _cached_haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     if lat1 == lat2 and lng1 == lng2:
         return 0.0
     r = 6371.0088
@@ -16,6 +14,13 @@ def calculate_distance_km(lat1: float, lng1: float, lat2: float, lng2: float) ->
          math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2.0) ** 2)
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(max(0.0, 1.0 - a)))
     return r * c
+
+def calculate_distance_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """
+    Great-Circle Distance using the Haversine formula on Earth sphere (R = 6371.0088 km).
+    Accurate for spherical coordinates worldwide, accelerated via LRU cache.
+    """
+    return _cached_haversine(round(lat1, 6), round(lng1, 6), round(lat2, 6), round(lng2, 6))
 
 def get_travel_metrics(lat1: float, lng1: float, lat2: float, lng2: float, mode: str = "cab", people_count: int = 1) -> tuple[int, int]:
     """

@@ -128,6 +128,10 @@ export default function Home() {
       if (urlProfile && ['default', 'young_solo', 'family', 'elderly'].includes(urlProfile)) {
         profile = urlProfile as 'default' | 'young_solo' | 'family' | 'elderly';
       }
+      const urlVariant = params.get('variant');
+      if (urlVariant && ['budget', 'balanced', 'comfort'].includes(urlVariant.toLowerCase())) {
+        setActiveVariant(urlVariant.toLowerCase() as 'budget' | 'balanced' | 'comfort');
+      }
     }
 
     fetchTripPlan({

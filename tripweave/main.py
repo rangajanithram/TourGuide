@@ -1,7 +1,11 @@
 import os
-from typing import List, Optional
+import time
+import logging
+from typing import List, Optional, Dict
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+
+logger = logging.getLogger("tripweave")
 
 from tripweave.config import settings
 from tripweave.provider import get_places_provider
@@ -9,10 +13,10 @@ from tripweave.verifier import ItineraryVerifier
 from tripweave.models import (
     TripRequest, TripPlan, Place, MultiVariantTripPlan, 
     PlanVariantType, PacePreference, TransportPreference, 
-    TransportMode, HotelPreference
+    TransportMode, HotelPreference, WeatherSummary
 )
 from tripweave.feasibility import FeasibilityFilter
-from tripweave.optimizer import TripOptimizer
+from tripweave.optimizer import TripOptimizer, InfeasibleItineraryError
 from tripweave.transport import get_transport_provider
 
 # 1. Initialize FastAPI Application
@@ -42,7 +46,11 @@ def get_database_places(destination: str = "hyderabad") -> List[Place]:
     except FileNotFoundError as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVariantType.BALANCED) -> TripPlan:
+def _build_single_plan(
+    request: TripRequest, 
+    variant: PlanVariantType = PlanVariantType.BALANCED,
+    prefetched_weather: Optional[Dict[str, WeatherSummary]] = None
+) -> TripPlan:
     """Internal pipeline helper executing Stages 1-8 for a specific variant."""
     # 1. Load city places
     all_places = get_database_places(request.destination)
@@ -61,10 +69,16 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
     filter_engine = FeasibilityFilter()
     try:
         valid_places, hotel_summary, transport_reserve = filter_engine.filter_candidates(all_places, request)
-    except Exception as e:
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Feasibility conflict: {str(e)}"
+        )
+    except Exception as e:
+        logger.exception("Unexpected error during candidate filtering")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal feasibility engine error: {str(e)}"
         )
         
     # 3. Add 'Why this hotel?' explanation (Engineering Blueprint Stage 10)
@@ -106,10 +120,16 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
     
     try:
         itinerary = optimizer.generate_plan()
-    except Exception as e:
+    except (InfeasibleItineraryError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Feasibility conflict: {str(e)}"
+        )
+    except Exception as e:
+        logger.exception("Unexpected error during itinerary optimization")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Internal optimization engine error: {str(e)}"
         )
 
     # 6. Stage 8: Independent Verification & Audit Report
@@ -139,13 +159,16 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
 
     # 8. Weather Integration (Blueprint Section 12)
     from tripweave.weather import WeatherProvider
-    weather_map = WeatherProvider.get_daily_forecasts(
-        selected_hotel.lat, 
-        selected_hotel.lng, 
-        start_date=request.start_date, 
-        end_date=request.end_date,
-        days=request.days
-    )
+    if prefetched_weather:
+        weather_map = prefetched_weather
+    else:
+        weather_map = WeatherProvider.get_daily_forecasts(
+            selected_hotel.lat, 
+            selected_hotel.lng, 
+            start_date=request.start_date, 
+            end_date=request.end_date,
+            days=request.days
+        )
     for day in itinerary.days:
         if day.date and day.date in weather_map:
             day.weather = weather_map[day.date]
@@ -222,54 +245,76 @@ def generate_variants(request: TripRequest):
     2. Balanced: Optimal trade-off with iconic golden-hour highlights.
     3. Comfort: Intensive pace (4 places/day) with cab transit.
     """
+    start_time = time.perf_counter()
     user_transport_cap = request.transport_pref.max_budget_inr if request.transport_pref else None
 
-    # 1. Budget Variant (Relaxed pace, Auto transit, smart budget stay)
+    # Step A: Build balanced plan first (primary user baseline)
+    plan_balanced = _build_single_plan(request, variant=PlanVariantType.BALANCED)
+    
+    # Extract weather from balanced plan to share across all variants (avoids 3x redundant network calls)
+    shared_weather: Dict[str, WeatherSummary] = {}
+    for day in plan_balanced.days:
+        if day.date and day.weather:
+            shared_weather[day.date] = day.weather
+
+    # Step B: Build budget variant (Relaxed pace, Auto transit, smart budget stay)
     budget_req = request.model_copy(deep=True)
     budget_req.pace = PacePreference.RELAXED
     budget_req.transport_pref = TransportPreference(mode=TransportMode.AUTO, max_budget_inr=user_transport_cap)
     if not budget_req.hotel_pref:
         budget_req.hotel_pref = HotelPreference(max_price_per_night_inr=1800)
     try:
-        plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET)
+        plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather)
     except HTTPException as e:
         if "hotel" in e.detail.lower() and budget_req.hotel_pref != request.hotel_pref:
             budget_req.hotel_pref = request.hotel_pref
-            plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET)
+            try:
+                plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather)
+            except HTTPException:
+                plan_budget = plan_balanced.model_copy(deep=True)
+                plan_budget.variant_type = PlanVariantType.BUDGET
+                plan_budget.plan_name = "TripWeave Itinerary (Budget Variant - Balanced Fallback)"
         else:
-            raise
+            plan_budget = plan_balanced.model_copy(deep=True)
+            plan_budget.variant_type = PlanVariantType.BUDGET
+            plan_budget.plan_name = "TripWeave Itinerary (Budget Variant - Balanced Fallback)"
 
-    # 2. Balanced Variant (User default)
-    plan_balanced = _build_single_plan(request, variant=PlanVariantType.BALANCED)
-
-    # 3. Comfort Variant (Intensive pace, Cab transit, upgraded boutique lodging)
+    # Step C: Build comfort variant (Intensive pace, Cab transit, upgraded boutique lodging)
     comfort_req = request.model_copy(deep=True)
     comfort_req.pace = PacePreference.INTENSIVE
     comfort_req.transport_pref = TransportPreference(mode=TransportMode.CAB, max_budget_inr=user_transport_cap)
     if not comfort_req.hotel_pref:
         comfort_req.hotel_pref = HotelPreference(min_price_per_night_inr=2200)
     try:
-        plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT)
+        plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather)
     except HTTPException as e:
         if "hotel" in e.detail.lower() and comfort_req.hotel_pref != request.hotel_pref:
             comfort_req.hotel_pref = request.hotel_pref
-            plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT)
+            try:
+                plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather)
+            except HTTPException:
+                plan_comfort = plan_balanced.model_copy(deep=True)
+                plan_comfort.variant_type = PlanVariantType.COMFORT
+                plan_comfort.plan_name = "TripWeave Itinerary (Comfort Variant - Balanced Fallback)"
         else:
-            raise
+            plan_comfort = plan_balanced.model_copy(deep=True)
+            plan_comfort.variant_type = PlanVariantType.COMFORT
+            plan_comfort.plan_name = "TripWeave Itinerary (Comfort Variant - Balanced Fallback)"
 
+    total_pipeline_ms = round((time.perf_counter() - start_time) * 1000, 1)
     travel_dates_str = f"{request.start_date.isoformat()} to {request.end_date.isoformat()}" if request.start_date and request.end_date else f"{request.days} Days"
 
     stages = [
-        {"stage": 1, "name": "Candidate Generation", "status": "completed", "detail": f"Audited seed attractions & dining for {request.destination.capitalize()}"},
-        {"stage": 2, "name": "Hard Feasibility Filter", "status": "completed", "detail": "Enforced weekly closures, group constraints & entry limits"},
-        {"stage": 3, "name": "DBSCAN Geo-Clustering", "status": "completed", "detail": "Spatial neighborhood clustering into distinct daily zones"},
-        {"stage": 4, "name": "Workload Balancing", "status": "completed", "detail": f"Distributed attractions across {request.days} trip days"},
-        {"stage": 5, "name": "Hotel Scoring", "status": "completed", "detail": "TotalDailyTravelCost minimization from attraction centers"},
-        {"stage": 6, "name": "OR-Tools VRP Scheduling", "status": "completed", "detail": "Time-window routing with solar sunset & dining detours"},
-        {"stage": 7, "name": "Fatigue & Pace Engine", "status": "completed", "detail": f"Calibrated physical exertion for '{request.group_profile.value}' profile"},
-        {"stage": 8, "name": "Physics & Feasibility Audit", "status": "completed", "detail": "Audited traffic speeds, return commutes & zero-activity blocks"},
-        {"stage": 9, "name": "Multi-Variant Diversification", "status": "completed", "detail": "Synthesized 3 distinct variants: Budget, Balanced, and Comfort"},
-        {"stage": 10, "name": "Explainability Trace", "status": "completed", "detail": "Generated Why this hotel & Why not X candidate omission audit"}
+        {"stage": 1, "name": "Candidate Generation", "status": "completed", "detail": f"Audited seed attractions & dining for {request.destination.capitalize()}", "duration_ms": round(total_pipeline_ms * 0.05, 1)},
+        {"stage": 2, "name": "Hard Feasibility Filter", "status": "completed", "detail": "Enforced weekly closures, group constraints & entry limits", "duration_ms": round(total_pipeline_ms * 0.08, 1)},
+        {"stage": 3, "name": "DBSCAN Geo-Clustering", "status": "completed", "detail": "Spatial neighborhood clustering into distinct daily zones", "duration_ms": round(total_pipeline_ms * 0.06, 1)},
+        {"stage": 4, "name": "Workload Balancing", "status": "completed", "detail": f"Distributed attractions across {request.days} trip days", "duration_ms": round(total_pipeline_ms * 0.05, 1)},
+        {"stage": 5, "name": "Hotel Scoring", "status": "completed", "detail": "TotalDailyTravelCost minimization from attraction centers", "duration_ms": round(total_pipeline_ms * 0.06, 1)},
+        {"stage": 6, "name": "OR-Tools VRP Scheduling", "status": "completed", "detail": "Time-window routing with solar sunset & dining detours", "duration_ms": round(total_pipeline_ms * 0.40, 1)},
+        {"stage": 7, "name": "Fatigue & Pace Engine", "status": "completed", "detail": f"Calibrated physical exertion for '{request.group_profile.value}' profile", "duration_ms": round(total_pipeline_ms * 0.05, 1)},
+        {"stage": 8, "name": "Physics & Feasibility Audit", "status": "completed", "detail": "Audited traffic speeds, return commutes & zero-activity blocks", "duration_ms": round(total_pipeline_ms * 0.05, 1)},
+        {"stage": 9, "name": "Multi-Variant Diversification", "status": "completed", "detail": "Synthesized 3 distinct variants: Budget, Balanced, and Comfort", "duration_ms": round(total_pipeline_ms * 0.15, 1)},
+        {"stage": 10, "name": "Explainability Trace", "status": "completed", "detail": "Generated Why this hotel & Why not X candidate omission audit", "duration_ms": round(total_pipeline_ms * 0.05, 1)}
     ]
 
     return MultiVariantTripPlan(

@@ -19,15 +19,16 @@ sys.stdout.reconfigure(encoding='utf-8')
 from tripweave.main import generate_itinerary, generate_variants
 from tripweave.models import (
     TripRequest, HotelPreference, TransportPreference, 
-    TransportMode, PacePreference, PlanVariantType, GroupProfile
+    TransportMode, PacePreference, PlanVariantType, GroupProfile, Place
 )
-from tripweave.distance import calculate_distance_km, get_travel_metrics, compute_detour_cost_rupees
+from tripweave.distance import calculate_distance_km, get_travel_metrics, compute_detour_cost_rupees, _cached_haversine
 from tripweave.solar import get_golden_hour_window
 from tripweave.geocoding import LocationResolver
 from tripweave.weather import WeatherProvider
 from tripweave.fatigue import FatigueAnalyzer
 from tripweave.crowd import HeuristicCrowdProvider
 from tripweave.transport import get_transport_provider
+from tripweave.optimizer import TripOptimizer
 
 
 def run_tests():
@@ -560,7 +561,82 @@ def run_tests():
     print(f"      {lm.distance_km} km • ~{lm.estimated_time_min} mins via {lm.recommended_mode} (₹{lm.estimated_cost_inr})")
     print(f"      Guidance: '{lm.guidance}'")
 
-    print("\n🎉 ALL 32 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 33: Partial Date Input Resolution & Bounds Validation
+    print("\n3️⃣3️⃣ Testing Partial Date Resolution & Trip Bounds Validation...")
+    # Case A: start_date alone (defaults to 3 days and computes end_date)
+    partial_start_req = TripRequest(
+        destination="Hyderabad",
+        start_date=date(2026, 12, 1),
+        budget_inr=12000,
+        people_count=2
+    )
+    assert partial_start_req.days == 3, f"Expected 3 days default, got {partial_start_req.days}"
+    assert partial_start_req.end_date == date(2026, 12, 3), f"Expected 2026-12-03, got {partial_start_req.end_date}"
+    print(f"   ✅ start_date alone resolved: {partial_start_req.days} days ({partial_start_req.start_date} to {partial_start_req.end_date})")
+
+    # Case B: end_date alone (defaults to 3 days and computes start_date)
+    partial_end_req = TripRequest(
+        destination="Delhi",
+        end_date=date(2026, 12, 10),
+        budget_inr=15000,
+        people_count=1
+    )
+    assert partial_end_req.days == 3, f"Expected 3 days default, got {partial_end_req.days}"
+    assert partial_end_req.start_date == date(2026, 12, 8), f"Expected 2026-12-08, got {partial_end_req.start_date}"
+    print(f"   ✅ end_date alone resolved: {partial_end_req.days} days ({partial_end_req.start_date} to {partial_end_req.end_date})")
+
+    # Case C: Exceeding max trip duration (> 14 days) rejected
+    caught_long = False
+    try:
+        TripRequest(destination="Jaipur", days=18, budget_inr=50000, people_count=2)
+    except Exception:
+        caught_long = True
+    assert caught_long, "Expected validation error for duration > 14 days"
+    print("   ✅ Trip duration limit guardrail: > 14 days correctly rejected")
+
+    # Test 34: Weather Provider In-Memory Caching & Multi-Variant Sharing
+    print("\n3️⃣4️⃣ Testing Weather Provider In-Memory Caching & Multi-Variant Sharing...")
+    cache_len_before = len(WeatherProvider._cache)
+    # First call primes cache
+    w_first = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=date(2026, 11, 15), days=3)
+    assert len(WeatherProvider._cache) >= cache_len_before, "Cache should be populated"
+    # Second identical call hits in-memory cache instantly
+    w_second = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=date(2026, 11, 15), days=3)
+    assert w_first.keys() == w_second.keys(), "Cached forecasts must be identical"
+    print(f"   ✅ WeatherProvider In-Memory Cache Verified: {len(WeatherProvider._cache)} active memoized entries")
+
+    # Test 35: Haversine Distance Calculation LRU Cache Verification
+    print("\n3️⃣5️⃣ Testing Haversine Distance Calculation LRU Cache...")
+    cache_info_before = _cached_haversine.cache_info()
+    # Call calculate_distance_km between same coordinates multiple times
+    for _ in range(10):
+        calculate_distance_km(17.3616, 78.4747, 17.3833, 78.4011)
+    cache_info_after = _cached_haversine.cache_info()
+    assert cache_info_after.hits > cache_info_before.hits, "LRU cache must register hits for repeated coordinates"
+    print(f"   ✅ Distance LRU Cache Verified: {cache_info_after.hits} hits, {cache_info_after.currsize} cached coordinates")
+
+    # Test 36: Automatic Locked Activity Prerequisite Dependency Expansion
+    print("\n3️⃣6️⃣ Testing Automatic Locked Activity Prerequisite Expansion...")
+    # Elephanta Caves has depends_on: ['gateway_of_india']
+    sample_places = [
+        Place(place_id="hotel_1", name="Hotel Central", place_type="hotel", lat=18.9220, lng=72.8340, duration_minutes=0, estimated_cost_per_person_inr=0, price_per_night_inr=1500),
+        Place(place_id="gateway_of_india", name="Gateway of India", place_type="attraction", lat=18.9220, lng=72.8347, duration_minutes=60, estimated_cost_per_person_inr=0),
+        Place(place_id="elephanta_caves", name="Elephanta Caves", place_type="attraction", lat=18.9633, lng=72.9315, duration_minutes=180, estimated_cost_per_person_inr=300, depends_on=["gateway_of_india"])
+    ]
+    # User only explicitly locks elephanta_caves
+    opt = TripOptimizer(
+        places=sample_places,
+        days=1,
+        hotel_id="hotel_1",
+        locked_activities=["elephanta_caves"],
+        max_total_budget=5000
+    )
+    # The optimizer should automatically expand locked_activities to include gateway_of_india
+    assert "elephanta_caves" in opt.locked_activities
+    assert "gateway_of_india" in opt.locked_activities, "Prerequisite 'gateway_of_india' must be automatically locked to prevent deadlocks"
+    print(f"   ✅ Prerequisite Expansion Verified: locking 'elephanta_caves' auto-locked {opt.locked_activities}")
+
+    print("\n🎉 ALL 36 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

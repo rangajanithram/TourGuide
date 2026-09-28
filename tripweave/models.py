@@ -87,18 +87,34 @@ class TripRequest(BaseModel):
                 if end < start:
                     raise ValueError("end_date cannot be earlier than start_date")
                 calculated_days = (end - start).days + 1
+                if calculated_days > 14:
+                    raise ValueError(f"Trip duration cannot exceed 14 days (requested {calculated_days} days).")
                 data["days"] = calculated_days
             elif start and days and not end:
+                if days > 14 or days < 1:
+                    raise ValueError(f"Trip duration must be between 1 and 14 days (requested {days} days).")
                 data["end_date"] = start + timedelta(days=days - 1)
             elif end and days and not start:
+                if days > 14 or days < 1:
+                    raise ValueError(f"Trip duration must be between 1 and 14 days (requested {days} days).")
                 data["start_date"] = end - timedelta(days=days - 1)
+            elif start and not end and not days:
+                # Default to 3-day itinerary starting on start_date
+                data["days"] = 3
+                data["end_date"] = start + timedelta(days=2)
+            elif end and not start and not days:
+                # Default to 3-day itinerary ending on end_date
+                data["days"] = 3
+                data["start_date"] = end - timedelta(days=2)
             elif days and not start and not end:
+                if days > 14 or days < 1:
+                    raise ValueError(f"Trip duration must be between 1 and 14 days (requested {days} days).")
                 # Fallback: start today
                 today = date.today()
                 data["start_date"] = today
                 data["end_date"] = today + timedelta(days=days - 1)
-            elif not days and not start:
-                raise ValueError("Must provide either (start_date and end_date) or days.")
+            elif not days and not start and not end:
+                raise ValueError("Must provide either travel dates or number of days.")
         return data
 
 # --- CORE DATA (The places we can choose from) ---

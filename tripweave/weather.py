@@ -67,8 +67,9 @@ def _seasonal_fallback(target_date: Optional[date] = None) -> WeatherSummary:
 class WeatherProvider:
     """
     Retrieves weather forecasts for destination coordinates and trip dates.
-    Requests Open-Meteo with 16-day forecast window.
+    Requests Open-Meteo with 16-day forecast window with in-memory caching to prevent duplicate API hits.
     """
+    _cache: Dict[str, Dict[str, WeatherSummary]] = {}
 
     @classmethod
     def get_daily_forecasts(
@@ -86,6 +87,10 @@ class WeatherProvider:
             total_days = max(1, days)
         else:
             total_days = 3
+
+        cache_key = f"{round(lat, 2)}_{round(lng, 2)}_{start.isoformat()}_{total_days}"
+        if cache_key in cls._cache:
+            return cls._cache[cache_key].copy()
 
         forecasts: Dict[str, WeatherSummary] = {}
 
@@ -150,4 +155,5 @@ class WeatherProvider:
             if not matched:
                 forecasts[day_str] = _seasonal_fallback(day_d)
 
+        cls._cache[cache_key] = forecasts
         return forecasts
