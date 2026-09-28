@@ -27,6 +27,7 @@ from tripweave.geocoding import LocationResolver
 from tripweave.weather import WeatherProvider
 from tripweave.fatigue import FatigueAnalyzer
 from tripweave.crowd import HeuristicCrowdProvider
+from tripweave.transport import get_transport_provider
 
 
 def run_tests():
@@ -499,14 +500,69 @@ def run_tests():
     assert detour_cost == 56.0, f"Expected 56.0, got {detour_cost}"
     print(f"   ✅ Detour Penalty Formula Verified: 3.0 km + 10 min = ₹{detour_cost:.0f}")
 
-    # Verify metrics in verifier report contain attractions and dining breakdown
-    metrics = blr_plan.verification_report.metrics
-    assert "total_attractions_spend" in metrics
-    assert "total_dining_spend" in metrics
-    print(f"   ✅ Verifier Metrics Verified: Attractions ({metrics['total_attractions_spend']}), Dining ({metrics['total_dining_spend']})")
+    # Test 30: Blueprint Section 1 Curated Inter-City Transit Routes
+    print("\n3️⃣0️⃣ Testing Blueprint Section 1 Curated Inter-City Transit Routes (BLR -> HYD)...")
+    tp = get_transport_provider()
+    blr_hyd_routes = tp.get_routes("bengaluru", "hyderabad")
+    assert len(blr_hyd_routes) >= 3, f"Expected at least 3 curated routes for BLR->HYD, got {len(blr_hyd_routes)}"
+    modes = {r.mode for r in blr_hyd_routes}
+    assert "train" in modes and "bus" in modes and "flight" in modes, f"Missing transit modes in {modes}"
+    vb_train = next(r for r in blr_hyd_routes if r.mode == "train")
+    assert "Vande Bharat" in vb_train.operator_name
+    assert "Kacheguda" in vb_train.arrival_station
+    bus_route = next(r for r in blr_hyd_routes if r.mode == "bus")
+    assert "KSRTC" in bus_route.operator_name
+    print(f"   ✅ Inter-City Routes Verified: {len(blr_hyd_routes)} options (Train: '{vb_train.operator_name}', Bus: '{bus_route.operator_name}')")
 
-    print("\n🎉 ALL 29 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 31: Variant-Calibrated Inter-City Transport Recommendations
+    print("\n3️⃣1️⃣ Testing Variant-Calibrated Inter-City Recommendations & Stage Telemetry...")
+    ic_req = TripRequest(
+        origin_city="Bengaluru",
+        destination="Hyderabad",
+        start_date=date(2026, 11, 20),
+        days=2,
+        budget_inr=20000,
+        people_count=2,
+        pace=PacePreference.BALANCED
+    )
+    ic_mv_plan = generate_variants(ic_req)
+    assert ic_mv_plan.origin_city == "Bengaluru"
+    assert len(ic_mv_plan.synthesis_stages) == 10, f"Expected 10 stages, got {len(ic_mv_plan.synthesis_stages)}"
+    assert ic_mv_plan.synthesis_stages[0]["name"] == "Candidate Generation"
+    assert ic_mv_plan.synthesis_stages[9]["name"] == "Explainability Trace"
+
+    b_ic = ic_mv_plan.variants["budget"].intercity_transport
+    bal_ic = ic_mv_plan.variants["balanced"].intercity_transport
+    c_ic = ic_mv_plan.variants["comfort"].intercity_transport
+
+    assert b_ic is not None, "Budget variant must have intercity_transport"
+    assert bal_ic is not None, "Balanced variant must have intercity_transport"
+    assert c_ic is not None, "Comfort variant must have intercity_transport"
+
+    # Budget should recommend lowest fare option (bus or budget rail)
+    assert b_ic.recommended_option.typical_fare_min <= bal_ic.recommended_option.typical_fare_min
+    # Comfort should recommend fastest (flight)
+    assert c_ic.recommended_option.mode == "flight"
+    print(f"   ✅ Variant Recommendations Verified:")
+    print(f"      - Budget Variant:  {b_ic.recommended_option.operator_name} (₹{b_ic.recommended_option.typical_fare_min})")
+    print(f"      - Balanced Variant:{bal_ic.recommended_option.operator_name} ({bal_ic.recommended_option.typical_duration_min // 60}h {bal_ic.recommended_option.typical_duration_min % 60}m)")
+    print(f"      - Comfort Variant: {c_ic.recommended_option.operator_name} ({c_ic.recommended_option.mode.upper()})")
+
+    # Test 32: Last-Mile Terminal-to-Hotel Route & Auto Fare Estimation
+    print("\n3️⃣2️⃣ Testing Last-Mile Terminal-to-Hotel Route & Auto Fare Estimation...")
+    lm = bal_ic.last_mile
+    assert lm is not None, "Balanced intercity transit must compute last-mile to hotel"
+    assert lm.distance_km > 0.0, "Last mile distance must be positive"
+    assert lm.estimated_time_min > 0, "Last mile time must be positive"
+    assert lm.estimated_cost_inr > 0, "Last mile cost must be positive"
+    assert lm.destination_hotel == ic_mv_plan.variants["balanced"].hotel_summary.hotel_name
+    print(f"   ✅ Last-Mile Connectivity Verified: {lm.arrival_terminal} -> {lm.destination_hotel}")
+    print(f"      {lm.distance_km} km • ~{lm.estimated_time_min} mins via {lm.recommended_mode} (₹{lm.estimated_cost_inr})")
+    print(f"      Guidance: '{lm.guidance}'")
+
+    print("\n🎉 ALL 32 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()
+
 

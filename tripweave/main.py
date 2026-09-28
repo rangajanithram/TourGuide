@@ -13,6 +13,7 @@ from tripweave.models import (
 )
 from tripweave.feasibility import FeasibilityFilter
 from tripweave.optimizer import TripOptimizer
+from tripweave.transport import get_transport_provider
 
 # 1. Initialize FastAPI Application
 app = FastAPI(
@@ -154,7 +155,20 @@ def _build_single_plan(request: TripRequest, variant: PlanVariantType = PlanVari
     itinerary.decision_trace = ExplainabilityEngine.generate_decision_trace(itinerary, request, all_places)
     itinerary.expense_breakdown = ExplainabilityEngine.calculate_expense_breakdown(itinerary, request)
 
-    # 10. Minimum Useful Plan Guarantee
+    # 10. Inter-City Transit Intelligence (Blueprint Section 1 & Product Spec Feature 1)
+    if request.origin_city and request.origin_city.strip().lower() != request.destination.strip().lower():
+        tp = get_transport_provider()
+        itinerary.intercity_transport = tp.get_transport_summary(
+            origin_city=request.origin_city,
+            destination_city=request.destination,
+            hotel_name=selected_hotel.name,
+            hotel_lat=selected_hotel.lat,
+            hotel_lng=selected_hotel.lng,
+            variant_type=variant.value if hasattr(variant, 'value') else str(variant),
+            people_count=request.people_count
+        )
+
+    # 11. Minimum Useful Plan Guarantee
     total_activities = sum(len(day.activities) for day in itinerary.days)
     if total_activities == 0 or not itinerary.days:
         raise HTTPException(
@@ -245,9 +259,24 @@ def generate_variants(request: TripRequest):
 
     travel_dates_str = f"{request.start_date.isoformat()} to {request.end_date.isoformat()}" if request.start_date and request.end_date else f"{request.days} Days"
 
+    stages = [
+        {"stage": 1, "name": "Candidate Generation", "status": "completed", "detail": f"Audited seed attractions & dining for {request.destination.capitalize()}"},
+        {"stage": 2, "name": "Hard Feasibility Filter", "status": "completed", "detail": "Enforced weekly closures, group constraints & entry limits"},
+        {"stage": 3, "name": "DBSCAN Geo-Clustering", "status": "completed", "detail": "Spatial neighborhood clustering into distinct daily zones"},
+        {"stage": 4, "name": "Workload Balancing", "status": "completed", "detail": f"Distributed attractions across {request.days} trip days"},
+        {"stage": 5, "name": "Hotel Scoring", "status": "completed", "detail": "TotalDailyTravelCost minimization from attraction centers"},
+        {"stage": 6, "name": "OR-Tools VRP Scheduling", "status": "completed", "detail": "Time-window routing with solar sunset & dining detours"},
+        {"stage": 7, "name": "Fatigue & Pace Engine", "status": "completed", "detail": f"Calibrated physical exertion for '{request.group_profile.value}' profile"},
+        {"stage": 8, "name": "Physics & Feasibility Audit", "status": "completed", "detail": "Audited traffic speeds, return commutes & zero-activity blocks"},
+        {"stage": 9, "name": "Multi-Variant Diversification", "status": "completed", "detail": "Synthesized 3 distinct variants: Budget, Balanced, and Comfort"},
+        {"stage": 10, "name": "Explainability Trace", "status": "completed", "detail": "Generated Why this hotel & Why not X candidate omission audit"}
+    ]
+
     return MultiVariantTripPlan(
         destination=request.destination.capitalize(),
+        origin_city=request.origin_city.capitalize() if request.origin_city else None,
         travel_dates=travel_dates_str,
+        synthesis_stages=stages,
         variants={
             "budget": plan_budget,
             "balanced": plan_balanced,

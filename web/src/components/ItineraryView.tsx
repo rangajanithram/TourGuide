@@ -6,7 +6,8 @@ import {
   ShieldCheck, CheckCircle2, Calendar,
   Copy, Check, Activity, CloudSun,
   CloudRain, Flame, Utensils, Wallet,
-  HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users
+  HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users,
+  Train, Plane, Car, ArrowRight, CheckSquare, Square
 } from 'lucide-react';
 import { TripPlan } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
@@ -27,9 +28,40 @@ export default function ItineraryView({
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [showWhyNot, setShowWhyNot] = useState(false);
+  const [showAllTransit, setShowAllTransit] = useState(false);
+  const [visitedActivities, setVisitedActivities] = useState<Record<string, { visited: boolean; actualCost: number }>>({});
+  const [editingSpend, setEditingSpend] = useState<string | null>(null);
+  const [spendInput, setSpendInput] = useState<string>('');
   const hotel = plan.hotel_summary;
   const totalActivitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
   const totalStops = plan.days.reduce((acc, d) => acc + d.activities.length, 0);
+
+  const toggleActivityVisited = (dayNum: number, actIdx: number, defaultCost: number) => {
+    const key = `${dayNum}-${actIdx}`;
+    setVisitedActivities(prev => {
+      const current = prev[key];
+      if (current?.visited) {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      }
+      return {
+        ...prev,
+        [key]: { visited: true, actualCost: defaultCost }
+      };
+    });
+  };
+
+  const totalActualSpent = Object.values(visitedActivities).reduce((acc, curr) => acc + (curr.visited ? curr.actualCost : 0), 0);
+  const totalVisitedCount = Object.values(visitedActivities).filter(v => v.visited).length;
+  const totalEstimatedForVisited = Object.entries(visitedActivities).reduce((acc, [key, val]) => {
+    if (!val.visited) return acc;
+    const [dayStr, actStr] = key.split('-');
+    const day = plan.days.find(d => d.day_number === parseInt(dayStr, 10));
+    const act = day?.activities[parseInt(actStr, 10)];
+    return acc + (act?.estimated_cost_inr || 0);
+  }, 0);
+  const remainingBudget = plan.total_cost_inr - totalActualSpent;
 
   const handleCopyLink = () => {
     if (typeof window === 'undefined') return;
@@ -158,6 +190,125 @@ export default function ItineraryView({
           <span className="text-[10px] text-gray-500 block mt-0.5">{hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
         </div>
       </div>
+
+      {/* Blueprint Section 1 & Product Spec Feature 1: Inter-City Transit Intelligence */}
+      {plan.intercity_transport && (
+        <div className="bg-[#11131b] border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#1e2230] gap-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                {plan.intercity_transport.recommended_option.mode === 'flight' ? (
+                  <Plane className="w-5 h-5" />
+                ) : plan.intercity_transport.recommended_option.mode === 'train' ? (
+                  <Train className="w-5 h-5" />
+                ) : (
+                  <Car className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">
+                  Inter-City Transit Intelligence
+                </span>
+                <h3 className="text-base font-bold text-white flex items-center space-x-2">
+                  <span>{plan.intercity_transport.origin_city}</span>
+                  <ArrowRight className="w-4 h-4 text-amber-400" />
+                  <span>{plan.intercity_transport.destination_city}</span>
+                </h3>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <span className="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+                {plan.intercity_transport.recommended_option.recommendation_badge || 'Recommended Option'}
+              </span>
+            </div>
+          </div>
+
+          {/* Recommended Route Detail */}
+          <div className="bg-[#161922] border border-[#222736] rounded-xl p-4 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <div className="flex items-center space-x-2">
+                  <span className="font-bold text-sm text-white">
+                    {plan.intercity_transport.recommended_option.operator_name}
+                  </span>
+                  {plan.intercity_transport.recommended_option.service_number && (
+                    <span className="text-[11px] text-gray-400 bg-[#11131b] px-1.5 py-0.5 rounded border border-[#222736]">
+                      #{plan.intercity_transport.recommended_option.service_number}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {plan.intercity_transport.recommended_option.departure_station} ➔ {plan.intercity_transport.recommended_option.arrival_station}
+                </p>
+                <p className="text-[11px] text-gray-500 mt-0.5">
+                  Window: {plan.intercity_transport.recommended_option.departure_window}
+                </p>
+              </div>
+
+              <div className="text-left sm:text-right">
+                <span className="text-base font-extrabold text-amber-400 block">
+                  ₹{plan.intercity_transport.recommended_option.typical_fare_min.toLocaleString('en-IN')} - ₹{plan.intercity_transport.recommended_option.typical_fare_max.toLocaleString('en-IN')}
+                </span>
+                <span className="text-[11px] text-gray-400 block">
+                  {plan.intercity_transport.recommended_option.fare_class} • {Math.floor(plan.intercity_transport.recommended_option.typical_duration_min / 60)}h {plan.intercity_transport.recommended_option.typical_duration_min % 60 > 0 ? `${plan.intercity_transport.recommended_option.typical_duration_min % 60}m` : ''}
+                </span>
+              </div>
+            </div>
+
+            <div className="text-xs text-gray-300 leading-relaxed bg-[#11131b] p-3 rounded-lg border border-[#1e2230]">
+              {plan.intercity_transport.transit_advice}
+            </div>
+
+            {/* Last Mile Transfer to Hotel */}
+            {plan.intercity_transport.last_mile && (
+              <div className="flex items-start space-x-2.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-emerald-400 block mb-0.5">Terminal-to-Hotel Last-Mile Connection:</span>
+                  <span>{plan.intercity_transport.last_mile.guidance}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Toggle All Inter-City Options */}
+          {plan.intercity_transport.all_options.length > 1 && (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowAllTransit(!showAllTransit)}
+                className="text-xs font-semibold text-amber-400 hover:text-amber-300 inline-flex items-center space-x-1.5 transition-colors"
+              >
+                <span>{showAllTransit ? 'Hide' : 'Compare All'} {plan.intercity_transport.all_options.length} Inter-City Options (Train, Bus, Flight)</span>
+                {showAllTransit ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+
+              {showAllTransit && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-3">
+                  {plan.intercity_transport.all_options.map((opt, idx) => (
+                    <div key={idx} className="bg-[#161922] border border-[#222736] rounded-xl p-3 text-xs space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-white">{opt.operator_name}</span>
+                        <span className="text-[10px] uppercase font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                          {opt.mode}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-400">{opt.departure_station} ➔ {opt.arrival_station}</p>
+                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#222736]">
+                        <span className="text-gray-300">
+                          {Math.floor(opt.typical_duration_min / 60)}h {opt.typical_duration_min % 60}m • {opt.fare_class}
+                        </span>
+                        <span className="font-bold text-white">₹{opt.typical_fare_min} - ₹{opt.typical_fare_max}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Hotel Centroid Decision Card */}
       {hotel && (
@@ -416,18 +567,44 @@ export default function ItineraryView({
 
             {/* Activities Timeline */}
             <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#222736]">
-              {day.activities.map((act, actIdx) => (
+              {day.activities.map((act, actIdx) => {
+                const actKey = `${day.day_number}-${actIdx}`;
+                const visitInfo = visitedActivities[actKey];
+                const isVisited = !!visitInfo?.visited;
+                const actSpend = visitInfo?.actualCost ?? act.estimated_cost_inr;
+
+                return (
                 <div key={actIdx} className="relative group">
                   {/* Timeline Dot */}
-                  <div className="absolute -left-[27px] top-1 w-3 h-3 rounded-full bg-amber-500 border-2 border-[#11131b] group-hover:scale-125 transition-transform"></div>
+                  <div className={`absolute -left-[27px] top-1 w-3 h-3 rounded-full border-2 border-[#11131b] transition-transform ${
+                    isVisited ? 'bg-emerald-400 scale-125' : 'bg-amber-500 group-hover:scale-125'
+                  }`}></div>
 
-                  <div className="bg-[#161922] border border-[#222736] rounded-xl p-4 hover:border-gray-600 transition-colors">
+                  <div className={`border rounded-xl p-4 transition-colors ${
+                    isVisited ? 'bg-[#131822] border-emerald-500/40' : 'bg-[#161922] border-[#222736] hover:border-gray-600'
+                  }`}>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
                       <div className="flex items-center space-x-2 flex-wrap">
+                        {/* Check-off Button */}
+                        <button
+                          type="button"
+                          onClick={() => toggleActivityVisited(day.day_number, actIdx, act.estimated_cost_inr)}
+                          className={`p-1 rounded-md border transition-all ${
+                            isVisited 
+                              ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm' 
+                              : 'bg-[#11131b] text-gray-500 border-[#222736] hover:text-gray-300'
+                          }`}
+                          title={isVisited ? "Mark as unvisited" : "Check off activity & log actual spend"}
+                        >
+                          {isVisited ? <CheckSquare className="w-3.5 h-3.5 text-emerald-400" /> : <Square className="w-3.5 h-3.5" />}
+                        </button>
+
                         <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded">
                           {act.start_time} - {act.end_time}
                         </span>
-                        <h5 className="font-bold text-sm text-white">{act.place_name}</h5>
+                        <h5 className={`font-bold text-sm ${isVisited ? 'text-gray-300 line-through' : 'text-white'}`}>
+                          {act.place_name}
+                        </h5>
                         {act.is_locked && (
                           <span className="text-[10px] text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded font-semibold inline-flex items-center space-x-0.5">
                             <Pin className="w-2.5 h-2.5 mr-0.5" />
@@ -495,9 +672,68 @@ export default function ItineraryView({
                         <p className="text-[11px] text-gray-400 pl-5">{act.recommended_viewpoint.description}</p>
                       </div>
                     )}
+                    {/* Feature 2: Smart Interactive Expense Logging per Activity */}
+                    {isVisited && (
+                      <div className="mt-3 pt-2.5 border-t border-[#222736] flex flex-wrap items-center justify-between gap-2 text-xs bg-[#11131b]/60 px-3 py-2 rounded-lg">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span className="font-semibold text-emerald-400">Visited</span>
+                          <span className="text-gray-500">•</span>
+                          <span className="text-gray-400">Logged Spend:</span>
+                          {editingSpend === actKey ? (
+                            <form 
+                              onSubmit={(e) => {
+                                e.preventDefault();
+                                const val = parseFloat(spendInput);
+                                if (!isNaN(val)) {
+                                  setVisitedActivities(prev => ({
+                                    ...prev,
+                                    [actKey]: { visited: true, actualCost: Math.max(0, val) }
+                                  }));
+                                }
+                                setEditingSpend(null);
+                              }}
+                              className="flex items-center space-x-1.5"
+                            >
+                              <span className="text-white font-bold">₹</span>
+                              <input
+                                type="number"
+                                value={spendInput}
+                                onChange={(e) => setSpendInput(e.target.value)}
+                                className="w-20 px-2 py-0.5 text-xs bg-[#161922] border border-amber-500/50 rounded text-white font-bold"
+                                autoFocus
+                              />
+                              <button type="submit" className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-bold rounded">
+                                Save
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingSpend(actKey);
+                                setSpendInput(String(actSpend));
+                              }}
+                              className="text-amber-400 font-bold hover:underline cursor-pointer flex items-center space-x-1"
+                              title="Click to edit actual spend"
+                            >
+                              <span>₹{actSpend.toLocaleString('en-IN')}</span>
+                              <span className="text-[10px] text-gray-500 font-normal">(Edit)</span>
+                            </button>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-400">
+                          Budgeted: ₹{act.estimated_cost_inr} • 
+                          <span className={actSpend <= act.estimated_cost_inr ? 'text-emerald-400 ml-1' : 'text-rose-400 ml-1'}>
+                            {actSpend <= act.estimated_cost_inr ? '✓ Under' : `+₹${actSpend - act.estimated_cost_inr} over`}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
@@ -560,6 +796,44 @@ export default function ItineraryView({
       {plan.disclaimer && (
         <div className="text-center text-xs text-gray-500 pt-4 border-t border-[#1e2230]">
           {plan.disclaimer}
+        </div>
+      )}
+
+      {/* Feature 2: Floating Live Expense Tracker Dashboard */}
+      {totalVisitedCount > 0 && (
+        <div className="sticky bottom-4 z-40 bg-[#11131b]/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+              💰
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Live Expense Tracker</h4>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                  {totalVisitedCount} of {totalStops} Stops Visited
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Actual Logged Spend: <span className="text-white font-bold">₹{totalActualSpent.toLocaleString('en-IN')}</span> • Estimated for visited: <span className="text-gray-300">₹{totalEstimatedForVisited.toLocaleString('en-IN')}</span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <div className="text-right">
+              <span className="text-[10px] text-gray-400 block uppercase font-semibold">Remaining Trip Budget</span>
+              <span className={`text-sm font-extrabold ${remainingBudget >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                ₹{remainingBudget.toLocaleString('en-IN')}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVisitedActivities({})}
+              className="px-2.5 py-1 text-[11px] rounded-lg bg-[#161922] hover:bg-[#1e2230] border border-[#222736] text-gray-400 hover:text-gray-200 transition-colors"
+            >
+              Reset
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -79,6 +79,14 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
     }
     return 'hyderabad';
   });
+  const [originCity, setOriginCity] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const o = p.get('origin') || p.get('from');
+      if (o && ['hyderabad', 'delhi', 'jaipur', 'bengaluru', 'mumbai'].includes(o.toLowerCase())) return o.toLowerCase();
+    }
+    return '';
+  });
   const [originType, setOriginType] = useState<'center' | 'station' | 'airport'>('center');
   const [startDate, setStartDate] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -154,6 +162,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
+      origin_city: originCity && originCity !== destination ? originCity : undefined,
       destination,
       origin_type: originType,
       start_date: startDate,
@@ -176,6 +185,54 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
       </div>
 
       <div className="space-y-6">
+        {/* Departure City (Inter-City Routing) */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
+            <span className="flex items-center space-x-1.5">
+              <Train className="w-3.5 h-3.5 text-amber-400" />
+              <span>Traveling From (Departure City)</span>
+            </span>
+            <span className="text-[11px] text-gray-500 font-normal lowercase">Curated 10+ inter-city corridors</span>
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setOriginCity('')}
+              className={`p-2.5 text-left rounded-xl border text-xs font-medium transition-all ${
+                !originCity
+                  ? 'bg-amber-500/10 border-amber-500/50 text-white ring-1 ring-amber-500/30'
+                  : 'bg-[#161922] border-[#222736] text-gray-400 hover:border-gray-600'
+              }`}
+            >
+              <span className="font-semibold block text-white">Local / Same City</span>
+              <span className="text-[10px] text-gray-500">Already in destination</span>
+            </button>
+            {CITIES.map(c => {
+              const isSelected = originCity === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setOriginCity(c.id)}
+                  className={`p-2.5 text-left rounded-xl border text-xs font-medium transition-all ${
+                    isSelected
+                      ? 'bg-amber-500/10 border-amber-500/50 text-white ring-1 ring-amber-500/30'
+                      : 'bg-[#161922] border-[#222736] text-gray-400 hover:border-gray-600'
+                  }`}
+                >
+                  <span className="font-semibold block text-white">{c.name}</span>
+                  <span className="text-[10px] text-gray-500 truncate block">Hub terminal link</span>
+                </button>
+              );
+            })}
+          </div>
+          {originCity && originCity !== destination && (
+            <p className="text-[11px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 mt-2 leading-relaxed">
+              🚄 <strong>Inter-City Transit Enabled:</strong> Comparing Vande Bharat trains, sleeper buses & direct flights from {originCity.toUpperCase()} to {destination.toUpperCase()} with terminal-to-hotel last-mile transfers.
+            </p>
+          )}
+        </div>
+
         {/* City Destination */}
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
@@ -448,7 +505,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           {isLoading ? (
             <>
               <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-              <span>Solving OR-Tools Routing...</span>
+              <span>Executing 10-Stage Deterministic Optimizer...</span>
             </>
           ) : (
             <>
@@ -457,6 +514,37 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
             </>
           )}
         </button>
+
+        {/* Blueprint Stage 1-10 Progressive Engine Telemetry (Shows while calculating) */}
+        {isLoading && (
+          <div className="bg-[#161922] border border-amber-500/30 rounded-xl p-4 space-y-2 text-xs animate-pulse shadow-inner">
+            <div className="flex items-center justify-between text-amber-400 font-bold border-b border-[#222736] pb-2">
+              <span className="flex items-center space-x-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                <span>Deterministic Travel Optimizer Active</span>
+              </span>
+              <span className="text-[10px] uppercase tracking-wider bg-amber-500/20 px-2 py-0.5 rounded">Solving</span>
+            </div>
+            <div className="space-y-1.5 text-gray-300 text-[11px] pt-1">
+              <div className="flex items-center space-x-2 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>Stage 1-2: Candidate places & weekly closure audit</span>
+              </div>
+              <div className="flex items-center space-x-2 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>Stage 3-5: DBSCAN clustering & centroid base lodging</span>
+              </div>
+              <div className="flex items-center space-x-2 text-amber-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
+                <span>Stage 6-8: Google OR-Tools VRP routing & physics audit</span>
+              </div>
+              <div className="flex items-center space-x-2 text-gray-500">
+                <span className="w-1.5 h-1.5 rounded-full bg-gray-600"></span>
+                <span>Stage 9-10: 3 variants diversification & explainability trace</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </form>
   );

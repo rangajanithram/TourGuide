@@ -121,6 +121,52 @@ export interface FatigueReport {
   daily_breakdown: DailyFatigue[];
 }
 
+export interface InterCityRoute {
+  route_id: string;
+  origin_city: string;
+  destination_city: string;
+  mode: 'train' | 'bus' | 'flight';
+  operator_name: string;
+  service_number?: string | null;
+  departure_station: string;
+  arrival_station: string;
+  departure_window: string;
+  typical_duration_min: number;
+  typical_fare_min: number;
+  typical_fare_max: number;
+  fare_class: string;
+  availability_status: string;
+  recommendation_badge?: string | null;
+  last_mile_note: string;
+  notes?: string | null;
+}
+
+export interface LastMileConnection {
+  arrival_terminal: string;
+  destination_hotel: string;
+  distance_km: number;
+  estimated_time_min: number;
+  estimated_cost_inr: number;
+  recommended_mode: 'auto' | 'cab';
+  guidance: string;
+}
+
+export interface InterCityTransportSummary {
+  origin_city: string;
+  destination_city: string;
+  recommended_option: InterCityRoute;
+  all_options: InterCityRoute[];
+  transit_advice: string;
+  last_mile?: LastMileConnection | null;
+}
+
+export interface SynthesisStage {
+  stage: number;
+  name: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  detail: string;
+}
+
 export interface TripPlan {
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
@@ -134,12 +180,15 @@ export interface TripPlan {
   fatigue_report?: FatigueReport | null;
   decision_trace?: DecisionTrace | null;
   expense_breakdown?: ExpenseBreakdown | null;
+  intercity_transport?: InterCityTransportSummary | null;
   disclaimer?: string;
 }
 
 export interface MultiVariantTripPlan {
   destination: string;
+  origin_city?: string | null;
   travel_dates: string;
+  synthesis_stages?: SynthesisStage[];
   variants: {
     budget: TripPlan;
     balanced: TripPlan;
@@ -148,6 +197,7 @@ export interface MultiVariantTripPlan {
 }
 
 export interface TripFormData {
+  origin_city?: string;
   destination: string;
   start_date: string;
   end_date: string;

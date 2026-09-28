@@ -244,3 +244,8 @@ class LocationResolver:
             return hub["name"], hub["lat"], hub["lng"]
 
         return default_hub["name"], default_hub["lat"], default_hub["lng"]
+
+    @classmethod
+    def resolve_hub(cls, city: str, hub_key: str) -> Tuple[str, float, float]:
+        """Resolves a specific hub key (e.g. 'station_kacheguda', 'airport') to (name, lat, lng)."""
+        return cls.resolve_origin(city, origin_type=hub_key)

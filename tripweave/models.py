@@ -3,6 +3,7 @@ from datetime import date, timedelta
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, model_validator, ConfigDict
 from tripweave.crowd import CrowdForecast
+from tripweave.transport import InterCityTransportSummary
 
 # --- ENUMS (Strict Typed Allowed Values) ---
 
@@ -42,6 +43,7 @@ class TransportPreference(BaseModel):
 
 class TripRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    origin_city: Optional[str] = Field(None, description="Optional departure city for inter-city travel recommendations (e.g. 'Bengaluru', 'Mumbai', 'Delhi')")
     destination: str = Field(..., min_length=2, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
     start_date: Optional[date] = Field(None, description="Trip start date (YYYY-MM-DD)")
     end_date: Optional[date] = Field(None, description="Trip end date (YYYY-MM-DD)")
@@ -260,6 +262,7 @@ class TripPlan(BaseModel):
     fatigue_report: Optional[Dict[str, Any]] = Field(default=None, description="Physical exertion and pace report")
     decision_trace: Optional[DecisionTrace] = Field(default=None, description="Why this hotel and why not X explainability trace")
     expense_breakdown: Optional[ExpenseBreakdown] = Field(default=None, description="Category-wise budget breakdown and simulator")
+    intercity_transport: Optional[InterCityTransportSummary] = Field(default=None, description="Curated inter-city transit options & depot-to-hotel last mile connection")
     disclaimer: str = Field(
         default="Estimated local subtotal. Excludes intercity transit, lodging taxes/GST, and unmodeled expenses.",
         description="Cost transparency disclaimer"
@@ -267,5 +270,7 @@ class TripPlan(BaseModel):
 
 class MultiVariantTripPlan(BaseModel):
     destination: str
+    origin_city: Optional[str] = None
     travel_dates: str
+    synthesis_stages: List[Dict[str, Any]] = Field(default_factory=list, description="Telemetry describing the 10 executed blueprint optimization stages")
     variants: Dict[str, TripPlan] = Field(..., description="The 3 diverse plan variants: budget, balanced, comfort")

@@ -40,6 +40,7 @@ export default function Home() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          origin_city: formData.origin_city,
           destination: formData.destination,
           origin_type: formData.origin_type,
           start_location: formData.start_location,
@@ -80,6 +81,7 @@ export default function Home() {
     };
 
     let dest = 'hyderabad';
+    let orig: string | undefined = undefined;
     let sDate = getFutureDate(7);
     let eDate = getFutureDate(9);
     let mode: 'cab' | 'auto' | 'metro' | 'walk' = 'cab';
@@ -91,8 +93,12 @@ export default function Home() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlDest = params.get('dest') || params.get('destination');
-      if (urlDest && ['hyderabad', 'delhi', 'jaipur'].includes(urlDest.toLowerCase())) {
+      if (urlDest && ['hyderabad', 'delhi', 'jaipur', 'bengaluru', 'mumbai'].includes(urlDest.toLowerCase())) {
         dest = urlDest.toLowerCase();
+      }
+      const urlOrigin = params.get('origin') || params.get('from');
+      if (urlOrigin && ['hyderabad', 'delhi', 'jaipur', 'bengaluru', 'mumbai'].includes(urlOrigin.toLowerCase())) {
+        orig = urlOrigin.toLowerCase();
       }
       const urlStart = params.get('start') || params.get('start_date');
       if (urlStart && /^\d{4}-\d{2}-\d{2}$/.test(urlStart)) {
@@ -125,6 +131,7 @@ export default function Home() {
     }
 
     fetchTripPlan({
+      origin_city: orig && orig !== dest ? orig : undefined,
       destination: dest,
       origin_type: 'hotel',
       start_date: sDate,
