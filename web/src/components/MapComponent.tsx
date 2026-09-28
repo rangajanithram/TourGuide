@@ -87,7 +87,7 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
   };
 
   return (
-    <div className="w-full h-full min-h-[460px] rounded-2xl overflow-hidden border border-[#1e2230] relative shadow-2xl bg-[#090a0f]">
+    <div className="w-full h-full rounded-2xl overflow-hidden border border-[#1e2230] relative shadow-2xl bg-[#090a0f]">
       {/* Day Filter Toolbar Overlay */}
       <div className="absolute top-3 left-3 z-[1000] flex items-center space-x-1.5 bg-[#11131b]/90 backdrop-blur-md border border-[#1e2230] rounded-xl p-1 shadow-lg">
         <button

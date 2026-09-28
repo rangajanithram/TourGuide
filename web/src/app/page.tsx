@@ -193,7 +193,7 @@ export default function Home() {
             {currentPlan ? (
               <>
                 {/* Interactive Leaflet Map */}
-                <div className="h-[420px] w-full">
+                <div className="w-full h-[460px]">
                   <MapComponent 
                     plan={currentPlan} 
                     selectedDay={selectedDay}
