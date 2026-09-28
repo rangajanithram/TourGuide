@@ -6,7 +6,7 @@ import {
   ShieldCheck, CheckCircle2, Calendar,
   Copy, Check, Activity, CloudSun,
   CloudRain, Flame, Utensils, Wallet,
-  HelpCircle, ChevronDown, ChevronUp, Pin, Link2
+  HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users
 } from 'lucide-react';
 import { TripPlan } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
@@ -444,6 +444,31 @@ export default function ItineraryView({
                           <span className="text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={`Audited: ${act.last_verified_date || '2026'}`}>
                             <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
                             <span>Verified</span>
+                          </span>
+                        )}
+                        {act.crowd_forecast && (
+                          <span 
+                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-1 ${
+                              act.crowd_forecast.level === 'Low'
+                                ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                                : act.crowd_forecast.level === 'Moderate'
+                                ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20'
+                                : 'text-orange-400 bg-orange-500/10 border border-orange-500/20'
+                            }`}
+                            title={act.crowd_forecast.reason}
+                          >
+                            <Users className="w-2.5 h-2.5 mr-0.5" />
+                            <span>{act.crowd_forecast.level} Crowd ({act.crowd_forecast.score})</span>
+                          </span>
+                        )}
+                        {act.detour_cost_inr !== undefined && act.detour_cost_inr !== null && (
+                          <span className="text-[10px] text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title="Blueprint Section 6: Evaluated route detour penalty in rupees">
+                            <span>Detour: +₹{act.detour_cost_inr}</span>
+                          </span>
+                        )}
+                        {act.depends_on && act.depends_on.length > 0 && (
+                          <span className="text-[10px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={`Prerequisite: Requires visiting ${act.depends_on.join(', ')} first`}>
+                            <span>Sequence Linked</span>
                           </span>
                         )}
                       </div>

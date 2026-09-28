@@ -113,6 +113,82 @@ CITY_HUBS: Dict[str, Dict[str, Dict[str, Any]]] = {
             "lng": 75.8202,
             "aliases": ["mi road", "ajmeri gate", "pink city center", "walled city"]
         }
+    },
+    "bengaluru": {
+        "airport": {
+            "name": "Kempegowda International Airport (BLR)",
+            "lat": 13.1986,
+            "lng": 77.7066,
+            "aliases": ["airport", "blr airport", "kempegowda", "devanahalli", "flight"]
+        },
+        "station": {
+            "name": "KSR Bengaluru City Railway Station (Majestic)",
+            "lat": 12.9784,
+            "lng": 77.5695,
+            "aliases": ["station", "railway station", "majestic", "ksr", "train", "bangalore city"]
+        },
+        "station_yesvantpur": {
+            "name": "Yesvantpur Junction (YPR)",
+            "lat": 13.0238,
+            "lng": 77.5501,
+            "aliases": ["yesvantpur", "ypr", "yeshwanthpur"]
+        },
+        "bus": {
+            "name": "Kempegowda Bus Station (Majestic)",
+            "lat": 12.9772,
+            "lng": 77.5713,
+            "aliases": ["bus stand", "majestic bus stand", "ksrtc", "bmrtc"]
+        },
+        "tech_hub": {
+            "name": "Indiranagar 100ft Road / Tech Corridor",
+            "lat": 12.9719,
+            "lng": 77.6412,
+            "aliases": ["indiranagar", "whitefield", "koramangala", "tech park"]
+        },
+        "center": {
+            "name": "MG Road / Church Street Central Hub (Bengaluru)",
+            "lat": 12.9756,
+            "lng": 77.6066,
+            "aliases": ["mg road", "church street", "brigade road", "central bengaluru", "cubbon"]
+        }
+    },
+    "mumbai": {
+        "airport": {
+            "name": "Chhatrapati Shivaji Maharaj International Airport (BOM T2)",
+            "lat": 19.0896,
+            "lng": 72.8656,
+            "aliases": ["airport", "mumbai airport", "bom", "sahar", "terminal 2", "flight"]
+        },
+        "station": {
+            "name": "Chhatrapati Shivaji Maharaj Terminus (CSMT)",
+            "lat": 18.9400,
+            "lng": 72.8353,
+            "aliases": ["csmt", "vt", "victoria terminus", "station", "railway station", "train"]
+        },
+        "station_dadar": {
+            "name": "Dadar Central Railway Station",
+            "lat": 19.0178,
+            "lng": 72.8478,
+            "aliases": ["dadar", "dadar station"]
+        },
+        "station_bandra": {
+            "name": "Bandra Terminus (BDTS)",
+            "lat": 19.0628,
+            "lng": 72.8413,
+            "aliases": ["bandra", "bandra terminus", "bdts"]
+        },
+        "bus": {
+            "name": "Mumbai Central State Transport Depot",
+            "lat": 18.9696,
+            "lng": 72.8193,
+            "aliases": ["bus stand", "mumbai central bus", "msrtc depot"]
+        },
+        "center": {
+            "name": "Fort / Colaba Central Hub (Mumbai)",
+            "lat": 18.9220,
+            "lng": 72.8347,
+            "aliases": ["colaba", "fort", "gateway", "marine drive", "south mumbai", "churchgate"]
+        }
     }
 }
 

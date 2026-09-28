@@ -3,7 +3,8 @@ from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from typing import List, Optional
 from tripweave.models import Place, DayPlan, ScheduledActivity, TripPlan, HotelStaySummary, ViewpointRecommendation, TransportMode, PacePreference, PlanVariantType, GroupProfile
-from tripweave.distance import get_travel_metrics
+from tripweave.distance import get_travel_metrics, calculate_distance_km, compute_detour_cost_rupees
+from tripweave.crowd import HeuristicCrowdProvider
 from tripweave.solar import get_golden_hour_window
 from tripweave.clustering import GeoClusterer
 
@@ -179,6 +180,33 @@ class TripOptimizer:
                     base_drop_penalty += 1000
                 routing.AddDisjunction([index], base_drop_penalty)
 
+        # --- Activity Dependencies (Blueprint Section 1 & 5) ---
+        for b_idx, place_b in enumerate(self.places):
+            if b_idx == self.hotel_index or not getattr(place_b, "depends_on", None):
+                continue
+            index_b = manager.NodeToIndex(b_idx)
+            for dep in place_b.depends_on:
+                dep_clean = dep.strip().lower()
+                a_idx = next(
+                    (i for i, p in enumerate(self.places) 
+                     if p.place_id.lower() == dep_clean or p.name.lower() == dep_clean), 
+                    None
+                )
+                if a_idx is not None and a_idx != self.hotel_index:
+                    index_a = manager.NodeToIndex(a_idx)
+                    place_a = self.places[a_idx]
+                    solver = routing.solver()
+                    # 1. Must be served on the same day (same vehicle)
+                    solver.Add(routing.VehicleVar(index_b) == routing.VehicleVar(index_a))
+                    # 2. Strict time precedence: arrival at child >= arrival at parent + parent duration + transit
+                    min_transit, _ = get_travel_metrics(
+                        place_a.lat, place_a.lng, place_b.lat, place_b.lng,
+                        mode=self.transport_mode, people_count=self.people_count
+                    )
+                    solver.Add(time_dimension.CumulVar(index_b) >= time_dimension.CumulVar(index_a) + place_a.duration_minutes + min_transit)
+                    # 3. Disjunction coupling: If parent A is dropped, child B must also be dropped
+                    solver.Add((routing.ActiveVar(index_b) == 1) <= (routing.ActiveVar(index_a) == 1))
+
         # --- Dynamic Pace Dimension ---
         # Start depot is 0. Each stop adds 1.
         # So N activities accumulate N+1 at the return depot.
@@ -293,60 +321,95 @@ class TripOptimizer:
 
         clusterer = GeoClusterer()
         for day_id in range(self.days):
-            index = routing.Start(day_id)
+            # 1. Gather all nodes visited in sequence by this day's vehicle
+            curr = routing.Start(day_id)
+            route_nodes = []
+            while not routing.IsEnd(curr):
+                route_nodes.append((curr, manager.IndexToNode(curr)))
+                curr = solution.Value(routing.NextVar(curr))
+            route_nodes.append((curr, manager.IndexToNode(curr)))
+
             activities = []
             day_places = []
             day_cost = 0
-            
-            while not routing.IsEnd(index):
-                node_index = manager.IndexToNode(index)
-                place = self.places[node_index]
-                
-                time_var = time_dimension.CumulVar(index)
-                start_minute = solution.Min(time_var)
-                
-                next_index = solution.Value(routing.NextVar(index))
-                next_node = manager.IndexToNode(next_index)
-                
-                if self.cost_matrix:
-                    total_transport_cost += self.cost_matrix[node_index][next_node]
-                
-                if not (index == routing.Start(day_id)):
-                    cost_per_person = place.estimated_cost_per_person_inr or place.entry_fee_inr or 0
-                    place_cost = cost_per_person * self.people_count
-                    
-                    exp_tag = None
-                    day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
-                    end_minute = start_minute + place.duration_minutes
-                    if place.golden_hour_recommended:
-                        gh_start, gh_end = get_golden_hour_window(place.lat, place.lng, target_date=day_date)
-                        if end_minute >= gh_start and start_minute <= (gh_end + 30):
-                            exp_tag = "🌅 Scheduled for Astronomical Golden Hour Sunset"
-                    elif place.night_view_recommended and start_minute >= 600:
-                        exp_tag = "🌙 Scheduled for Evening Illumination"
-                        
-                    best_vp = place.best_viewpoints[0] if place.best_viewpoints else None
-                    is_pinned = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
 
-                    activities.append(ScheduledActivity(
-                        place_name=place.name,
-                        place_type=getattr(place, "place_type", "attraction"),
-                        lat=place.lat,
-                        lng=place.lng,
-                        start_time=self._minutes_to_clock_time(start_minute),
-                        end_time=self._minutes_to_clock_time(start_minute + place.duration_minutes),
-                        estimated_cost_inr=place_cost,
-                        is_locked=is_pinned,
-                        experience_tag=exp_tag,
-                        recommended_viewpoint=best_vp,
-                        verification_status=getattr(place, "verification_status", "curated_seed"),
-                        last_verified_date=getattr(place, "last_verified_date", "2026-09-01"),
-                        source_reference=getattr(place, "source_reference", "Curated City Seed Dataset")
-                    ))
-                    day_places.append(place)
-                    day_cost += place_cost
-                
-                index = next_index
+            # 2. Accumulate transport costs along contiguous legs
+            for s in range(len(route_nodes) - 1):
+                from_n = route_nodes[s][1]
+                to_n = route_nodes[s + 1][1]
+                if self.cost_matrix:
+                    total_transport_cost += self.cost_matrix[from_n][to_n]
+
+            # 3. Schedule activities along route (excluding start and end depot)
+            for step_idx in range(1, len(route_nodes) - 1):
+                idx, node_index = route_nodes[step_idx]
+                prev_idx, prev_node = route_nodes[step_idx - 1]
+                next_idx, next_node = route_nodes[step_idx + 1]
+
+                place = self.places[node_index]
+                time_var = time_dimension.CumulVar(idx)
+                start_minute = solution.Min(time_var)
+                end_minute = start_minute + place.duration_minutes
+
+                cost_per_person = place.estimated_cost_per_person_inr or place.entry_fee_inr or 0
+                place_cost = cost_per_person * self.people_count
+
+                # Astronomical Golden Hour / Evening Illumination Tagging
+                exp_tag = None
+                day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
+                if place.golden_hour_recommended:
+                    gh_start, gh_end = get_golden_hour_window(place.lat, place.lng, target_date=day_date)
+                    if end_minute >= gh_start and start_minute <= (gh_end + 30):
+                        exp_tag = "🌅 Scheduled for Astronomical Golden Hour Sunset"
+                elif place.night_view_recommended and start_minute >= 600:
+                    exp_tag = "🌙 Scheduled for Evening Illumination"
+
+                # Detour Penalty for Dining / Restaurant Insertion (Blueprint Section 6)
+                detour_val = None
+                if place.place_type == "restaurant":
+                    prev_p = self.places[prev_node]
+                    next_p = self.places[next_node]
+                    d_direct = calculate_distance_km(prev_p.lat, prev_p.lng, next_p.lat, next_p.lng)
+                    t_direct, _ = get_travel_metrics(prev_p.lat, prev_p.lng, next_p.lat, next_p.lng, mode=self.transport_mode, people_count=self.people_count)
+                    d_via = calculate_distance_km(prev_p.lat, prev_p.lng, place.lat, place.lng) + calculate_distance_km(place.lat, place.lng, next_p.lat, next_p.lng)
+                    t1, _ = get_travel_metrics(prev_p.lat, prev_p.lng, place.lat, place.lng, mode=self.transport_mode, people_count=self.people_count)
+                    t2, _ = get_travel_metrics(place.lat, place.lng, next_p.lat, next_p.lng, mode=self.transport_mode, people_count=self.people_count)
+                    t_via = t1 + t2
+                    detour_val = round(compute_detour_cost_rupees(d_via - d_direct, t_via - t_direct), 1)
+
+                # Heuristic Crowd Density Forecast (Blueprint Section 7)
+                eval_date = day_date or (date.today() + timedelta(days=day_id))
+                hour_of_day = 8 + (start_minute // 60)
+                crowd_fc = HeuristicCrowdProvider.get_forecast(
+                    place_type=getattr(place, "place_type", "attraction"),
+                    day_of_week=eval_date.weekday(),
+                    hour=hour_of_day,
+                    tags=getattr(place, "tags", [])
+                )
+
+                best_vp = place.best_viewpoints[0] if place.best_viewpoints else None
+                is_pinned = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
+
+                activities.append(ScheduledActivity(
+                    place_name=place.name,
+                    place_type=getattr(place, "place_type", "attraction"),
+                    lat=place.lat,
+                    lng=place.lng,
+                    start_time=self._minutes_to_clock_time(start_minute),
+                    end_time=self._minutes_to_clock_time(end_minute),
+                    estimated_cost_inr=place_cost,
+                    is_locked=is_pinned,
+                    experience_tag=exp_tag,
+                    recommended_viewpoint=best_vp,
+                    verification_status=getattr(place, "verification_status", "curated_seed"),
+                    last_verified_date=getattr(place, "last_verified_date", "2026-09-01"),
+                    source_reference=getattr(place, "source_reference", "Curated City Seed Dataset"),
+                    crowd_forecast=crowd_fc,
+                    depends_on=list(getattr(place, "depends_on", [])),
+                    detour_cost_inr=detour_val
+                ))
+                day_places.append(place)
+                day_cost += place_cost
                 
             if activities:
                 day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
@@ -431,6 +494,13 @@ class TripOptimizer:
 
                         act.start_time = self._minutes_to_clock_time(start_minute)
                         act.end_time = self._minutes_to_clock_time(end_minute)
+                        eval_date = (self.start_date + timedelta(days=day.day_number - 1)) if self.start_date else (date.today() + timedelta(days=day.day_number - 1))
+                        act.crowd_forecast = HeuristicCrowdProvider.get_forecast(
+                            place_type=getattr(act_place, "place_type", "attraction"),
+                            day_of_week=eval_date.weekday(),
+                            hour=8 + (start_minute // 60),
+                            tags=getattr(act_place, "tags", [])
+                        )
                         curr_minute = end_minute
                         prev_lat, prev_lng = act_place.lat, act_place.lng
                         valid_activities.append(act)

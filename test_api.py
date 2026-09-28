@@ -21,11 +21,13 @@ from tripweave.models import (
     TripRequest, HotelPreference, TransportPreference, 
     TransportMode, PacePreference, PlanVariantType, GroupProfile
 )
-from tripweave.distance import calculate_distance_km, get_travel_metrics
+from tripweave.distance import calculate_distance_km, get_travel_metrics, compute_detour_cost_rupees
 from tripweave.solar import get_golden_hour_window
 from tripweave.geocoding import LocationResolver
 from tripweave.weather import WeatherProvider
 from tripweave.fatigue import FatigueAnalyzer
+from tripweave.crowd import HeuristicCrowdProvider
+
 
 def run_tests():
     print("🧪 Running TripWeave Master Verification Test Suite...\n")
@@ -414,7 +416,97 @@ def run_tests():
         assert ex.suggested_action is not None and len(ex.suggested_action) > 5
     print(f"   ✅ Candidate Omission Diagnostics Verified: Deterministic checks labeled across {len(june_plan.decision_trace.excluded_places)} candidate places.")
 
-    print("\n🎉 ALL 25 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 26: Multi-City Launch Expansion (Bengaluru & Mumbai)
+    print("\n2️⃣6️⃣ Testing Multi-City Launch Expansion (Bengaluru & Mumbai)...")
+    blr_hub_name, blr_lat, blr_lng = LocationResolver.resolve_origin("Bengaluru", origin_type="airport")
+    assert "Kempegowda" in blr_hub_name
+    mum_hub_name, mum_lat, mum_lng = LocationResolver.resolve_origin("Mumbai", origin_type="station")
+    assert "Chhatrapati Shivaji Maharaj" in mum_hub_name
+    print(f"   ✅ Geocoding Hubs Verified: Bengaluru ({blr_hub_name}) & Mumbai ({mum_hub_name})")
+
+    blr_req = TripRequest(
+        destination="Bengaluru",
+        start_date=date(2026, 11, 10),
+        days=2,
+        budget_inr=16000,
+        people_count=2,
+        pace=PacePreference.BALANCED
+    )
+    blr_plan = generate_itinerary(blr_req)
+    assert blr_plan.verification_report.is_valid
+    assert len(blr_plan.days) >= 1
+    blr_places = [a.place_name for d in blr_plan.days for a in d.activities]
+    print(f"   ✅ Bengaluru Plan Verified: {len(blr_places)} visits ({', '.join(blr_places[:3])})")
+
+    mum_req = TripRequest(
+        destination="Mumbai",
+        start_date=date(2026, 11, 10),
+        days=2,
+        budget_inr=20000,
+        people_count=2,
+        pace=PacePreference.BALANCED
+    )
+    mum_plan = generate_itinerary(mum_req)
+    assert mum_plan.verification_report.is_valid
+    assert len(mum_plan.days) >= 1
+    mum_places = [a.place_name for d in mum_plan.days for a in d.activities]
+    print(f"   ✅ Mumbai Plan Verified: {len(mum_places)} visits ({', '.join(mum_places[:3])})")
+
+    # Test 27: Blueprint Section 7 Crowd Intelligence Heuristics
+    print("\n2️⃣7️⃣ Testing Blueprint Section 7 Crowd Intelligence Heuristics...")
+    # Saturday afternoon museum rush:
+    fc_mus_sat = HeuristicCrowdProvider.get_forecast("attraction", 5, 14, tags=["museum"])
+    assert fc_mus_sat.score == 85 and fc_mus_sat.level in ["Busy", "Very Busy"]
+    # Weekday morning museum:
+    fc_mus_wed = HeuristicCrowdProvider.get_forecast("attraction", 2, 10, tags=["museum"])
+    assert fc_mus_wed.score == 20 and fc_mus_wed.level == "Low"
+    # Fort Sunday midday:
+    fc_fort_sun = HeuristicCrowdProvider.get_forecast("attraction", 6, 13, tags=["fort"])
+    assert fc_fort_sun.score == 80 and fc_fort_sun.level == "Busy"
+    # Restaurant peak lunch:
+    fc_lunch = HeuristicCrowdProvider.get_forecast("restaurant", 2, 13)
+    assert fc_lunch.score == 85 and fc_lunch.level == "Busy"
+    # Verify activities have populated crowd_forecast:
+    sample_act = blr_plan.days[0].activities[0]
+    assert sample_act.crowd_forecast is not None
+    assert 0 <= sample_act.crowd_forecast.score <= 100
+    print(f"   ✅ Crowd Heuristics Verified: Museum Saturday Peak ({fc_mus_sat.score}/100) vs Weekday Morning ({fc_mus_wed.score}/100)")
+    print(f"      Scheduled Activity Crowd Tag: '{sample_act.place_name}' -> {sample_act.crowd_forecast.level} Crowd ({sample_act.crowd_forecast.score})")
+
+    # Test 28: Blueprint Section 1 & 5 Activity Dependencies
+    print("\n2️⃣8️⃣ Testing Blueprint Section 1 & 5 Activity Dependencies (Elephanta -> Gateway)...")
+    dep_req = TripRequest(
+        destination="Mumbai",
+        start_date=date(2026, 11, 10),
+        days=1,
+        budget_inr=15000,
+        people_count=2,
+        locked_activities=["Elephanta Caves", "Gateway of India"]
+    )
+    dep_plan = generate_itinerary(dep_req)
+    assert dep_plan.verification_report.is_valid
+    day_act_names = [a.place_name for a in dep_plan.days[0].activities]
+    assert "Gateway of India" in day_act_names, "Prerequisite 'Gateway of India' must be included"
+    assert "Elephanta Caves" in day_act_names, "Dependent 'Elephanta Caves' must be included"
+    idx_gate = day_act_names.index("Gateway of India")
+    idx_ele = day_act_names.index("Elephanta Caves")
+    assert idx_gate < idx_ele, f"Gateway of India (idx {idx_gate}) must be visited before Elephanta Caves (idx {idx_ele})!"
+    print(f"   ✅ Activity Dependency Precedence Verified: Gateway of India (Stop {idx_gate+1}) -> Elephanta Caves (Stop {idx_ele+1})")
+
+    # Test 29: Blueprint Section 6 Detour Penalty Math & Meal Windows
+    print("\n2️⃣9️⃣ Testing Blueprint Section 6 Detour Penalty Math & Meal Accounting...")
+    detour_cost = compute_detour_cost_rupees(3.0, 10, per_km_rs=12.0, time_value_rs_per_min=2.0)
+    assert detour_cost == 56.0, f"Expected 56.0, got {detour_cost}"
+    print(f"   ✅ Detour Penalty Formula Verified: 3.0 km + 10 min = ₹{detour_cost:.0f}")
+
+    # Verify metrics in verifier report contain attractions and dining breakdown
+    metrics = blr_plan.verification_report.metrics
+    assert "total_attractions_spend" in metrics
+    assert "total_dining_spend" in metrics
+    print(f"   ✅ Verifier Metrics Verified: Attractions ({metrics['total_attractions_spend']}), Dining ({metrics['total_dining_spend']})")
+
+    print("\n🎉 ALL 29 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()
+

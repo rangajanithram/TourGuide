@@ -59,3 +59,16 @@ def get_mock_travel_time_minutes(lat1: float, lng1: float, lat2: float, lng2: fl
     mins, _ = get_travel_metrics(lat1, lng1, lat2, lng2, mode)
     return mins
 
+def compute_detour_cost_rupees(
+    extra_km: float, 
+    extra_min: int,
+    per_km_rs: float = 12.0,
+    time_value_rs_per_min: float = 2.0
+) -> float:
+    """
+    Blueprint Section 6 Detour Penalty Function:
+    Converts detour distance and opportunity time into ₹ before combining — never mixes units.
+    """
+    return (max(0.0, extra_km) * per_km_rs) + (max(0, extra_min) * time_value_rs_per_min)
+
+

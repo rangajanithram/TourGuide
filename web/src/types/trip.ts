@@ -37,6 +37,14 @@ export interface ExpenseBreakdown {
   per_person_inr: number;
 }
 
+export interface CrowdForecast {
+  score: number;
+  level: string;
+  reason: string;
+  confidence: string;
+  source: string;
+}
+
 export interface ScheduledActivity {
   place_name: string;
   place_type?: string;
@@ -55,6 +63,9 @@ export interface ScheduledActivity {
   verification_status?: string;
   last_verified_date?: string;
   source_reference?: string;
+  crowd_forecast?: CrowdForecast | null;
+  depends_on?: string[];
+  detour_cost_inr?: number | null;
 }
 
 export interface DayPlan {

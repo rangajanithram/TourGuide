@@ -19,7 +19,7 @@ class Settings(BaseModel):
         ).split(",") if origin.strip()
     ])
     
-    supported_cities: List[str] = Field(default_factory=lambda: ["hyderabad", "delhi", "jaipur"])
+    supported_cities: List[str] = Field(default_factory=lambda: ["hyderabad", "delhi", "jaipur", "bengaluru", "mumbai"])
     data_dir: str = Field(default_factory=lambda: os.getenv("DATA_DIR", "data"))
 
 settings = Settings()

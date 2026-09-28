@@ -52,7 +52,11 @@ class ItineraryVerifier:
         total_transit_mins = 0
         total_activity_time_mins = 0
         total_computed_activities_cost = 0
+        total_computed_dining_cost = 0
+        total_computed_attractions_cost = 0
         total_computed_transport_cost = 0
+        visited_places = set()
+        dependency_checks_passed = True
 
         hotel_lat = plan.hotel_summary.lat if plan.hotel_summary else 0.0
         hotel_lng = plan.hotel_summary.lng if plan.hotel_summary else 0.0
@@ -88,6 +92,30 @@ class ItineraryVerifier:
                 if not place:
                     warnings.append(f"Day {day.day_number}: Place '{act.place_name}' not found in database records.")
                     continue
+
+                # Dining vs Sightseeing Cost Categorization
+                if act.place_type == "restaurant" or getattr(place, "place_type", "") == "restaurant":
+                    total_computed_dining_cost += act.estimated_cost_inr
+                    # Verify meal window: Lunch (11:30 AM - 3:30 PM: 210 to 450) or Dinner (6:30 PM - 10:30 PM: 630 to 870)
+                    if not ((210 <= start_min <= 450) or (630 <= start_min <= 870)):
+                        warnings.append(
+                            f"Off-Peak Dining: Restaurant '{act.place_name}' scheduled at {act.start_time}, outside standard lunch (11:30 AM - 3:30 PM) or dinner (6:30 PM - 10:30 PM) service."
+                        )
+                else:
+                    total_computed_attractions_cost += act.estimated_cost_inr
+
+                # Check Activity Dependencies (Blueprint Section 1 & 5)
+                if getattr(place, "depends_on", None):
+                    for dep in place.depends_on:
+                        dep_clean = dep.strip().lower()
+                        if dep_clean not in visited_places:
+                            errors.append(
+                                f"Dependency Violation: '{place.name}' depends on '{dep}', but '{dep}' was not visited prior to this stop."
+                            )
+                            dependency_checks_passed = False
+
+                visited_places.add(place.place_id.lower())
+                visited_places.add(place.name.lower())
 
                 # Check 1: Day-of-Week Closure Audit
                 if day_name and place.closed_days:
@@ -217,6 +245,8 @@ class ItineraryVerifier:
             checks_passed.append("Opening Hours & Closures: 100% compliant with operating windows.")
             checks_passed.append("Transit Physics: Routes physically feasible with realistic traffic speeds.")
             checks_passed.append("Accounting Integrity: Activity, transit, and lodging costs sum perfectly.")
+            if dependency_checks_passed:
+                checks_passed.append("Activity Dependencies: All prerequisite activity chains respected.")
 
         # Compute Audit Score (0 - 100)
         score = 100 - (len(errors) * 35) - (len(warnings) * 5)
@@ -229,6 +259,8 @@ class ItineraryVerifier:
             "total_transit_time": f"{total_transit_mins} mins",
             "total_sightseeing_time": f"{total_activity_time_mins} mins",
             "budget_utilization": f"{(plan.total_cost_inr / request.budget_inr * 100):.1f}%",
+            "total_attractions_spend": f"₹{total_computed_attractions_cost}",
+            "total_dining_spend": f"₹{total_computed_dining_cost}",
             "data_provenance": "Curated Prototype Seed Dataset"
         }
 

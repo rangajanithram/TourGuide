@@ -2,6 +2,7 @@ from enum import Enum
 from datetime import date, timedelta
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field, model_validator, ConfigDict
+from tripweave.crowd import CrowdForecast
 
 # --- ENUMS (Strict Typed Allowed Values) ---
 
@@ -153,6 +154,8 @@ class Place(BaseModel):
     golden_hour_recommended: bool = False
     night_view_recommended: bool = False
     best_viewpoints: List[ViewpointRecommendation] = Field(default_factory=list)
+    depends_on: List[str] = Field(default_factory=list, description="IDs or names of prerequisite activities that must precede this stop")
+
 
 # --- OUTPUT ITINERARY (What the engine produces) ---
 
@@ -220,6 +223,10 @@ class ScheduledActivity(BaseModel):
     verification_status: Optional[str] = Field(default="curated_seed", description="Data provenance status")
     last_verified_date: Optional[str] = Field(default="2026-09-01", description="Last date ticket rates and hours were audited")
     source_reference: Optional[str] = Field(default="Curated City Seed Dataset", description="Source of opening hours and fees")
+    crowd_forecast: Optional[CrowdForecast] = Field(default=None, description="Heuristic crowd forecast for this scheduled time window")
+    depends_on: List[str] = Field(default_factory=list, description="Prerequisite activities that must precede this stop")
+    detour_cost_inr: Optional[float] = Field(default=None, description="Detour cost in INR for dining insertion")
+
 
 class DayPlan(BaseModel):
     day_number: int

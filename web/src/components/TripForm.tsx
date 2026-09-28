@@ -16,13 +16,17 @@ interface TripFormProps {
 const CITY_MUST_VISIT_PINS: Record<string, string[]> = {
   hyderabad: ['Charminar', 'Golconda Fort', 'Chowmahalla Palace', 'Salar Jung Museum'],
   delhi: ['Qutub Minar', "Humayun's Tomb", 'Red Fort (Lal Qila)'],
-  jaipur: ['Amber Fort', 'Hawa Mahal', 'City Palace', 'Jantar Mantar'],
+  jaipur: ['Amber Fort', 'Hawa Mahal', 'Nahargarh Fort Sunset Viewpoint'],
+  bengaluru: ['Bangalore Palace', 'Lalbagh Botanical Garden', "Tipu Sultan's Summer Palace", 'Cubbon Park & Vidhana Soudha'],
+  mumbai: ['Gateway of India', 'CSMVS Museum (Prince of Wales)', 'Marine Drive & Nariman Point', 'Elephanta Caves'],
 };
 
 const CITIES = [
   { id: 'hyderabad', name: 'Hyderabad', tagline: 'Charminar, Golconda & Nizam Heritage' },
   { id: 'delhi', name: 'Delhi', tagline: 'Red Fort, Qutub Minar & Mughal Monuments' },
   { id: 'jaipur', name: 'Jaipur', tagline: 'Amber Fort, Hawa Mahal & Pink City' },
+  { id: 'bengaluru', name: 'Bengaluru', tagline: 'Bangalore Palace, Lalbagh & Garden City' },
+  { id: 'mumbai', name: 'Mumbai', tagline: 'Gateway of India, Marine Drive & Coastal Heritage' },
 ];
 
 const ORIGIN_HUBS = [
@@ -71,7 +75,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search);
       const d = p.get('dest') || p.get('destination');
-      if (d && ['hyderabad', 'delhi', 'jaipur'].includes(d.toLowerCase())) return d.toLowerCase();
+      if (d && ['hyderabad', 'delhi', 'jaipur', 'bengaluru', 'mumbai'].includes(d.toLowerCase())) return d.toLowerCase();
     }
     return 'hyderabad';
   });

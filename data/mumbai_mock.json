@@ -1,0 +1,178 @@
+[
+  {
+    "place_id": "mum_001",
+    "name": "Gateway of India",
+    "place_type": "attraction",
+    "lat": 18.9220,
+    "lng": 72.8347,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 0,
+    "tags": ["history", "architecture", "iconic", "coastal"],
+    "open_time_mins": 0,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "golden_hour_recommended": true,
+    "night_view_recommended": true,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Apollo Bunder Waterfront Promenade",
+        "description": "Basalt archway silhouetted against the Arabian Sea harbor boats.",
+        "best_moment": "Sunset Golden Hour (5:15 PM - 6:15 PM)",
+        "pro_tip": "Position yourself near the sea wall to capture the arch framing illuminated ferries."
+      }
+    ]
+  },
+  {
+    "place_id": "mum_002",
+    "name": "CSMVS Museum (Prince of Wales)",
+    "place_type": "attraction",
+    "lat": 18.9268,
+    "lng": 72.8327,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 150,
+    "tags": ["history", "museum", "art", "architecture"],
+    "open_time_mins": 135,
+    "close_time_mins": 615,
+    "closed_days": ["monday"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Crescent Heritage Gardens & Central Dome",
+        "description": "Indo-Saracenic tiled dome surrounded by palm fronds and colonial cannons.",
+        "best_moment": "Morning (10:30 AM - 12:00 PM)",
+        "pro_tip": "The Himalayan and miniature painting galleries offer quiet contemplation with good lighting."
+      }
+    ]
+  },
+  {
+    "place_id": "mum_003",
+    "name": "Marine Drive & Nariman Point",
+    "place_type": "attraction",
+    "lat": 18.9438,
+    "lng": 72.8232,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 0,
+    "tags": ["sunset", "promenade", "coastal", "iconic"],
+    "open_time_mins": 0,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "golden_hour_recommended": true,
+    "night_view_recommended": true,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Queen's Necklace Nariman Point Curve",
+        "description": "Sweeping 3-kilometer curve of art-deco buildings along Back Bay.",
+        "best_moment": "Golden Hour into Twilight (5:30 PM - 7:00 PM)",
+        "pro_tip": "Sit on the tetrapods near Brabourne Stadium as the golden hour turns into glittering street lamps."
+      }
+    ]
+  },
+  {
+    "place_id": "mum_004",
+    "name": "Elephanta Caves",
+    "place_type": "attraction",
+    "lat": 18.9633,
+    "lng": 72.9315,
+    "duration_minutes": 180,
+    "estimated_cost_per_person_inr": 40,
+    "tags": ["history", "unesco", "ancient", "caves"],
+    "open_time_mins": 90,
+    "close_time_mins": 510,
+    "closed_days": ["monday"],
+    "depends_on": ["mum_001"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": [
+      {
+        "viewpoint_name": "Trimurti Sadashiva Cave 1",
+        "description": "Colossal 20-foot three-headed sculpture of Lord Shiva carved into solid basalt.",
+        "best_moment": "Morning / Early Afternoon (11:00 AM - 1:30 PM)",
+        "pro_tip": "Catch the 9:30 AM ferry from Gateway of India to avoid crowded return boats."
+      }
+    ]
+  },
+  {
+    "place_id": "mum_005",
+    "name": "Britannia & Co. (Ballard Estate)",
+    "place_type": "restaurant",
+    "lat": 18.9352,
+    "lng": 72.8392,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 700,
+    "tags": ["food", "lunch", "parsi", "heritage"],
+    "open_time_mins": 240,
+    "close_time_mins": 420,
+    "closed_days": ["sunday"],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "mum_006",
+    "name": "Cafe Mondegar (Colaba Causeway)",
+    "place_type": "restaurant",
+    "lat": 18.9246,
+    "lng": 72.8317,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 600,
+    "tags": ["food", "lunch", "dinner", "iconic"],
+    "open_time_mins": 180,
+    "close_time_mins": 660,
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_mum_001",
+    "name": "Zostel Mumbai (Andheri/Marol)",
+    "place_type": "hotel",
+    "lat": 19.1172,
+    "lng": 72.8833,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 1400,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Private 2-bed room)",
+    "tags": ["budget", "stay"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_mum_002",
+    "name": "Treebo Trend Colaba",
+    "place_type": "hotel",
+    "lat": 18.9180,
+    "lng": 72.8285,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 3200,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Deluxe Double)",
+    "tags": ["mid-range", "stay", "heritage"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  },
+  {
+    "place_id": "h_mum_003",
+    "name": "The Taj Mahal Palace Mumbai",
+    "place_type": "hotel",
+    "lat": 18.9217,
+    "lng": 72.8331,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "price_per_night_inr": 24000,
+    "max_guests_per_room": 2,
+    "data_source": "Curated Seed Data (Phase 0 Prototype - Tower City View)",
+    "tags": ["luxury", "heritage", "iconic", "stay"],
+    "closed_days": [],
+    "golden_hour_recommended": false,
+    "night_view_recommended": false,
+    "best_viewpoints": []
+  }
+]
