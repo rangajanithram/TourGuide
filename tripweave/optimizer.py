@@ -161,11 +161,10 @@ class TripOptimizer:
             if place.golden_hour_recommended:
                 trip_mid_date = (self.start_date + timedelta(days=self.days // 2)) if self.start_date else (date.today() + timedelta(days=self.days // 2))
                 gh_start, gh_end = get_golden_hour_window(place.lat, place.lng, target_date=trip_mid_date)
-                # If place closes before sunset, ideal arrival is bounded by max_arrival
-                # so the visitor is inside at the summit during sunset before gates close!
                 ideal_arrival = min(max_arrival, max(min_arrival, gh_start - (place.duration_minutes // 2)))
-                time_dimension.SetCumulVarSoftLowerBound(index, ideal_arrival, 15)
-                time_dimension.SetCumulVarSoftUpperBound(index, min(max_arrival, gh_end), 15)
+                # Soft preference with calibrated coefficient (2 pts/min), ensuring daytime visits are never dropped
+                time_dimension.SetCumulVarSoftLowerBound(index, ideal_arrival, 2)
+                time_dimension.SetCumulVarSoftUpperBound(index, min(max_arrival, gh_end), 2)
 
             # --- Disjunction (Drop Penalty) ---
             # Crucial: If an activity is pinned, DO NOT add a disjunction!
