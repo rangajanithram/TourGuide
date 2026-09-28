@@ -1,7 +1,17 @@
+param (
+    [switch]$Clean
+)
+
 # TripWeave PowerShell Launcher
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host "          Starting TripWeave Travel Engine              " -ForegroundColor Cyan
 Write-Host "========================================================" -ForegroundColor Cyan
+
+if ($Clean) {
+    Write-Host "Cleaning stale Next.js cache (web\.next)..." -ForegroundColor Magenta
+    Remove-Item -Recurse -Force "web\.next" -ErrorAction SilentlyContinue
+}
+
 
 # 1. Start FastAPI backend in a new process
 Write-Host "1. Launching FastAPI Backend on http://127.0.0.1:8000..." -ForegroundColor Yellow
