@@ -30,6 +30,7 @@ from tripweave.fatigue import FatigueAnalyzer
 from tripweave.crowd import HeuristicCrowdProvider
 from tripweave.transport import get_transport_provider
 from tripweave.optimizer import TripOptimizer
+from tripweave.clustering import GeoClusterer
 
 
 def run_tests():
@@ -700,10 +701,14 @@ def run_tests():
     print(f"      - Stage 9 ({stage9['name']}): {stage9['duration_ms']:.2f} ms")
     print(f"      - Stage 10 ({stage10['name']}): {stage10['duration_ms']:.2f} ms")
 
-    # Test 40: Curated Return Route Selection & Outlay Pricing Independence
-    print("\n4️⃣0️⃣ Testing Curated Return Route Lookup & Outlay Transparency...")
+    # Test 40: Curated Return Route Selection, Return Last-Mile & Workload Balancing
+    print("\n4️⃣0️⃣ Testing Curated Return Route Lookup, Return Last-Mile & Workload Balancing...")
     tp = get_transport_provider()
-    ret_summary = tp.get_transport_summary("bengaluru", "hyderabad", "Hotel Central", 17.3850, 78.4867, variant_type="balanced", people_count=2)
+    ret_summary = tp.get_transport_summary(
+        "bengaluru", "hyderabad", "Hotel Central", 17.3850, 78.4867,
+        variant_type="balanced", people_count=2,
+        start_date=date(2026, 11, 20), end_date=date(2026, 11, 22)
+    )
     assert ret_summary is not None
     assert ret_summary.return_option is not None
     assert len(ret_summary.all_return_options) >= 3, f"Expected at least 3 return options, got {len(ret_summary.all_return_options)}"
@@ -711,8 +716,49 @@ def run_tests():
     assert ret_opt.origin_city == "hyderabad"
     assert ret_opt.destination_city == "bengaluru"
     assert ret_opt.typical_fare_min > 0
-    print(f"   ✅ Return Route Intelligence Verified: {ret_opt.operator_name} ({ret_opt.departure_station} -> {ret_opt.arrival_station}, ₹{ret_opt.typical_fare_min} - ₹{ret_opt.typical_fare_max})")
-    print(f"      Curated Return Alternatives Available: {len(ret_summary.all_return_options)} routes")
+
+    # Ensure no placeholder or invented service numbers exist in returned data
+    for r in ret_summary.all_return_options:
+        if r.service_number:
+            assert not r.service_number.startswith("KA-RET"), f"Found placeholder service number: {r.service_number}"
+            assert not r.service_number.startswith("6E-RET"), f"Found placeholder service number: {r.service_number}"
+        assert r.availability_status == "indicative_schedule", f"Expected indicative_schedule, got {r.availability_status}"
+
+    # Verify Return Last-Mile Connection (Hotel -> Return Terminal)
+    ret_lm = ret_summary.return_last_mile
+    assert ret_lm is not None, "Must calculate separate return last-mile connection"
+    assert ret_lm.destination_hotel == "Hotel Central"
+    assert ret_lm.distance_km > 0.0
+    assert ret_lm.estimated_time_min > 0
+    assert ret_lm.estimated_cost_inr > 0
+    assert ret_lm.arrival_terminal == ret_opt.departure_station
+    print(f"   ✅ Return Last-Mile Verified: {ret_lm.destination_hotel} -> {ret_lm.arrival_terminal}")
+    print(f"      {ret_lm.distance_km} km • ~{ret_lm.estimated_time_min} mins via {ret_lm.recommended_mode} (₹{ret_lm.estimated_cost_inr})")
+
+    # Verify Day-of-Week Schedule Compatibility (e.g. Vande Bharat runs except Wed)
+    # Case A: Return on a Wednesday (2026-11-25 is a Wednesday)
+    wed_summary = tp.get_transport_summary(
+        "bengaluru", "hyderabad", "Hotel Central", 17.3850, 78.4867,
+        variant_type="balanced", people_count=2,
+        start_date=date(2026, 11, 23), end_date=date(2026, 11, 25)
+    )
+    assert wed_summary is not None and wed_summary.return_option is not None
+    # If a train is selected, ensure it doesn't violate "except Wed" or has advice warning
+    if "except wed" in wed_summary.return_option.departure_window.lower():
+        assert "Notice:" in wed_summary.transit_advice or "Wednesday" in wed_summary.transit_advice
+    print("   ✅ Return Day-of-Week Schedule Intelligence Verified (Wednesday non-operational checks active)")
+
+    # Verify Stage 4 Workload Balancing Algorithm directly
+    clusterer = GeoClusterer(eps_km=6.0)
+    mock_clusters = {
+        0: [Place(place_id="p1", name="Place 1", place_type="attraction", lat=17.36, lng=78.47, duration_minutes=60, estimated_cost_per_person_inr=50)],
+        1: [Place(place_id="p2", name="Place 2", place_type="attraction", lat=17.37, lng=78.48, duration_minutes=60, estimated_cost_per_person_inr=50)],
+        2: [Place(place_id="p3", name="Place 3", place_type="attraction", lat=17.40, lng=78.40, duration_minutes=60, estimated_cost_per_person_inr=50)],
+        3: [Place(place_id="p4", name="Place 4", place_type="attraction", lat=17.41, lng=78.41, duration_minutes=60, estimated_cost_per_person_inr=50)],
+    }
+    balanced_2d = clusterer.balance_workload(mock_clusters, days=2, pace="balanced")
+    assert len(balanced_2d) == 2, f"Expected 2 merged clusters for 2 days, got {len(balanced_2d)}"
+    print(f"   ✅ Stage 4 Workload Balancing Algorithm Verified: 4 spatial clusters balanced into {len(balanced_2d)} day-partitions")
 
     print("\n🎉 ALL 40 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 

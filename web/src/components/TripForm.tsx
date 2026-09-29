@@ -351,9 +351,12 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center space-x-1.5">
-              <IndianRupee className="w-3.5 h-3.5 text-amber-400" />
-              <span>Total Budget: ₹{budget.toLocaleString('en-IN')}</span>
+            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 flex items-center justify-between">
+              <span className="flex items-center space-x-1.5">
+                <IndianRupee className="w-3.5 h-3.5 text-amber-400" />
+                <span>On-Ground Budget: ₹{budget.toLocaleString('en-IN')}</span>
+              </span>
+              <span className="text-[10px] text-amber-400/80 font-normal lowercase">destination stay & activities</span>
             </label>
             <input
               type="range"
@@ -369,6 +372,9 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
               <span>₹25k</span>
               <span>₹50k (Luxury)</span>
             </div>
+            <p className="text-[10px] text-gray-500 mt-1.5 leading-tight">
+              Covers destination lodging, local cabs/metro, sightseeing fees & meals. Inter-city travel is calculated as a separate additive baseline.
+            </p>
           </div>
         </div>
 

@@ -160,6 +160,7 @@ export interface InterCityTransportSummary {
   all_return_options?: InterCityRoute[];
   transit_advice: string;
   last_mile?: LastMileConnection | null;
+  return_last_mile?: LastMileConnection | null;
 }
 
 export interface SynthesisStage {

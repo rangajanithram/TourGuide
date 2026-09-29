@@ -50,7 +50,11 @@ export default function ItineraryView({
     const dest = destination.toLowerCase().trim();
     const orig = (formData?.origin_city || plan.intercity_transport?.origin_city || 'local').toLowerCase().trim();
     const startLoc = (formData?.start_location || '').toLowerCase().trim();
-    return `${dest}_from_${orig}_${sDate}_to_${eDate}_${numDays}d_${people}p_b${budget}_${pace}_${mode}_${startLoc}_${variant}`;
+    const group = (formData?.group_profile || 'general').toLowerCase();
+    const originType = (formData?.origin_type || 'city_center').toLowerCase();
+    const interests = (formData?.interests || []).slice().sort().join(',');
+    const locked = (formData?.locked_activities || []).slice().sort().join(',');
+    return `${dest}_from_${orig}_${originType}_${sDate}_to_${eDate}_${numDays}d_${people}p_b${budget}_${pace}_${mode}_${group}_loc${startLoc}_int[${interests}]_lock[${locked}]_${variant}`;
   }, [destination, formData, plan]);
 
   const storageKey = `tripweave_expenses_${tripSignature}`;
@@ -328,6 +332,9 @@ export default function ItineraryView({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                    Outbound
+                  </span>
                   <span className="font-bold text-sm text-white">
                     {plan.intercity_transport.recommended_option.operator_name}
                   </span>
@@ -337,11 +344,11 @@ export default function ItineraryView({
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-gray-400 mt-1">
                   {plan.intercity_transport.recommended_option.departure_station} ➔ {plan.intercity_transport.recommended_option.arrival_station}
                 </p>
                 <p className="text-[11px] text-gray-500 mt-0.5">
-                  Window: {plan.intercity_transport.recommended_option.departure_window}
+                  Schedule Window: {plan.intercity_transport.recommended_option.departure_window}
                 </p>
               </div>
 
@@ -355,20 +362,75 @@ export default function ItineraryView({
               </div>
             </div>
 
+            {/* Return Leg Detail */}
+            {plan.intercity_transport.return_option && (
+              <div className="pt-3 border-t border-[#222736] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                      Return Leg
+                    </span>
+                    <span className="font-bold text-sm text-white">
+                      {plan.intercity_transport.return_option.operator_name}
+                    </span>
+                    {plan.intercity_transport.return_option.service_number && (
+                      <span className="text-[11px] text-gray-400 bg-[#11131b] px-1.5 py-0.5 rounded border border-[#222736]">
+                        #{plan.intercity_transport.return_option.service_number}
+                      </span>
+                    )}
+                    <span className="text-[10px] text-gray-400 bg-[#11131b] px-1.5 py-0.5 rounded border border-[#222736]">
+                      Indicative Schedule Benchmark
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">
+                    {plan.intercity_transport.return_option.departure_station} ➔ {plan.intercity_transport.return_option.arrival_station}
+                  </p>
+                  <p className="text-[11px] text-gray-500 mt-0.5">
+                    Schedule Window: {plan.intercity_transport.return_option.departure_window}
+                  </p>
+                </div>
+
+                <div className="text-left sm:text-right">
+                  <span className="text-base font-extrabold text-cyan-400 block">
+                    ₹{plan.intercity_transport.return_option.typical_fare_min.toLocaleString('en-IN')} - ₹{plan.intercity_transport.return_option.typical_fare_max.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-[11px] text-gray-400 block">
+                    {plan.intercity_transport.return_option.fare_class} • {Math.floor(plan.intercity_transport.return_option.typical_duration_min / 60)}h {plan.intercity_transport.return_option.typical_duration_min % 60 > 0 ? `${plan.intercity_transport.return_option.typical_duration_min % 60}m` : ''}
+                  </span>
+                </div>
+              </div>
+            )}
+
             <div className="text-xs text-gray-300 leading-relaxed bg-[#11131b] p-3 rounded-lg border border-[#1e2230]">
               {plan.intercity_transport.transit_advice}
             </div>
 
-            {/* Last Mile Transfer to Hotel */}
-            {plan.intercity_transport.last_mile && (
-              <div className="flex items-start space-x-2.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-bold text-emerald-400 block mb-0.5">Terminal-to-Hotel Last-Mile Connection:</span>
-                  <span>{plan.intercity_transport.last_mile.guidance}</span>
+            {/* Inbound & Return Destination Last-Mile Transfers */}
+            <div className="space-y-2">
+              {plan.intercity_transport.last_mile && (
+                <div className="flex items-start space-x-2.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-emerald-400 block mb-0.5">Arrival Transfer (Inbound Terminal ➔ Hotel):</span>
+                    <span>{plan.intercity_transport.last_mile.guidance}</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {plan.intercity_transport.return_last_mile && (
+                <div className="flex items-start space-x-2.5 text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-lg">
+                  <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-cyan-400 block mb-0.5">Departure Transfer (Hotel ➔ Return Terminal):</span>
+                    <span>{plan.intercity_transport.return_last_mile.guidance}</span>
+                  </div>
+                </div>
+              )}
+
+              <p className="text-[10px] text-gray-500 italic px-1">
+                * Note: Destination transfers only. Home-city local transfers between traveler origin residence and departure terminal are excluded.
+              </p>
+            </div>
 
             {/* Indicative Roundtrip Travel & Outlay Breakdown */}
             {(() => {
@@ -388,9 +450,10 @@ export default function ItineraryView({
               const roundtripTransitMin = outboundTransitMin + returnTransitMin;
               const roundtripTransitMax = outboundTransitMax + returnTransitMax;
 
-              // Last-mile transfers: 2 legs (outbound arrival to hotel + hotel to terminal on return)
-              const lastMileCost = plan.intercity_transport.last_mile?.estimated_cost_inr || 0;
-              const roundtripLastMile = lastMileCost * 2;
+              // Last-mile transfers: Outbound arrival to hotel + return departure to terminal
+              const outboundLastMileCost = plan.intercity_transport.last_mile?.estimated_cost_inr || 0;
+              const returnLastMileCost = plan.intercity_transport.return_last_mile?.estimated_cost_inr || outboundLastMileCost;
+              const roundtripLastMile = outboundLastMileCost + returnLastMileCost;
 
               // Direct On-Ground + Transit subtotal (base committed outlay)
               const baseDirectMin = plan.total_cost_inr + roundtripTransitMin + roundtripLastMile;
@@ -442,9 +505,9 @@ export default function ItineraryView({
                       <span className="text-[9px] text-gray-500 block">2-way {outbound.mode.toUpperCase()}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block">Roundtrip Transfers</span>
+                      <span className="text-gray-500 block">Destination Transfers</span>
                       <span className="font-semibold text-gray-200">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-gray-500 block">2x Terminal Last-Mile</span>
+                      <span className="text-[9px] text-gray-500 block">Inbound (₹{outboundLastMileCost}) + Return (₹{returnLastMileCost})</span>
                     </div>
                     <div>
                       <span className="text-gray-500 block">Estimated Meals Buffer</span>
@@ -454,8 +517,13 @@ export default function ItineraryView({
                   </div>
 
                   {/* Static Data & Rate Variability Disclaimer */}
-                  <div className="text-[10px] text-gray-400/80 bg-[#161922] p-2.5 rounded-lg border border-[#222736] leading-relaxed">
-                    ⚠️ <span className="font-semibold text-gray-300">Rate & Availability Notice:</span> Transit fares and operator schedules are derived from curated standard non-surge timetable benchmarks. Actual prices depend on live booking windows, IRCTC Tatkal / airline dynamic surge pricing, peak seasonal dates, and local government taxes. Ticket availability is subject to booking at operator portals.
+                  <div className="text-[10px] text-gray-400/80 bg-[#161922] p-2.5 rounded-lg border border-[#222736] leading-relaxed space-y-1">
+                    <p>
+                      ⚠️ <span className="font-semibold text-gray-300">Rate & Availability Notice:</span> Transit fares and operator schedules are derived from curated standard timetable benchmarks (status: <em>indicative_schedule</em>). Actual prices depend on live booking windows, IRCTC Tatkal / airline dynamic surge pricing, peak seasonal dates, and local government taxes. Ticket availability is subject to booking at operator portals.
+                    </p>
+                    <p className="text-gray-500">
+                      📍 <span className="font-semibold text-gray-400">Transfer Scope:</span> Calculated transfers cover destination terminal-to-hotel legs only. Local origin-city transfers between traveler residence and origin hub are excluded.
+                    </p>
                   </div>
                 </div>
               );
@@ -588,13 +656,14 @@ export default function ItineraryView({
             <div className="flex items-center space-x-2.5">
               <Wallet className="w-5 h-5 text-amber-400" />
               <div>
-                <h4 className="font-bold text-sm text-white">Smart Budget Allocation & Expense Reconciliation</h4>
-                <p className="text-[11px] text-gray-400">Strictly reconciled cost distribution: Direct Subtotal + Safe Buffer = Total Budget</p>
+                <h4 className="font-bold text-sm text-white">Smart On-Ground Budget Allocation & Expense Reconciliation</h4>
+                <p className="text-[11px] text-gray-400">Strictly reconciled on-ground plan: Direct Subtotal + Safe Buffer = Target On-Ground Budget</p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-xs text-gray-400">Per Traveler: </span>
-              <span className="text-sm font-bold text-amber-400">₹{plan.expense_breakdown.per_person_inr.toLocaleString('en-IN')}</span>
+              <span className="text-xs text-gray-400">On-Ground Budget: </span>
+              <span className="text-sm font-bold text-amber-400">₹{plan.expense_breakdown.total_inr.toLocaleString('en-IN')}</span>
+              <span className="text-[10px] text-gray-500 block">₹{plan.expense_breakdown.per_person_inr.toLocaleString('en-IN')} / traveler</span>
             </div>
           </div>
 
@@ -644,6 +713,17 @@ export default function ItineraryView({
               </span>
             )}
           </div>
+
+          {plan.intercity_transport && (
+            <div className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 leading-relaxed flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <span className="font-semibold text-white">On-Ground Budget Scope:</span> Your ₹{plan.expense_breakdown.total_inr.toLocaleString('en-IN')} budget constrains on-ground hotel, sightseeing, meals & local destination transit (Subtotal ₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')} is within budget with ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')} unallocated buffer).
+              </div>
+              <span className="text-[10px] bg-[#11131b] px-2 py-0.5 rounded border border-amber-500/30 text-amber-400 font-medium">
+                Inter-City Travel is Additive
+              </span>
+            </div>
+          )}
         </div>
       )}
 

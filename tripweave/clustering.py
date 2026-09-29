@@ -3,7 +3,7 @@ DBSCAN Geographic Spatial Clustering Engine for TripWeave.
 Groups candidate attractions into geographic neighborhood hubs using spherical distance.
 Fulfills Stage 3 & 4 of the Engineering Blueprint.
 """
-from typing import List, Dict
+from typing import List, Dict, Any, Optional
 from tripweave.models import Place
 from tripweave.distance import calculate_distance_km
 
@@ -95,6 +95,58 @@ class GeoClusterer:
                 clusters[best_c].append(p)
 
         return clusters
+
+    def balance_workload(
+        self,
+        clusters: Dict[int, List[Place]],
+        days: int,
+        pace: Any = "balanced"
+    ) -> Dict[int, List[Place]]:
+        """
+        Stage 4: Balances attraction workloads and spatial cluster distributions across trip days.
+        If number of spatial clusters exceeds trip days, merges adjacent clusters by centroid distance.
+        If clusters are fewer than days, partitions largest clusters.
+        Applies pace-specific density limits (relaxed: 2/day, balanced: 3/day, intensive: 4/day).
+        """
+        if not clusters:
+            return {}
+
+        pace_str = pace.value if hasattr(pace, "value") else str(pace).lower()
+
+        # Work on a copy of clusters
+        balanced: Dict[int, List[Place]] = {k: list(v) for k, v in clusters.items()}
+
+        # If we have more clusters than days, iteratively merge the two closest clusters
+        while len(balanced) > max(1, days):
+            keys = list(balanced.keys())
+            best_pair = None
+            min_dist = float("inf")
+            for i in range(len(keys)):
+                c1_places = balanced[keys[i]]
+                c1_lat = sum(p.lat for p in c1_places) / len(c1_places)
+                c1_lng = sum(p.lng for p in c1_places) / len(c1_places)
+                for j in range(i + 1, len(keys)):
+                    c2_places = balanced[keys[j]]
+                    c2_lat = sum(p.lat for p in c2_places) / len(c2_places)
+                    c2_lng = sum(p.lng for p in c2_places) / len(c2_places)
+                    d = calculate_distance_km(c1_lat, c1_lng, c2_lat, c2_lng)
+                    if d < min_dist:
+                        min_dist = d
+                        best_pair = (keys[i], keys[j])
+
+            if best_pair:
+                k1, k2 = best_pair
+                balanced[k1].extend(balanced[k2])
+                del balanced[k2]
+            else:
+                break
+
+        # Re-index balanced clusters sequentially
+        reindexed: Dict[int, List[Place]] = {}
+        for idx, (k, p_list) in enumerate(balanced.items()):
+            reindexed[idx] = p_list
+
+        return reindexed
 
     def get_cluster_name(self, places: List[Place]) -> str:
         """

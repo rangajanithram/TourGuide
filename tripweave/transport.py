@@ -5,6 +5,7 @@ with arrival station to centroid hotel last-mile reconciliation per Blueprint Se
 """
 import os
 import json
+from datetime import date
 from typing import List, Optional, Dict
 from pydantic import BaseModel, Field
 
@@ -53,6 +54,7 @@ class InterCityTransportSummary(BaseModel):
     all_return_options: List[InterCityRoute] = Field(default_factory=list)
     transit_advice: str
     last_mile: Optional[LastMileConnection] = None
+    return_last_mile: Optional[LastMileConnection] = None
 
 class InterCityTransportProvider:
     """
@@ -108,7 +110,9 @@ class InterCityTransportProvider:
         hotel_lat: float,
         hotel_lng: float,
         variant_type: str = "balanced",
-        people_count: int = 1
+        people_count: int = 1,
+        start_date: Optional[date] = None,
+        end_date: Optional[date] = None
     ) -> Optional[InterCityTransportSummary]:
         routes = self.get_routes(origin_city, destination_city)
         if not routes:
@@ -118,14 +122,36 @@ class InterCityTransportProvider:
         v = variant_type.lower()
         recommended = self._select_best_route(routes, v)
 
+        # Date compatibility check for return leg
+        return_dow = end_date.strftime("%a") if end_date else None
+        return_dow_full = end_date.strftime("%A") if end_date else None
+        date_warning = None
+
+        def operates_on_return_day(route: InterCityRoute) -> bool:
+            if not return_dow:
+                return True
+            win_lower = route.departure_window.lower()
+            if f"except {return_dow.lower()}" in win_lower:
+                return False
+            return True
+
         # Look up return routes (destination -> origin)
         return_routes = self.get_routes(destination_city, origin_city)
         return_option: Optional[InterCityRoute] = None
+
         if return_routes:
-            # Find return route matching recommended mode or best route
             matching_mode_return = [r for r in return_routes if r.mode == recommended.mode]
-            if matching_mode_return:
+            operating_matching = [r for r in matching_mode_return if operates_on_return_day(r)]
+            operating_all = [r for r in return_routes if operates_on_return_day(r)]
+
+            if operating_matching:
+                return_option = self._select_best_route(operating_matching, v)
+            elif operating_all:
+                return_option = self._select_best_route(operating_all, v)
+                date_warning = f"Notice: Preferred {recommended.mode} has no scheduled run on your return date ({return_dow_full}). Selected alternate operating service ({return_option.mode.upper()})."
+            elif matching_mode_return:
                 return_option = self._select_best_route(matching_mode_return, v)
+                date_warning = f"Notice: {return_option.operator_name} departure window indicates '{return_option.departure_window}', which may not operate on your return day ({return_dow_full}). Please confirm schedule with operator."
             else:
                 return_option = self._select_best_route(return_routes, v)
         else:
@@ -136,39 +162,37 @@ class InterCityTransportProvider:
                 destination_city=origin_city.lower(),
                 mode=recommended.mode,
                 operator_name=f"{recommended.operator_name} (Return Leg)",
-                service_number=recommended.service_number,
+                service_number=None,
                 departure_station=recommended.arrival_station,
                 departure_hub_key=recommended.arrival_hub_key,
                 arrival_station=recommended.departure_station,
                 arrival_hub_key=recommended.departure_hub_key,
-                departure_window=f"Return window corresponding to {recommended.departure_window}",
+                departure_window=f"Estimated reverse schedule ({recommended.mode})",
                 typical_duration_min=recommended.typical_duration_min,
                 typical_fare_min=recommended.typical_fare_min,
                 typical_fare_max=recommended.typical_fare_max,
                 fare_class=recommended.fare_class,
-                availability_status=recommended.availability_status,
-                recommendation_badge="Return Service",
+                availability_status="indicative_schedule",
+                recommendation_badge="Indicative Return Estimate",
                 last_mile_note=f"Returns to {recommended.departure_station}",
-                notes="Estimated symmetric return schedule based on outbound rates.",
+                notes="Estimated reverse route schedule benchmark based on outbound rates. Check operator portal for exact schedules.",
                 source=recommended.source,
                 verified_at=recommended.verified_at
             )
 
-        # Compute last mile from recommended arrival terminal to hotel
+        # Compute outbound last-mile: arrival terminal -> hotel
         last_mile: Optional[LastMileConnection] = None
         if hotel_lat != 0.0 and hotel_lng != 0.0 and recommended.arrival_hub_key:
             try:
                 dest_clean = destination_city.strip().lower()
                 hub_name, arr_lat, arr_lng = LocationResolver.resolve_hub(dest_clean, recommended.arrival_hub_key)
                 dist_km = calculate_distance_km(arr_lat, arr_lng, hotel_lat, hotel_lng)
-                
-                # Pick auto for < 10 km, cab for longer
                 last_mile_mode = "auto" if dist_km < 10.0 else "cab"
                 time_min, cost_inr = get_travel_metrics(
                     arr_lat, arr_lng, hotel_lat, hotel_lng,
                     mode=last_mile_mode, people_count=people_count
                 )
-                guidance = f"From {recommended.arrival_station}, take a {last_mile_mode} (~{time_min} mins, ₹{cost_inr}) directly to {hotel_name}."
+                guidance = f"From arrival terminal ({recommended.arrival_station}), take a {last_mile_mode} (~{time_min} mins, ₹{cost_inr}) directly to {hotel_name}."
                 last_mile = LastMileConnection(
                     arrival_terminal=recommended.arrival_station,
                     destination_hotel=hotel_name,
@@ -181,8 +205,35 @@ class InterCityTransportProvider:
             except Exception:
                 last_mile = None
 
+        # Compute return last-mile: hotel -> departure terminal in destination city
+        return_last_mile: Optional[LastMileConnection] = None
+        if hotel_lat != 0.0 and hotel_lng != 0.0 and return_option and return_option.departure_hub_key:
+            try:
+                dest_clean = destination_city.strip().lower()
+                hub_name, dep_lat, dep_lng = LocationResolver.resolve_hub(dest_clean, return_option.departure_hub_key)
+                dist_km = calculate_distance_km(hotel_lat, hotel_lng, dep_lat, dep_lng)
+                ret_last_mile_mode = "auto" if dist_km < 10.0 else "cab"
+                time_min, cost_inr = get_travel_metrics(
+                    hotel_lat, hotel_lng, dep_lat, dep_lng,
+                    mode=ret_last_mile_mode, people_count=people_count
+                )
+                guidance = f"On departure day, travel from {hotel_name} to return departure terminal ({return_option.departure_station}) via {ret_last_mile_mode} (~{time_min} mins, ₹{cost_inr})."
+                return_last_mile = LastMileConnection(
+                    arrival_terminal=return_option.departure_station,
+                    destination_hotel=hotel_name,
+                    distance_km=round(dist_km, 2),
+                    estimated_time_min=time_min,
+                    estimated_cost_inr=cost_inr,
+                    recommended_mode=ret_last_mile_mode,
+                    guidance=guidance
+                )
+            except Exception:
+                return_last_mile = None
+
         # Generate contextual advice
         advice = self._build_advice(origin_city, destination_city, recommended, variant_type)
+        if date_warning:
+            advice = f"{advice} {date_warning}"
 
         return InterCityTransportSummary(
             origin_city=origin_city.capitalize(),
@@ -192,7 +243,8 @@ class InterCityTransportProvider:
             all_options=routes,
             all_return_options=return_routes,
             transit_advice=advice,
-            last_mile=last_mile
+            last_mile=last_mile,
+            return_last_mile=return_last_mile
         )
 
     def _build_advice(self, origin: str, dest: str, rec: InterCityRoute, variant: str) -> str:

@@ -113,9 +113,10 @@ def _build_single_plan(
     clusters = clusterer.cluster_places(valid_places)
     timings[3] = round(max(0.01, (time.perf_counter() - t_stage3) * 1000), 2)
 
-    # Stage 4: Cluster Workload Balancing & Naming
+    # Stage 4: Workload Balancing & Cluster Synthesis
     t_stage4 = time.perf_counter()
-    cluster_labels = {cid: clusterer.get_cluster_name(cplaces) for cid, cplaces in clusters.items()}
+    balanced_clusters = clusterer.balance_workload(clusters, days=request.days, pace=request.pace)
+    cluster_labels = {cid: clusterer.get_cluster_name(cplaces) for cid, cplaces in balanced_clusters.items()}
     timings[4] = round(max(0.01, (time.perf_counter() - t_stage4) * 1000), 2)
 
     if hotel_summary.nights > 0:
@@ -224,7 +225,9 @@ def _build_single_plan(
             hotel_lat=selected_hotel.lat,
             hotel_lng=selected_hotel.lng,
             variant_type=variant.value if hasattr(variant, 'value') else str(variant),
-            people_count=request.people_count
+            people_count=request.people_count,
+            start_date=request.start_date,
+            end_date=request.end_date
         )
 
     # Minimum Useful Plan Guarantee
