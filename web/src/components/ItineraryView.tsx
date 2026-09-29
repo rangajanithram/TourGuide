@@ -38,7 +38,22 @@ export default function ItineraryView({
   const totalActivitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
   const totalStops = plan.days.reduce((acc, d) => acc + d.activities.length, 0);
 
-  const storageKey = `tripweave_expenses_${destination.toLowerCase()}_${plan.days[0]?.date || 'default'}_${plan.variant_type.toLowerCase()}`;
+  const tripSignature = React.useMemo(() => {
+    const sDate = formData?.start_date || plan.days[0]?.date || 'nodate';
+    const eDate = formData?.end_date || plan.days[plan.days.length - 1]?.date || 'nodate';
+    const numDays = plan.days.length;
+    const people = formData?.people_count || plan.hotel_summary?.people_accommodated || 1;
+    const budget = formData?.budget_inr || plan.total_cost_inr;
+    const pace = formData?.pace || plan.fatigue_report?.overall_pace?.toLowerCase() || 'bal';
+    const mode = formData?.transport_mode || plan.transport_mode;
+    const variant = plan.variant_type.toLowerCase();
+    const dest = destination.toLowerCase().trim();
+    const orig = (formData?.origin_city || plan.intercity_transport?.origin_city || 'local').toLowerCase().trim();
+    const startLoc = (formData?.start_location || '').toLowerCase().trim();
+    return `${dest}_from_${orig}_${sDate}_to_${eDate}_${numDays}d_${people}p_b${budget}_${pace}_${mode}_${startLoc}_${variant}`;
+  }, [destination, formData, plan]);
+
+  const storageKey = `tripweave_expenses_${tripSignature}`;
 
   // Load persisted expenses from localStorage
   useEffect(() => {
@@ -111,54 +126,65 @@ export default function ItineraryView({
 
   const remainingBudget = plan.total_cost_inr - totalActualSpent;
 
-  const handleCopyLink = () => {
+  const handleCopyLink = async () => {
     if (typeof window === 'undefined') return;
-    const url = new URL(window.location.origin + window.location.pathname);
-    url.searchParams.set('dest', destination.toLowerCase());
-    const startDate = formData?.start_date || plan.days[0]?.date;
-    if (startDate) {
-      url.searchParams.set('start', startDate);
+    try {
+      const url = new URL(window.location.origin + window.location.pathname);
+      url.searchParams.set('dest', destination.toLowerCase());
+      const startDate = formData?.start_date || plan.days[0]?.date;
+      if (startDate) {
+        url.searchParams.set('start', startDate);
+      }
+      const endDate = formData?.end_date || plan.days[plan.days.length - 1]?.date;
+      if (endDate) {
+        url.searchParams.set('end', endDate);
+      }
+      url.searchParams.set('mode', formData?.transport_mode || plan.transport_mode);
+      const origin = formData?.origin_city || plan.intercity_transport?.origin_city;
+      if (origin) {
+        url.searchParams.set('origin', origin.toLowerCase());
+      }
+      if (plan.variant_type) {
+        url.searchParams.set('variant', plan.variant_type.toLowerCase());
+      }
+      const people = formData?.people_count || plan.hotel_summary?.people_accommodated || 2;
+      url.searchParams.set('people', people.toString());
+      const budget = formData?.budget_inr || plan.total_cost_inr;
+      url.searchParams.set('budget', budget.toString());
+      const pace = formData?.pace || plan.fatigue_report?.overall_pace?.toLowerCase() || 'balanced';
+      url.searchParams.set('pace', pace);
+      if (formData?.group_profile) {
+        url.searchParams.set('profile', formData.group_profile);
+      }
+      if (formData?.origin_type) {
+        url.searchParams.set('origin_type', formData.origin_type);
+      }
+      if (formData?.start_location) {
+        url.searchParams.set('start_location', formData.start_location);
+      }
+      if (formData?.interests && formData.interests.length > 0) {
+        url.searchParams.set('interests', formData.interests.join(','));
+      }
+      if (formData?.locked_activities && formData.locked_activities.length > 0) {
+        url.searchParams.set('pins', formData.locked_activities.join(','));
+      }
+      await navigator.clipboard.writeText(url.toString());
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy share link:', err);
     }
-    const endDate = formData?.end_date || plan.days[plan.days.length - 1]?.date;
-    if (endDate) {
-      url.searchParams.set('end', endDate);
-    }
-    url.searchParams.set('mode', formData?.transport_mode || plan.transport_mode);
-    const origin = formData?.origin_city || plan.intercity_transport?.origin_city;
-    if (origin) {
-      url.searchParams.set('origin', origin.toLowerCase());
-    }
-    if (plan.variant_type) {
-      url.searchParams.set('variant', plan.variant_type.toLowerCase());
-    }
-    const people = formData?.people_count || plan.hotel_summary?.people_accommodated || 2;
-    url.searchParams.set('people', people.toString());
-    const budget = formData?.budget_inr || plan.total_cost_inr;
-    url.searchParams.set('budget', budget.toString());
-    const pace = formData?.pace || plan.fatigue_report?.overall_pace?.toLowerCase() || 'balanced';
-    url.searchParams.set('pace', pace);
-    if (formData?.group_profile) {
-      url.searchParams.set('profile', formData.group_profile);
-    }
-    if (formData?.origin_type) {
-      url.searchParams.set('origin_type', formData.origin_type);
-    }
-    if (formData?.interests && formData.interests.length > 0) {
-      url.searchParams.set('interests', formData.interests.join(','));
-    }
-    if (formData?.locked_activities && formData.locked_activities.length > 0) {
-      url.searchParams.set('pins', formData.locked_activities.join(','));
-    }
-    navigator.clipboard.writeText(url.toString());
-    setCopiedLink(true);
-    setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleCopyText = () => {
-    const text = formatItineraryForShare(plan, destination);
-    navigator.clipboard.writeText(text);
-    setCopiedText(true);
-    setTimeout(() => setCopiedText(false), 2500);
+  const handleCopyText = async () => {
+    try {
+      const text = formatItineraryForShare(plan, destination);
+      await navigator.clipboard.writeText(text);
+      setCopiedText(true);
+      setTimeout(() => setCopiedText(false), 2500);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
   };
 
   const handleExportIcs = () => {
@@ -344,53 +370,92 @@ export default function ItineraryView({
               </div>
             )}
 
-            {/* Total Budget Transparency: On-Ground Subtotal + Inter-City Transit */}
+            {/* Indicative Roundtrip Travel & Outlay Breakdown */}
             {(() => {
               const party = plan.hotel_summary?.people_accommodated || 1;
-              const rec = plan.intercity_transport.recommended_option;
+              const outbound = plan.intercity_transport.recommended_option;
+              const returnOpt = plan.intercity_transport.return_option;
+              
+              // Actual return leg rates if available, otherwise outbound rates
+              const retFareMin = returnOpt ? returnOpt.typical_fare_min : outbound.typical_fare_min;
+              const retFareMax = returnOpt ? returnOpt.typical_fare_max : outbound.typical_fare_max;
+              
+              // Roundtrip transit: Outbound party fare + Return party fare
+              const outboundTransitMin = outbound.typical_fare_min * party;
+              const outboundTransitMax = outbound.typical_fare_max * party;
+              const returnTransitMin = retFareMin * party;
+              const returnTransitMax = retFareMax * party;
+              const roundtripTransitMin = outboundTransitMin + returnTransitMin;
+              const roundtripTransitMax = outboundTransitMax + returnTransitMax;
+
+              // Last-mile transfers: 2 legs (outbound arrival to hotel + hotel to terminal on return)
               const lastMileCost = plan.intercity_transport.last_mile?.estimated_cost_inr || 0;
-              // Roundtrip transit: 2 legs (outbound + return) for party
-              const roundtripTransitMin = rec.typical_fare_min * party * 2;
-              const roundtripTransitMax = rec.typical_fare_max * party * 2;
-              // 2 last-mile transfers (arrival to hotel + hotel to terminal on return)
               const roundtripLastMile = lastMileCost * 2;
-              const combinedMin = plan.total_cost_inr + roundtripTransitMin + roundtripLastMile;
-              const combinedMax = plan.total_cost_inr + roundtripTransitMax + roundtripLastMile;
-              const mealBudget = plan.expense_breakdown?.suggested_meals_inr ?? plan.expense_breakdown?.estimated_meals_inr;
+
+              // Direct On-Ground + Transit subtotal (base committed outlay)
+              const baseDirectMin = plan.total_cost_inr + roundtripTransitMin + roundtripLastMile;
+              const baseDirectMax = plan.total_cost_inr + roundtripTransitMax + roundtripLastMile;
+
+              // Meal allowance integration from expense breakdown
+              const mealAllowance = plan.expense_breakdown?.suggested_meals_inr ?? plan.expense_breakdown?.estimated_meals_inr ?? 0;
+              const projectedTotalMin = baseDirectMin + mealAllowance;
+              const projectedTotalMax = baseDirectMax + mealAllowance;
 
               return (
-                <div className="bg-[#11131b] border border-amber-500/20 rounded-lg p-3 text-xs space-y-2 mt-2">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="bg-[#11131b] border border-amber-500/20 rounded-lg p-3.5 text-xs space-y-3 mt-2">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div>
-                      <span className="font-bold text-amber-400 block">Complete Roundtrip Journey Estimate (Party of {party}):</span>
-                      <span className="text-[11px] text-gray-400">
-                        Includes on-ground itinerary + 2-way {rec.mode.toUpperCase()} + 2-way terminal connections
+                      <div className="flex items-center space-x-2 flex-wrap">
+                        <span className="font-bold text-amber-400">Indicative Roundtrip Outlay (Party of {party})</span>
+                        <span className="text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded font-medium">
+                          Curated Non-Live Baseline
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-gray-400 block mt-1">
+                        Outbound: {outbound.operator_name} (₹{outbound.typical_fare_min.toLocaleString('en-IN')}) 
+                        {returnOpt ? ` • Return: ${returnOpt.operator_name} (₹${retFareMin.toLocaleString('en-IN')})` : ' • Return leg mirrors outbound'}
                       </span>
                     </div>
-                    <div className="text-left sm:text-right">
+                    <div className="text-left sm:text-right shrink-0">
                       <span className="text-sm font-extrabold text-white block">
-                        ₹{combinedMin.toLocaleString('en-IN')} - ₹{combinedMax.toLocaleString('en-IN')}
+                        ₹{projectedTotalMin.toLocaleString('en-IN')} - ₹{projectedTotalMax.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-[10px] text-gray-400 block">Est. Complete Outlay</span>
+                      <span className="text-[10px] text-amber-400/90 block font-semibold">
+                        Total Projected Outlay (incl. Meals)
+                      </span>
+                      <span className="text-[10px] text-gray-500 block">
+                        Base Direct Outlay: ₹{baseDirectMin.toLocaleString('en-IN')} - ₹{baseDirectMax.toLocaleString('en-IN')}
+                      </span>
                     </div>
                   </div>
+
+                  {/* 4-Column Breakdown Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#1e2230] text-[10px] text-gray-400">
                     <div>
                       <span className="text-gray-500 block">On-Ground Subtotal</span>
                       <span className="font-semibold text-gray-200">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
+                      <span className="text-[9px] text-gray-500 block">Sightseeing & Hotel</span>
                     </div>
                     <div>
                       <span className="text-gray-500 block">Roundtrip Transit (x{party})</span>
                       <span className="font-semibold text-gray-200">₹{roundtripTransitMin.toLocaleString('en-IN')} - ₹{roundtripTransitMax.toLocaleString('en-IN')}</span>
+                      <span className="text-[9px] text-gray-500 block">2-way {outbound.mode.toUpperCase()}</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block">Roundtrip Last-Mile</span>
+                      <span className="text-gray-500 block">Roundtrip Transfers</span>
                       <span className="font-semibold text-gray-200">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
+                      <span className="text-[9px] text-gray-500 block">2x Terminal Last-Mile</span>
                     </div>
                     <div>
-                      <span className="text-gray-500 block">Meals Buffer</span>
-                      <span className="font-semibold text-amber-300">{mealBudget ? `~₹${mealBudget.toLocaleString('en-IN')}` : 'Included'}</span>
+                      <span className="text-gray-500 block">Estimated Meals Buffer</span>
+                      <span className="font-semibold text-amber-300">~₹{mealAllowance.toLocaleString('en-IN')}</span>
+                      <span className="text-[9px] text-gray-500 block">Full trip dining</span>
                     </div>
+                  </div>
+
+                  {/* Static Data & Rate Variability Disclaimer */}
+                  <div className="text-[10px] text-gray-400/80 bg-[#161922] p-2.5 rounded-lg border border-[#222736] leading-relaxed">
+                    ⚠️ <span className="font-semibold text-gray-300">Rate & Availability Notice:</span> Transit fares and operator schedules are derived from curated standard non-surge timetable benchmarks. Actual prices depend on live booking windows, IRCTC Tatkal / airline dynamic surge pricing, peak seasonal dates, and local government taxes. Ticket availability is subject to booking at operator portals.
                   </div>
                 </div>
               );

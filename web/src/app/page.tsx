@@ -95,6 +95,8 @@ export default function Home() {
     let lockedActs: string[] = [];
     let originType: 'hotel' | 'center' | 'station' | 'airport' = 'hotel';
 
+    let startLocation: string | undefined = undefined;
+
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const urlDest = params.get('dest') || params.get('destination');
@@ -149,12 +151,17 @@ export default function Home() {
       if (urlOriginType && ['hotel', 'center', 'station', 'airport'].includes(urlOriginType)) {
         originType = urlOriginType as any;
       }
+      const urlStartLoc = params.get('start_location') || params.get('hub');
+      if (urlStartLoc) {
+        startLocation = urlStartLoc.trim();
+      }
     }
 
     fetchTripPlan({
       origin_city: orig && orig !== dest ? orig : undefined,
       destination: dest,
       origin_type: originType,
+      start_location: startLocation,
       start_date: sDate,
       end_date: eDate,
       budget_inr: budget,

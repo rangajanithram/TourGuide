@@ -545,9 +545,13 @@ def run_tests():
     assert b_ic.recommended_option.typical_fare_min <= bal_ic.recommended_option.typical_fare_min
     # Comfort should recommend fastest (flight)
     assert c_ic.recommended_option.mode == "flight"
+    assert bal_ic.return_option is not None, "Balanced variant must have return_option"
+    assert bal_ic.return_option.origin_city.lower() == "hyderabad", "Return option origin must be Hyderabad"
+    assert bal_ic.return_option.destination_city.lower() == "bengaluru", "Return option destination must be Bengaluru"
     print(f"   ✅ Variant Recommendations Verified:")
     print(f"      - Budget Variant:  {b_ic.recommended_option.operator_name} (₹{b_ic.recommended_option.typical_fare_min})")
     print(f"      - Balanced Variant:{bal_ic.recommended_option.operator_name} ({bal_ic.recommended_option.typical_duration_min // 60}h {bal_ic.recommended_option.typical_duration_min % 60}m)")
+    print(f"      - Return Leg Route:{bal_ic.return_option.operator_name} ({bal_ic.return_option.departure_station} -> {bal_ic.return_option.arrival_station}, ₹{bal_ic.return_option.typical_fare_min})")
     print(f"      - Comfort Variant: {c_ic.recommended_option.operator_name} ({c_ic.recommended_option.mode.upper()})")
 
     # Test 32: Last-Mile Terminal-to-Hotel Route & Auto Fare Estimation
@@ -696,7 +700,21 @@ def run_tests():
     print(f"      - Stage 9 ({stage9['name']}): {stage9['duration_ms']:.2f} ms")
     print(f"      - Stage 10 ({stage10['name']}): {stage10['duration_ms']:.2f} ms")
 
-    print("\n🎉 ALL 39 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # Test 40: Curated Return Route Selection & Outlay Pricing Independence
+    print("\n4️⃣0️⃣ Testing Curated Return Route Lookup & Outlay Transparency...")
+    tp = get_transport_provider()
+    ret_summary = tp.get_transport_summary("bengaluru", "hyderabad", "Hotel Central", 17.3850, 78.4867, variant_type="balanced", people_count=2)
+    assert ret_summary is not None
+    assert ret_summary.return_option is not None
+    assert len(ret_summary.all_return_options) >= 3, f"Expected at least 3 return options, got {len(ret_summary.all_return_options)}"
+    ret_opt = ret_summary.return_option
+    assert ret_opt.origin_city == "hyderabad"
+    assert ret_opt.destination_city == "bengaluru"
+    assert ret_opt.typical_fare_min > 0
+    print(f"   ✅ Return Route Intelligence Verified: {ret_opt.operator_name} ({ret_opt.departure_station} -> {ret_opt.arrival_station}, ₹{ret_opt.typical_fare_min} - ₹{ret_opt.typical_fare_max})")
+    print(f"      Curated Return Alternatives Available: {len(ret_summary.all_return_options)} routes")
+
+    print("\n🎉 ALL 40 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

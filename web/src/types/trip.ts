@@ -155,7 +155,9 @@ export interface InterCityTransportSummary {
   origin_city: string;
   destination_city: string;
   recommended_option: InterCityRoute;
+  return_option?: InterCityRoute | null;
   all_options: InterCityRoute[];
+  all_return_options?: InterCityRoute[];
   transit_advice: string;
   last_mile?: LastMileConnection | null;
 }

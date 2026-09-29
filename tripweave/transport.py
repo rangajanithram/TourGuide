@@ -48,7 +48,9 @@ class InterCityTransportSummary(BaseModel):
     origin_city: str
     destination_city: str
     recommended_option: InterCityRoute
+    return_option: Optional[InterCityRoute] = None
     all_options: List[InterCityRoute] = Field(default_factory=list)
+    all_return_options: List[InterCityRoute] = Field(default_factory=list)
     transit_advice: str
     last_mile: Optional[LastMileConnection] = None
 
@@ -80,6 +82,24 @@ class InterCityTransportProvider:
         dest = destination_city.strip().lower()
         return [r for r in self._routes if r.origin_city == orig and r.destination_city == dest]
 
+    def _select_best_route(self, routes: List[InterCityRoute], variant_type: str) -> InterCityRoute:
+        v = variant_type.lower()
+        if v == "budget":
+            # Prefer lowest min fare (bus or budget train)
+            return sorted(routes, key=lambda r: r.typical_fare_min)[0]
+        elif v == "comfort":
+            # Prefer fastest or premium flight/express
+            flights = [r for r in routes if r.mode == "flight"]
+            if flights:
+                return sorted(flights, key=lambda r: r.typical_duration_min)[0]
+            return sorted(routes, key=lambda r: r.typical_duration_min)[0]
+        else:
+            # Balanced: prefer Vande Bharat / Superfast Train or best value
+            trains = [r for r in routes if r.mode == "train"]
+            if trains:
+                return sorted(trains, key=lambda r: r.typical_duration_min)[0]
+            return routes[0]
+
     def get_transport_summary(
         self,
         origin_city: str,
@@ -94,27 +114,45 @@ class InterCityTransportProvider:
         if not routes:
             return None
 
-        # Select recommended route tailored to variant
+        # Select recommended outbound route tailored to variant
         v = variant_type.lower()
-        recommended: InterCityRoute
-        if v == "budget":
-            # Prefer lowest min fare (bus or budget train)
-            sorted_by_fare = sorted(routes, key=lambda r: r.typical_fare_min)
-            recommended = sorted_by_fare[0]
-        elif v == "comfort":
-            # Prefer fastest or premium flight/express
-            flights = [r for r in routes if r.mode == "flight"]
-            if flights:
-                recommended = sorted(flights, key=lambda r: r.typical_duration_min)[0]
+        recommended = self._select_best_route(routes, v)
+
+        # Look up return routes (destination -> origin)
+        return_routes = self.get_routes(destination_city, origin_city)
+        return_option: Optional[InterCityRoute] = None
+        if return_routes:
+            # Find return route matching recommended mode or best route
+            matching_mode_return = [r for r in return_routes if r.mode == recommended.mode]
+            if matching_mode_return:
+                return_option = self._select_best_route(matching_mode_return, v)
             else:
-                recommended = sorted(routes, key=lambda r: r.typical_duration_min)[0]
+                return_option = self._select_best_route(return_routes, v)
         else:
-            # Balanced: prefer Vande Bharat / Superfast Train or best value
-            trains = [r for r in routes if r.mode == "train"]
-            if trains:
-                recommended = sorted(trains, key=lambda r: r.typical_duration_min)[0]
-            else:
-                recommended = routes[0]
+            # Explicit symmetric estimate with clear provenance
+            return_option = InterCityRoute(
+                route_id=f"ret_{recommended.route_id}",
+                origin_city=destination_city.lower(),
+                destination_city=origin_city.lower(),
+                mode=recommended.mode,
+                operator_name=f"{recommended.operator_name} (Return Leg)",
+                service_number=recommended.service_number,
+                departure_station=recommended.arrival_station,
+                departure_hub_key=recommended.arrival_hub_key,
+                arrival_station=recommended.departure_station,
+                arrival_hub_key=recommended.departure_hub_key,
+                departure_window=f"Return window corresponding to {recommended.departure_window}",
+                typical_duration_min=recommended.typical_duration_min,
+                typical_fare_min=recommended.typical_fare_min,
+                typical_fare_max=recommended.typical_fare_max,
+                fare_class=recommended.fare_class,
+                availability_status=recommended.availability_status,
+                recommendation_badge="Return Service",
+                last_mile_note=f"Returns to {recommended.departure_station}",
+                notes="Estimated symmetric return schedule based on outbound rates.",
+                source=recommended.source,
+                verified_at=recommended.verified_at
+            )
 
         # Compute last mile from recommended arrival terminal to hotel
         last_mile: Optional[LastMileConnection] = None
@@ -150,7 +188,9 @@ class InterCityTransportProvider:
             origin_city=origin_city.capitalize(),
             destination_city=destination_city.capitalize(),
             recommended_option=recommended,
+            return_option=return_option,
             all_options=routes,
+            all_return_options=return_routes,
             transit_advice=advice,
             last_mile=last_mile
         )

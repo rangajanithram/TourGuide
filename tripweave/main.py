@@ -68,34 +68,55 @@ def _build_single_plan(
                 )
     timings[1] = round((time.perf_counter() - t_stage1) * 1000, 2)
 
-    # Stage 2 & 5: Hard Feasibility Filter & Hotel Scoring
-    t_stage2 = time.perf_counter()
     filter_engine = FeasibilityFilter()
+
+    # Stage 5: Hotel Centroid Scoring & Stay Resolution
+    t_stage5 = time.perf_counter()
     try:
-        valid_places, hotel_summary, transport_reserve = filter_engine.filter_candidates(all_places, request)
+        selected_hotel_place, hotel_summary = filter_engine.select_hotel(all_places, request)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Feasibility conflict: {str(e)}"
         )
     except Exception as e:
-        logger.exception("Unexpected error during candidate filtering")
+        logger.exception("Unexpected error during hotel selection")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Internal feasibility engine error: {str(e)}"
         )
-    filter_elapsed = (time.perf_counter() - t_stage2) * 1000
-    timings[2] = round(filter_elapsed * 0.6, 2)
-    timings[5] = round(filter_elapsed * 0.4, 2)
+    timings[5] = round(max(0.01, (time.perf_counter() - t_stage5) * 1000), 2)
+
+    # Stage 2: Hard Feasibility Filter (Budget & Operational Feasibility)
+    t_stage2 = time.perf_counter()
+    sightseeing = [p for p in all_places if p.place_type != "hotel"]
+    est_transport_budget = 300 * request.days
+    if request.transport_pref and request.transport_pref.max_budget_inr:
+        est_transport_budget = request.transport_pref.max_budget_inr
+
+    max_activity_budget = max(0, request.budget_inr - hotel_summary.total_cost_inr)
+    viable_candidates = []
+    for place in sightseeing:
+        cost_per_person = place.estimated_cost_per_person_inr or place.entry_fee_inr or 0
+        total_place_cost = cost_per_person * request.people_count
+        if total_place_cost <= max_activity_budget:
+            viable_candidates.append(place)
+    viable_candidates.append(selected_hotel_place)
+    valid_places = viable_candidates
+    transport_reserve = est_transport_budget
+    timings[2] = round(max(0.01, (time.perf_counter() - t_stage2) * 1000), 2)
         
-    # Stage 3 & 4: DBSCAN Geo-Clustering & Workload Balancing
+    # Stage 3: DBSCAN Geo-Clustering
     t_stage3 = time.perf_counter()
     from tripweave.clustering import GeoClusterer
     clusterer = GeoClusterer()
-    clusterer.cluster_places(valid_places)
-    cluster_elapsed = (time.perf_counter() - t_stage3) * 1000
-    timings[3] = round(max(0.1, cluster_elapsed), 2)
-    timings[4] = round(max(0.1, cluster_elapsed * 0.5), 2)
+    clusters = clusterer.cluster_places(valid_places)
+    timings[3] = round(max(0.01, (time.perf_counter() - t_stage3) * 1000), 2)
+
+    # Stage 4: Cluster Workload Balancing & Naming
+    t_stage4 = time.perf_counter()
+    cluster_labels = {cid: clusterer.get_cluster_name(cplaces) for cid, cplaces in clusters.items()}
+    timings[4] = round(max(0.01, (time.perf_counter() - t_stage4) * 1000), 2)
 
     if hotel_summary.nights > 0:
         hotel_summary.why_this_hotel = (
@@ -105,15 +126,7 @@ def _build_single_plan(
         )
 
     # Resolve routing depot
-    selected_hotel = next(
-        (p for p in valid_places if p.place_id == hotel_summary.hotel_id), 
-        None
-    )
-    if not selected_hotel:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal error: Selected hotel could not be resolved as route depot."
-        )
+    selected_hotel = selected_hotel_place
         
     # Stage 6: OR-Tools VRP Scheduling
     t_stage6 = time.perf_counter()
