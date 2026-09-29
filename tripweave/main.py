@@ -13,11 +13,13 @@ from tripweave.verifier import ItineraryVerifier
 from tripweave.models import (
     TripRequest, TripPlan, Place, MultiVariantTripPlan, 
     PlanVariantType, PacePreference, TransportPreference, 
-    TransportMode, HotelPreference, WeatherSummary
+    TransportMode, HotelPreference, WeatherSummary,
+    EditConsequenceRequest, EditConsequenceResponse
 )
 from tripweave.feasibility import FeasibilityFilter
 from tripweave.optimizer import TripOptimizer, InfeasibleItineraryError
 from tripweave.transport import get_transport_provider
+from tripweave.editor import ItineraryEditor
 
 # 1. Initialize FastAPI Application
 app = FastAPI(
@@ -389,3 +391,29 @@ def generate_variants(request: TripRequest):
             "comfort": plan_comfort
         }
     )
+
+@app.post("/api/itinerary/preview-edit", response_model=EditConsequenceResponse, tags=["Interactive Customizer"])
+def preview_itinerary_edit(request: EditConsequenceRequest):
+    """
+    Blueprint Section 12: Simulates the real-world physical and cost consequences
+    of swapping, dropping, pinning, or rescheduling an activity to sunset.
+    """
+    try:
+        return ItineraryEditor.preview_edit(request)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error previewing edit: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@app.get("/api/itinerary/candidates", response_model=List[Place], tags=["Interactive Customizer"])
+def get_candidates_for_swap(destination: str, exclude_ids: Optional[str] = None):
+    """
+    Returns alternative candidate attractions for swapping, omitting already scheduled venues.
+    """
+    exclude_list = [x.strip() for x in exclude_ids.split(",")] if exclude_ids else []
+    try:
+        return ItineraryEditor.get_candidate_alternatives(destination, exclude_list)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+

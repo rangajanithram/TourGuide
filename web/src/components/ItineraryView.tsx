@@ -7,10 +7,12 @@ import {
   Copy, Check, Activity, CloudSun,
   CloudRain, Flame, Utensils, Wallet,
   HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users,
-  Train, Plane, Car, ArrowRight, CheckSquare, Square
+  Train, Plane, Car, ArrowRight, CheckSquare, Square,
+  ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw
 } from 'lucide-react';
-import { TripPlan, TripFormData } from '../types/trip';
+import { TripPlan, TripFormData, DayPlan, EditActionType } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
+import EditConsequenceModal from './EditConsequenceModal';
 
 interface ItineraryViewProps {
   plan: TripPlan;
@@ -18,6 +20,8 @@ interface ItineraryViewProps {
   selectedDay?: number | 'all';
   onSelectDay?: (day: number | 'all') => void;
   formData?: TripFormData | null;
+  onUpdatePlan?: (updatedPlan: TripPlan) => void;
+  onReoptimize?: (pinnedActivities: string[]) => void;
 }
 
 export default function ItineraryView({ 
@@ -25,8 +29,62 @@ export default function ItineraryView({
   destination = 'City',
   selectedDay = 'all',
   onSelectDay,
-  formData
+  formData,
+  onUpdatePlan,
+  onReoptimize
 }: ItineraryViewProps) {
+  const [activePlan, setActivePlan] = useState<TripPlan>(plan);
+  const [planHistory, setPlanHistory] = useState<TripPlan[]>([]);
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    dayNumber: number;
+    activityIndex: number;
+    initialAction: EditActionType;
+  } | null>(null);
+
+  useEffect(() => {
+    setActivePlan(plan);
+    setPlanHistory([]);
+  }, [plan]);
+
+  const currentPlan = activePlan;
+
+  const handleApplyDayUpdate = (updatedDay: DayPlan) => {
+    setPlanHistory(prev => [...prev, activePlan]);
+    const updatedDays = activePlan.days.map(d => d.day_number === updatedDay.day_number ? updatedDay : d);
+    const newTotalActivitiesCost = updatedDays.reduce((acc, d) => acc + d.day_cost_inr, 0);
+    const newTotalCost = newTotalActivitiesCost + (activePlan.hotel_summary?.total_cost_inr || 0) + activePlan.estimated_transport_cost_inr;
+    
+    const nextPlan: TripPlan = {
+      ...activePlan,
+      days: updatedDays,
+      total_cost_inr: newTotalCost
+    };
+    setActivePlan(nextPlan);
+    onUpdatePlan?.(nextPlan);
+  };
+
+  const handleUndo = () => {
+    if (planHistory.length === 0) return;
+    const previous = planHistory[planHistory.length - 1];
+    setPlanHistory(prev => prev.slice(0, -1));
+    setActivePlan(previous);
+    onUpdatePlan?.(previous);
+  };
+
+  const handleTogglePin = (dayNum: number, actIdx: number) => {
+    const targetDay = activePlan.days.find(d => d.day_number === dayNum);
+    if (!targetDay) return;
+    const updatedActivities = targetDay.activities.map((a, i) => {
+      if (i === actIdx) {
+        return { ...a, is_locked: !a.is_locked };
+      }
+      return a;
+    });
+    const updatedDay: DayPlan = { ...targetDay, activities: updatedActivities };
+    handleApplyDayUpdate(updatedDay);
+  };
+
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [showWhyNot, setShowWhyNot] = useState(false);
@@ -34,9 +92,9 @@ export default function ItineraryView({
   const [visitedActivities, setVisitedActivities] = useState<Record<string, { visited: boolean; actualCost: number }>>({});
   const [editingSpend, setEditingSpend] = useState<string | null>(null);
   const [spendInput, setSpendInput] = useState<string>('');
-  const hotel = plan.hotel_summary;
-  const totalActivitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
-  const totalStops = plan.days.reduce((acc, d) => acc + d.activities.length, 0);
+  const hotel = currentPlan.hotel_summary;
+  const totalActivitiesCost = currentPlan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
+  const totalStops = currentPlan.days.reduce((acc, d) => acc + d.activities.length, 0);
 
   const tripSignature = React.useMemo(() => {
     const sDate = formData?.start_date || plan.days[0]?.date || 'nodate';
@@ -102,13 +160,13 @@ export default function ItineraryView({
 
   const activeActivitiesMap = React.useMemo(() => {
     const map = new Map<string, number>();
-    for (const day of plan.days) {
+    for (const day of currentPlan.days) {
       day.activities.forEach((act, activityIndex) => {
         map.set(`${day.day_number}:${act.place_id || act.place_name}:${activityIndex}`, act.estimated_cost_inr);
       });
     }
     return map;
-  }, [plan]);
+  }, [currentPlan]);
 
   const totalActualSpent = Object.entries(visitedActivities).reduce((acc, [name, curr]) => {
     if (curr.visited && activeActivitiesMap.has(name)) {
@@ -128,34 +186,34 @@ export default function ItineraryView({
     return acc;
   }, 0);
 
-  const remainingBudget = plan.total_cost_inr - totalActualSpent;
+  const remainingBudget = currentPlan.total_cost_inr - totalActualSpent;
 
   const handleCopyLink = async () => {
     if (typeof window === 'undefined') return;
     try {
       const url = new URL(window.location.origin + window.location.pathname);
       url.searchParams.set('dest', destination.toLowerCase());
-      const startDate = formData?.start_date || plan.days[0]?.date;
+      const startDate = formData?.start_date || currentPlan.days[0]?.date;
       if (startDate) {
         url.searchParams.set('start', startDate);
       }
-      const endDate = formData?.end_date || plan.days[plan.days.length - 1]?.date;
+      const endDate = formData?.end_date || currentPlan.days[currentPlan.days.length - 1]?.date;
       if (endDate) {
         url.searchParams.set('end', endDate);
       }
-      url.searchParams.set('mode', formData?.transport_mode || plan.transport_mode);
-      const origin = formData?.origin_city || plan.intercity_transport?.origin_city;
+      url.searchParams.set('mode', formData?.transport_mode || currentPlan.transport_mode);
+      const origin = formData?.origin_city || currentPlan.intercity_transport?.origin_city;
       if (origin) {
         url.searchParams.set('origin', origin.toLowerCase());
       }
-      if (plan.variant_type) {
-        url.searchParams.set('variant', plan.variant_type.toLowerCase());
+      if (currentPlan.variant_type) {
+        url.searchParams.set('variant', currentPlan.variant_type.toLowerCase());
       }
-      const people = formData?.people_count || plan.hotel_summary?.people_accommodated || 2;
+      const people = formData?.people_count || currentPlan.hotel_summary?.people_accommodated || 2;
       url.searchParams.set('people', people.toString());
-      const budget = formData?.budget_inr || plan.total_cost_inr;
+      const budget = formData?.budget_inr || currentPlan.total_cost_inr;
       url.searchParams.set('budget', budget.toString());
-      const pace = formData?.pace || plan.fatigue_report?.overall_pace?.toLowerCase() || 'balanced';
+      const pace = formData?.pace || currentPlan.fatigue_report?.overall_pace?.toLowerCase() || 'balanced';
       url.searchParams.set('pace', pace);
       if (formData?.group_profile) {
         url.searchParams.set('profile', formData.group_profile);
@@ -182,7 +240,7 @@ export default function ItineraryView({
 
   const handleCopyText = async () => {
     try {
-      const text = formatItineraryForShare(plan, destination);
+      const text = formatItineraryForShare(currentPlan, destination);
       await navigator.clipboard.writeText(text);
       setCopiedText(true);
       setTimeout(() => setCopiedText(false), 2500);
@@ -192,15 +250,60 @@ export default function ItineraryView({
   };
 
   const handleExportIcs = () => {
-    exportToIcs(plan, destination);
+    exportToIcs(currentPlan, destination);
   };
 
   const visibleDays = selectedDay === 'all' 
-    ? plan.days 
-    : plan.days.filter(d => d.day_number === selectedDay);
+    ? currentPlan.days 
+    : currentPlan.days.filter(d => d.day_number === selectedDay);
 
   return (
     <div className="space-y-6">
+      {/* Modification & Version History Banner */}
+      {planHistory.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 shadow-lg text-xs text-amber-200 animate-fade-in">
+          <div className="flex items-center space-x-2.5">
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+            <div>
+              <span className="font-bold text-white block">Customized Itinerary State</span>
+              <span className="text-[11px] text-amber-300/80">
+                You have made {planHistory.length} local edit(s). Updated on-ground subtotal: <strong>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</strong>
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#161922] hover:bg-[#1e2230] border border-[#222736] text-gray-200 text-xs font-semibold transition-all active:scale-95 shadow-sm"
+              title="Undo last customizer action"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+              <span>Undo ({planHistory.length})</span>
+            </button>
+            {onReoptimize && (
+              <button
+                type="button"
+                onClick={() => {
+                  const pinnedNames: string[] = [];
+                  currentPlan.days.forEach(d => {
+                    d.activities.forEach(a => {
+                      if (a.is_locked) pinnedNames.push(a.place_id || a.place_name);
+                    });
+                  });
+                  onReoptimize(pinnedNames);
+                }}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
+                title="Send pinned constraints back to OR-Tools solver for a globally reconciled plan"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Re-solve with Pinned</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Action Toolbar: Calendar Export & Share */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-[#11131b] border border-[#1e2230] rounded-2xl p-4 shadow-lg">
         <div className="flex items-center space-x-2">
@@ -208,10 +311,10 @@ export default function ItineraryView({
             <Compass className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-white">{plan.plan_name}</h3>
+            <h3 className="font-bold text-sm text-white">{currentPlan.plan_name}</h3>
             <p className="text-[11px] text-gray-400">
-              {plan.days.length} Days • ₹{plan.total_cost_inr.toLocaleString('en-IN')} Total Subtotal
-              {plan.fatigue_report?.overall_pace && ` • ${plan.fatigue_report.overall_pace}`}
+              {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Total Subtotal
+              {currentPlan.fatigue_report?.overall_pace && ` • ${currentPlan.fatigue_report.overall_pace}`}
             </p>
           </div>
         </div>
@@ -271,7 +374,7 @@ export default function ItineraryView({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[#11131b] border border-[#1e2230] rounded-xl p-3.5 shadow-md">
           <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Grand Total</span>
-          <span className="text-xl font-extrabold text-amber-400">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
+          <span className="text-xl font-extrabold text-amber-400">₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</span>
           <span className="text-[10px] text-gray-500 block mt-0.5">All lodgings, transit & tickets</span>
         </div>
 
@@ -283,8 +386,8 @@ export default function ItineraryView({
 
         <div className="bg-[#11131b] border border-[#1e2230] rounded-xl p-3.5 shadow-md">
           <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Transit Matrix</span>
-          <span className="text-xl font-extrabold text-white">₹{plan.estimated_transport_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-[10px] text-gray-500 block mt-0.5 capitalize">{plan.transport_mode} routes</span>
+          <span className="text-xl font-extrabold text-white">₹{currentPlan.estimated_transport_cost_inr.toLocaleString('en-IN')}</span>
+          <span className="text-[10px] text-gray-500 block mt-0.5 capitalize">{currentPlan.transport_mode} routes</span>
         </div>
 
         <div className="bg-[#11131b] border border-[#1e2230] rounded-xl p-3.5 shadow-md">
@@ -945,6 +1048,79 @@ export default function ItineraryView({
                         <p className="text-[11px] text-gray-400 pl-5">{act.recommended_viewpoint.description}</p>
                       </div>
                     )}
+
+                    {/* Interactive Customizer Action Bar */}
+                    <div className="mt-3 pt-2.5 border-t border-[#222736] flex flex-wrap items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center space-x-1 sm:space-x-1.5 flex-wrap">
+                        {/* Pin / Lock Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePin(day.day_number, actIdx)}
+                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                            act.is_locked
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm'
+                              : 'bg-[#11131b] text-gray-400 border-[#222736] hover:text-white hover:border-gray-600'
+                          }`}
+                          title={act.is_locked ? "Unpin stop" : "Pin stop (force solver retention)"}
+                        >
+                          {act.is_locked ? <Lock className="w-3 h-3 text-amber-400" /> : <Unlock className="w-3 h-3" />}
+                          <span>{act.is_locked ? 'Pinned' : 'Pin'}</span>
+                        </button>
+
+                        {/* Swap Button */}
+                        <button
+                          type="button"
+                          onClick={() => setModalConfig({
+                            isOpen: true,
+                            dayNumber: day.day_number,
+                            activityIndex: actIdx,
+                            initialAction: 'swap'
+                          })}
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#11131b] text-gray-300 border border-[#222736] hover:border-amber-500/40 hover:text-amber-300 transition-all"
+                          title="Swap with candidate place"
+                        >
+                          <ArrowRightLeft className="w-3 h-3 text-amber-400" />
+                          <span>Swap</span>
+                        </button>
+
+                        {/* Move to Sunset Button */}
+                        <button
+                          type="button"
+                          onClick={() => setModalConfig({
+                            isOpen: true,
+                            dayNumber: day.day_number,
+                            activityIndex: actIdx,
+                            initialAction: 'move_to_sunset'
+                          })}
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#11131b] text-gray-300 border border-[#222736] hover:border-orange-500/40 hover:text-orange-300 transition-all"
+                          title="Schedule for astronomical golden hour"
+                        >
+                          <Sun className="w-3 h-3 text-orange-400" />
+                          <span>Sunset</span>
+                        </button>
+
+                        {/* Drop Stop Button */}
+                        <button
+                          type="button"
+                          onClick={() => setModalConfig({
+                            isOpen: true,
+                            dayNumber: day.day_number,
+                            activityIndex: actIdx,
+                            initialAction: 'remove'
+                          })}
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#11131b] text-gray-400 border border-[#222736] hover:border-rose-500/40 hover:text-rose-400 transition-all"
+                          title="Drop stop from day schedule"
+                        >
+                          <Trash2 className="w-3 h-3 text-rose-400" />
+                          <span>Drop</span>
+                        </button>
+                      </div>
+
+                      <div className="text-[11px] text-gray-500 font-mono">
+                        Stop #{actIdx + 1}
+                      </div>
+                    </div>
+
                     {/* Feature 2: Smart Interactive Expense Logging per Activity */}
                     {isVisited && (
                       <div className="mt-3 pt-2.5 border-t border-[#222736] flex flex-wrap items-center justify-between gap-2 text-xs bg-[#11131b]/60 px-3 py-2 rounded-lg">
@@ -1013,7 +1189,7 @@ export default function ItineraryView({
       </div>
 
       {/* Blueprint Stage 10 & Spec Feature 1: Why Not X? Candidate Omission Audit */}
-      {plan.decision_trace?.excluded_places && plan.decision_trace.excluded_places.length > 0 && (
+      {currentPlan.decision_trace?.excluded_places && currentPlan.decision_trace.excluded_places.length > 0 && (
         <div className="bg-[#11131b] border border-[#1e2230] rounded-2xl p-5 shadow-xl">
           <button
             type="button"
@@ -1025,7 +1201,7 @@ export default function ItineraryView({
               <div>
                 <h4 className="font-bold text-sm text-white">Why Not X? Candidate Omission Audit</h4>
                 <p className="text-[11px] text-gray-400">
-                  {plan.decision_trace.excluded_places.length} attractions evaluated but omitted from this itinerary
+                  {currentPlan.decision_trace.excluded_places.length} attractions evaluated but omitted from this itinerary
                 </p>
               </div>
             </div>
@@ -1036,7 +1212,7 @@ export default function ItineraryView({
 
           {showWhyNot && (
             <div className="mt-4 pt-4 border-t border-[#1e2230] space-y-3">
-              {plan.decision_trace.excluded_places.map((item, idx) => (
+              {currentPlan.decision_trace.excluded_places.map((item, idx) => (
                 <div key={idx} className="bg-[#161922] border border-[#222736] rounded-xl p-3.5 text-xs space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-white text-sm">{item.place_name}</span>
@@ -1066,9 +1242,9 @@ export default function ItineraryView({
       )}
 
       {/* Transparency Disclaimer */}
-      {plan.disclaimer && (
+      {currentPlan.disclaimer && (
         <div className="text-center text-xs text-gray-500 pt-4 border-t border-[#1e2230]">
-          {plan.disclaimer}
+          {currentPlan.disclaimer}
         </div>
       )}
 
@@ -1108,6 +1284,21 @@ export default function ItineraryView({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Edit Consequence Modal */}
+      {modalConfig && (
+        <EditConsequenceModal
+          isOpen={modalConfig.isOpen}
+          onClose={() => setModalConfig(null)}
+          destination={destination}
+          plan={currentPlan}
+          dayNumber={modalConfig.dayNumber}
+          activityIndex={modalConfig.activityIndex}
+          initialAction={modalConfig.initialAction}
+          peopleCount={formData?.people_count || 1}
+          onApplyUpdate={handleApplyDayUpdate}
+        />
       )}
     </div>
   );

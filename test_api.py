@@ -791,7 +791,101 @@ def run_tests():
     assert clusterer.balance_workload(mock_clusters, days=0) == {}
     print(f"   ✅ Stage 4 Workload Balancing Verified: all 4 places assigned exactly once across {len(balanced_2d)} day preferences")
 
-    print("\n🎉 ALL 40 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # 4️⃣1️⃣ Testing Interactive Itinerary Customizer & Edit Consequences Engine
+    print("\n4️⃣1️⃣ Testing Interactive Itinerary Customizer & Edit Consequences Engine...")
+    from tripweave.editor import ItineraryEditor
+    from tripweave.models import EditConsequenceRequest, EditActionType, DayPlan, ScheduledActivity
+    
+    # 1. Fetch candidate alternatives
+    candidates = ItineraryEditor.get_candidate_alternatives("hyderabad", exclude_ids=["charminar"])
+    assert len(candidates) > 0, "Candidate places must be returned for destination"
+    assert all(c.place_id != "charminar" for c in candidates), "charminar must be excluded from candidates"
+    print(f"   ✅ Candidate alternatives retrieved: {len(candidates)} places available for swap")
+
+    # Generate a sample plan to test edits
+    sample_req = TripRequest(
+        destination="hyderabad",
+        days=2,
+        budget_inr=15000,
+        pace="balanced",
+        transport_mode="auto",
+        people_count=2,
+        start_date=date(2026, 11, 20),
+        end_date=date(2026, 11, 21)
+    )
+    multi_res = generate_variants(sample_req)
+    plan_to_edit = multi_res.variants["balanced"]
+    assert len(plan_to_edit.days) >= 1
+    day1 = plan_to_edit.days[0]
+    assert len(day1.activities) >= 2, "Need at least 2 activities on day 1 for customizer tests"
+
+    # 2. Test REMOVE action
+    remove_req = EditConsequenceRequest(
+        destination="hyderabad",
+        plan=plan_to_edit,
+        day_number=1,
+        activity_index=1,
+        action=EditActionType.REMOVE,
+        people_count=2,
+        transport_mode="auto"
+    )
+    rem_resp = ItineraryEditor.preview_edit(remove_req)
+    assert rem_resp.is_feasible is True
+    assert rem_resp.action == EditActionType.REMOVE
+    assert rem_resp.delta_cost_inr <= 0, f"Removing an activity should yield non-positive cost delta, got {rem_resp.delta_cost_inr}"
+    assert len(rem_resp.suggested_updated_day.activities) == len(day1.activities) - 1
+    assert rem_resp.delta_transit_minutes <= 0
+    print(f"   ✅ REMOVE Consequence Verified: Cost delta = ₹{rem_resp.delta_cost_inr}, Time delta = {rem_resp.delta_transit_minutes}m, Distance delta = {rem_resp.delta_transit_km}km")
+
+    # 3. Test PIN action
+    pin_req = EditConsequenceRequest(
+        destination="hyderabad",
+        plan=plan_to_edit,
+        day_number=1,
+        activity_index=0,
+        action=EditActionType.PIN,
+        people_count=2
+    )
+    pin_resp = ItineraryEditor.preview_edit(pin_req)
+    assert pin_resp.is_feasible is True
+    assert pin_resp.suggested_updated_day.activities[0].is_locked is True
+    print(f"   ✅ PIN Consequence Verified: Stop locked successfully without route breakage")
+
+    # 4. Test SWAP action
+    swap_candidate = candidates[0]
+    swap_req = EditConsequenceRequest(
+        destination="hyderabad",
+        plan=plan_to_edit,
+        day_number=1,
+        activity_index=1,
+        action=EditActionType.SWAP,
+        replacement_place_id=swap_candidate.place_id,
+        people_count=2,
+        transport_mode="auto"
+    )
+    swap_resp = ItineraryEditor.preview_edit(swap_req)
+    assert swap_resp.action == EditActionType.SWAP
+    assert len(swap_resp.suggested_updated_day.activities) == len(day1.activities)
+    assert swap_resp.suggested_updated_day.activities[1].place_id == swap_candidate.place_id
+    assert swap_resp.replacement_activity_name == swap_candidate.name
+    print(f"   ✅ SWAP Consequence Verified: Swapped with {swap_candidate.name}. Cost delta = ₹{swap_resp.delta_cost_inr}, Commute delta = {swap_resp.delta_transit_minutes}m, Feasible = {swap_resp.is_feasible}")
+
+    # 5. Test MOVE_TO_SUNSET action
+    sunset_req = EditConsequenceRequest(
+        destination="hyderabad",
+        plan=plan_to_edit,
+        day_number=1,
+        activity_index=0,
+        action=EditActionType.MOVE_TO_SUNSET,
+        people_count=2
+    )
+    sunset_resp = ItineraryEditor.preview_edit(sunset_req)
+    assert sunset_resp.action == EditActionType.MOVE_TO_SUNSET
+    start_h = int(sunset_resp.suggested_updated_day.activities[0].start_time.split(":")[0])
+    assert start_h >= 16 or sunset_resp.feasibility_notes, "Sunset should schedule for late afternoon/golden hour"
+    print(f"   ✅ MOVE_TO_SUNSET Consequence Verified: Golden hour window scheduled at {sunset_resp.suggested_updated_day.activities[0].start_time} - {sunset_resp.suggested_updated_day.activities[0].end_time}")
+
+    print("\n🎉 ALL 41 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

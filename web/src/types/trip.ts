@@ -217,3 +217,46 @@ export interface TripFormData {
   start_location?: string;
   interests: string[];
 }
+
+export type EditActionType = 'swap' | 'remove' | 'pin' | 'move_to_sunset';
+
+export interface PlaceCandidate {
+  place_id: string;
+  name: string;
+  city: string;
+  lat: number;
+  lng: number;
+  place_type: string;
+  duration_minutes: number;
+  estimated_cost_per_person_inr: number;
+  open_time?: string | null;
+  close_time?: string | null;
+  closed_on?: string[] | null;
+  experience_tag?: string | null;
+  verification_status?: string | null;
+}
+
+export interface EditConsequenceRequest {
+  destination: string;
+  plan: TripPlan;
+  day_number: number;
+  activity_index: number;
+  action: EditActionType;
+  replacement_place_id?: string | null;
+  people_count?: number;
+  transport_mode?: 'cab' | 'auto' | 'metro' | 'walk';
+}
+
+export interface EditConsequenceResponse {
+  is_feasible: boolean;
+  action: EditActionType;
+  target_activity_name: string;
+  replacement_activity_name?: string | null;
+  delta_cost_inr: number;
+  delta_transit_km: number;
+  delta_transit_minutes: number;
+  delta_duration_minutes: number;
+  feasibility_notes: string[];
+  impact_summary: string;
+  suggested_updated_day?: DayPlan | null;
+}

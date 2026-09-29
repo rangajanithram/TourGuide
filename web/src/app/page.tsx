@@ -174,6 +174,28 @@ export default function Home() {
     });
   }, []);
 
+  const handleUpdatePlan = (updatedPlan: TripPlan) => {
+    if (!multiPlan) return;
+    setMultiPlan({
+      ...multiPlan,
+      variants: {
+        ...multiPlan.variants,
+        [activeVariant]: updatedPlan
+      }
+    });
+  };
+
+  const handleReoptimize = (pinnedActivities: string[]) => {
+    if (!activeFormData) return;
+    const combinedPins = Array.from(new Set([...(activeFormData.locked_activities || []), ...pinnedActivities]));
+    const updatedForm: TripFormData = {
+      ...activeFormData,
+      locked_activities: combinedPins
+    };
+    setActiveFormData(updatedForm);
+    fetchTripPlan(updatedForm);
+  };
+
   const currentPlan: TripPlan | undefined = multiPlan?.variants[activeVariant];
 
   return (
@@ -244,6 +266,8 @@ export default function Home() {
                   selectedDay={selectedDay}
                   onSelectDay={setSelectedDay}
                   formData={activeFormData}
+                  onUpdatePlan={handleUpdatePlan}
+                  onReoptimize={handleReoptimize}
                 />
               </>
             ) : (

@@ -291,3 +291,35 @@ class MultiVariantTripPlan(BaseModel):
     travel_dates: str
     synthesis_stages: List[Dict[str, Any]] = Field(default_factory=list, description="Telemetry describing the 10 executed blueprint optimization stages")
     variants: Dict[str, TripPlan] = Field(..., description="The 3 diverse plan variants: budget, balanced, comfort")
+
+# --- INTERACTIVE ITINERARY CUSTOMIZER & EDIT CONSEQUENCE MODELS ---
+
+class EditActionType(str, Enum):
+    SWAP = "swap"
+    REMOVE = "remove"
+    PIN = "pin"
+    MOVE_TO_SUNSET = "move_to_sunset"
+
+class EditConsequenceRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    destination: str
+    plan: TripPlan
+    day_number: int
+    activity_index: int
+    action: EditActionType
+    replacement_place_id: Optional[str] = None
+    people_count: int = Field(default=1, gt=0)
+    transport_mode: TransportMode = Field(default=TransportMode.CAB)
+
+class EditConsequenceResponse(BaseModel):
+    is_feasible: bool
+    action: EditActionType
+    target_activity_name: str
+    replacement_activity_name: Optional[str] = None
+    delta_cost_inr: int
+    delta_transit_km: float
+    delta_transit_minutes: int
+    delta_duration_minutes: int
+    feasibility_notes: List[str] = Field(default_factory=list)
+    impact_summary: str
+    suggested_updated_day: Optional[DayPlan] = None
