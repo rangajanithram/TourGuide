@@ -6,6 +6,7 @@ import Header from '../components/Header';
 import TripForm from '../components/TripForm';
 import VariantSwitcher from '../components/VariantSwitcher';
 import ItineraryView from '../components/ItineraryView';
+import SharedTripOverview from '../components/SharedTripOverview';
 import { MultiVariantTripPlan, TripPlan, TripFormData } from '../types/trip';
 import { AlertCircle, Compass, Sparkles } from 'lucide-react';
 
@@ -27,6 +28,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeFormData, setActiveFormData] = useState<TripFormData | null>(null);
+  const [isSharedView, setIsSharedView] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
 
   const fetchTripPlan = async (formData: TripFormData) => {
     setIsLoading(true);
@@ -96,9 +99,13 @@ export default function Home() {
     let originType: 'hotel' | 'center' | 'station' | 'airport' = 'hotel';
 
     let startLocation: string | undefined = undefined;
+    let shared = false;
 
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
+      if (params.get('dest') || params.get('destination') || params.get('pins') || params.get('budget') || params.get('start') || params.get('origin')) {
+        shared = true;
+      }
       const urlDest = params.get('dest') || params.get('destination');
       if (urlDest && ['hyderabad', 'delhi', 'jaipur', 'bengaluru', 'mumbai'].includes(urlDest.toLowerCase())) {
         dest = urlDest.toLowerCase();
@@ -157,7 +164,11 @@ export default function Home() {
       }
     }
 
-    fetchTripPlan({
+    if (shared) {
+      setIsSharedView(true);
+    }
+
+    const initialData: TripFormData = {
       origin_city: orig && orig !== dest ? orig : undefined,
       destination: dest,
       origin_type: originType,
@@ -171,7 +182,10 @@ export default function Home() {
       transport_mode: mode,
       locked_activities: lockedActs,
       interests: interests
-    });
+    };
+
+    setActiveFormData(initialData);
+    fetchTripPlan(initialData);
   }, []);
 
   const handleUpdatePlan = (updatedPlan: TripPlan) => {
@@ -203,19 +217,21 @@ export default function Home() {
       <Header />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Hero Section */}
-        <div className="mb-8">
-          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold mb-3">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Deterministic Travel Optimization Engine</span>
+        {/* Hero Section (Only in standard builder view) */}
+        {!isSharedView && (
+          <div className="mb-8">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold mb-3">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Deterministic Travel Optimization Engine</span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-2">
+              Plan without <span className="text-amber-400">hallucinations</span>.
+            </h1>
+            <p className="text-sm sm:text-base text-gray-400 max-w-2xl leading-relaxed">
+              Every route is optimized with Google OR-Tools time-window routing, DBSCAN neighborhood clustering, strict budget conservation, and NOAA astronomical sunset calculations.
+            </p>
           </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-2">
-            Plan without <span className="text-amber-400">hallucinations</span>.
-          </h1>
-          <p className="text-sm sm:text-base text-gray-400 max-w-2xl leading-relaxed">
-            Every route is optimized with Google OR-Tools time-window routing, DBSCAN neighborhood clustering, strict budget conservation, and NOAA astronomical sunset calculations.
-          </p>
-        </div>
+        )}
 
         {/* Global Error Banner */}
         {error && (
@@ -228,15 +244,40 @@ export default function Home() {
           </div>
         )}
 
-        {/* Dual Column Layout: Left Cockpit Form, Right Visual Results */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left Column: Form */}
-          <div className="lg:col-span-5 sticky top-24">
-            <TripForm onSubmit={fetchTripPlan} isLoading={isLoading} />
-          </div>
+        {isSharedView ? (
+          /* Shared View: Full width presentation focusing on the shared itinerary & overview */
+          <div className="space-y-6">
+            <SharedTripOverview
+              formData={activeFormData}
+              currentPlan={currentPlan}
+              activeVariant={activeVariant}
+              onToggleEditor={() => setShowEditor(prev => !prev)}
+              showEditor={showEditor}
+            />
 
-          {/* Right Column: Interactive Map, Variants & Schedule */}
-          <div className="lg:col-span-7 space-y-6">
+            {showEditor && (
+              <div className="bg-[#11131b] border border-amber-500/30 rounded-2xl p-6 shadow-xl animate-in fade-in duration-200">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1e2230]">
+                  <div className="flex items-center space-x-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <h3 className="text-base font-bold text-white">Customize Itinerary Settings</h3>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setShowEditor(false)}
+                    className="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg bg-[#161922] border border-[#222736]"
+                  >
+                    Close Settings Form
+                  </button>
+                </div>
+                <TripForm 
+                  onSubmit={fetchTripPlan} 
+                  isLoading={isLoading} 
+                  initialValues={activeFormData} 
+                />
+              </div>
+            )}
+
             {multiPlan && (
               <VariantSwitcher
                 multiPlan={multiPlan}
@@ -271,18 +312,74 @@ export default function Home() {
                 />
               </>
             ) : (
-              !isLoading && (
-                <div className="bg-[#11131b] border border-[#1e2230] rounded-2xl p-12 text-center text-gray-500 space-y-3">
-                  <Compass className="w-10 h-10 text-gray-600 mx-auto" />
-                  <h3 className="text-base font-bold text-gray-300">Ready to synthesize your itinerary</h3>
-                  <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                    Fill out the parameters on the left and click Synthesize to generate feasible, mathematically optimal routes.
+              isLoading && (
+                <div className="bg-[#11131b] border border-[#1e2230] rounded-2xl p-16 text-center text-gray-400 space-y-4">
+                  <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <h3 className="text-lg font-bold text-white">Synthesizing Curated Itinerary...</h3>
+                  <p className="text-xs text-gray-400 max-w-md mx-auto">
+                    Computing time-window routing, DBSCAN neighborhood clusters, transit times, and live budget conservation.
                   </p>
                 </div>
               )
             )}
           </div>
-        </div>
+        ) : (
+          /* Dual Column Layout: Left Cockpit Form, Right Visual Results */
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* Left Column: Form */}
+            <div className="lg:col-span-5 sticky top-24">
+              <TripForm onSubmit={fetchTripPlan} isLoading={isLoading} initialValues={activeFormData} />
+            </div>
+
+            {/* Right Column: Interactive Map, Variants & Schedule */}
+            <div className="lg:col-span-7 space-y-6">
+              {multiPlan && (
+                <VariantSwitcher
+                  multiPlan={multiPlan}
+                  activeVariant={activeVariant}
+                  onSelectVariant={(v) => {
+                    setActiveVariant(v);
+                    setSelectedDay('all');
+                  }}
+                />
+              )}
+
+              {currentPlan ? (
+                <>
+                  {/* Interactive Leaflet Map */}
+                  <div className="w-full h-[460px]">
+                    <MapComponent 
+                      plan={currentPlan} 
+                      selectedDay={selectedDay}
+                      onSelectDay={setSelectedDay}
+                    />
+                  </div>
+
+                  {/* Itinerary Schedule and Hotel Details */}
+                  <ItineraryView 
+                    plan={currentPlan}
+                    destination={multiPlan?.destination || 'City'}
+                    selectedDay={selectedDay}
+                    onSelectDay={setSelectedDay}
+                    formData={activeFormData}
+                    onUpdatePlan={handleUpdatePlan}
+                    onReoptimize={handleReoptimize}
+                  />
+                </>
+              ) : (
+                !isLoading && (
+                  <div className="bg-[#11131b] border border-[#1e2230] rounded-2xl p-12 text-center text-gray-500 space-y-3">
+                    <Compass className="w-10 h-10 text-gray-600 mx-auto" />
+                    <h3 className="text-base font-bold text-gray-300">Ready to synthesize your itinerary</h3>
+                    <p className="text-xs text-gray-500 max-w-sm mx-auto">
+                      Fill out the parameters on the left and click Synthesize to generate feasible, mathematically optimal routes.
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Footer */}

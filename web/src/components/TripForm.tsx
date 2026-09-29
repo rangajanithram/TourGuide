@@ -11,6 +11,7 @@ import { TripFormData } from '../types/trip';
 interface TripFormProps {
   onSubmit: (formData: TripFormData) => void;
   isLoading: boolean;
+  initialValues?: TripFormData | null;
 }
 
 const CITY_MUST_VISIT_PINS: Record<string, string[]> = {
@@ -70,82 +71,42 @@ const getFutureDate = (daysAhead: number): string => {
   return d.toISOString().split('T')[0];
 };
 
-export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
-  const [destination, setDestination] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const d = p.get('dest') || p.get('destination');
-      if (d && ['hyderabad', 'delhi', 'jaipur', 'bengaluru', 'mumbai'].includes(d.toLowerCase())) return d.toLowerCase();
-    }
-    return 'hyderabad';
-  });
-  const [originCity, setOriginCity] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const o = p.get('origin') || p.get('from');
-      if (o && ['hyderabad', 'delhi', 'jaipur', 'bengaluru', 'mumbai'].includes(o.toLowerCase())) return o.toLowerCase();
-    }
-    return '';
-  });
+export default function TripForm({ onSubmit, isLoading, initialValues }: TripFormProps) {
+  const [destination, setDestination] = useState<string>('hyderabad');
+  const [originCity, setOriginCity] = useState<string>('');
   const [originType, setOriginType] = useState<'center' | 'station' | 'airport'>('center');
-  const [startDate, setStartDate] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const s = p.get('start') || p.get('start_date');
-      if (s && /^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    }
-    return getFutureDate(7);
-  });
-  const [endDate, setEndDate] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const e = p.get('end') || p.get('end_date');
-      if (e && /^\d{4}-\d{2}-\d{2}$/.test(e)) return e;
-    }
-    return getFutureDate(9);
-  });
-  const [budget, setBudget] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const b = p.get('budget');
-      if (b && !isNaN(Number(b))) return Number(b);
-    }
-    return 15000;
-  });
-  const [peopleCount, setPeopleCount] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const pc = p.get('people');
-      if (pc && !isNaN(Number(pc))) return Number(pc);
-    }
-    return 2;
-  });
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [budget, setBudget] = useState<number>(15000);
+  const [peopleCount, setPeopleCount] = useState<number>(2);
   const [lockedActivities, setLockedActivities] = useState<string[]>([]);
-  const [groupProfile, setGroupProfile] = useState<'default' | 'young_solo' | 'family' | 'elderly'>(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const pr = p.get('profile');
-      if (pr && ['default', 'young_solo', 'family', 'elderly'].includes(pr)) return pr as 'default' | 'young_solo' | 'family' | 'elderly';
-    }
-    return 'default';
-  });
-  const [pace, setPace] = useState<'relaxed' | 'balanced' | 'intensive'>(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const pc = p.get('pace');
-      if (pc && ['relaxed', 'balanced', 'intensive'].includes(pc)) return pc as 'relaxed' | 'balanced' | 'intensive';
-    }
-    return 'balanced';
-  });
-  const [transportMode, setTransportMode] = useState<'cab' | 'auto' | 'metro' | 'walk'>(() => {
-    if (typeof window !== 'undefined') {
-      const p = new URLSearchParams(window.location.search);
-      const m = p.get('mode');
-      if (m && ['cab', 'auto', 'metro', 'walk'].includes(m)) return m as 'cab' | 'auto' | 'metro' | 'walk';
-    }
-    return 'cab';
-  });
+  const [groupProfile, setGroupProfile] = useState<'default' | 'young_solo' | 'family' | 'elderly'>('default');
+  const [pace, setPace] = useState<'relaxed' | 'balanced' | 'intensive'>('balanced');
+  const [transportMode, setTransportMode] = useState<'cab' | 'auto' | 'metro' | 'walk'>('cab');
   const [interests, setInterests] = useState<string[]>(['unesco', 'history', 'sunset']);
+
+  // Sync form inputs when initialValues are passed (from URL share link or parent state)
+  React.useEffect(() => {
+    if (initialValues) {
+      if (initialValues.destination) setDestination(initialValues.destination.toLowerCase());
+      if (initialValues.origin_city !== undefined) setOriginCity(initialValues.origin_city ? initialValues.origin_city.toLowerCase() : '');
+      if (initialValues.origin_type && ['center', 'station', 'airport'].includes(initialValues.origin_type)) {
+        setOriginType(initialValues.origin_type as 'center' | 'station' | 'airport');
+      }
+      if (initialValues.start_date) setStartDate(initialValues.start_date);
+      if (initialValues.end_date) setEndDate(initialValues.end_date);
+      if (initialValues.budget_inr) setBudget(initialValues.budget_inr);
+      if (initialValues.people_count) setPeopleCount(initialValues.people_count);
+      if (initialValues.group_profile) setGroupProfile(initialValues.group_profile);
+      if (initialValues.pace) setPace(initialValues.pace);
+      if (initialValues.transport_mode) setTransportMode(initialValues.transport_mode);
+      if (initialValues.interests && initialValues.interests.length > 0) setInterests(initialValues.interests);
+      if (initialValues.locked_activities && initialValues.locked_activities.length > 0) setLockedActivities(initialValues.locked_activities);
+    } else {
+      setStartDate(prev => prev || getFutureDate(7));
+      setEndDate(prev => prev || getFutureDate(9));
+    }
+  }, [initialValues]);
 
   const toggleInterest = (tag: string) => {
     setInterests(prev => 
