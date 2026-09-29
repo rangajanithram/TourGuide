@@ -28,7 +28,8 @@ class TripOptimizer:
         start_date: Optional[date] = None,
         variant_type: PlanVariantType = PlanVariantType.BALANCED,
         locked_activities: Optional[List[str]] = None,
-        group_profile: Optional[GroupProfile] = None
+        group_profile: Optional[GroupProfile] = None,
+        preferred_day_by_place: Optional[dict[str, int]] = None
     ):
         self.places = places
         self.days = days
@@ -57,6 +58,7 @@ class TripOptimizer:
                             changed = True
         self.locked_activities = list(locked_set)
         self.group_profile = group_profile
+        self.preferred_day_by_place = preferred_day_by_place or {}
 
         # Direct solver calibration for GroupProfile:
         is_elderly = (
@@ -119,26 +121,38 @@ class TripOptimizer:
         time_callback_index = routing.RegisterTransitCallback(time_callback)
 
         # 3. Multi-Objective Routing Cost Callback (Time + Fare + DBSCAN Neighborhood Cluster Penalty)
-        def routing_cost_callback(from_index, to_index):
-            from_node = manager.IndexToNode(from_index)
-            to_node = manager.IndexToNode(to_index)
-            base_time = time_matrix[from_node][to_node]
-            base_cost = self.cost_matrix[from_node][to_node]
+        def make_routing_cost_callback(vehicle_id: int):
+            def routing_cost_callback(from_index, to_index):
+                from_node = manager.IndexToNode(from_index)
+                to_node = manager.IndexToNode(to_index)
+                base_time = time_matrix[from_node][to_node]
+                base_cost = self.cost_matrix[from_node][to_node]
 
-            # Cross-cluster hop penalty to ensure vehicles group visits locally
-            cluster_penalty = 0
-            if from_node != self.hotel_index and to_node != self.hotel_index:
-                from_p = self.places[from_node]
-                to_p = self.places[to_node]
-                c1 = place_cluster_map.get(from_p.place_id)
-                c2 = place_cluster_map.get(to_p.place_id)
-                if c1 is not None and c2 is not None and c1 != c2:
-                    cluster_penalty = 350 # Encourages OR-Tools to finish a neighborhood before moving
+                # Cross-cluster hop penalty encourages local routes.
+                cluster_penalty = 0
+                if from_node != self.hotel_index and to_node != self.hotel_index:
+                    from_p = self.places[from_node]
+                    to_p = self.places[to_node]
+                    c1 = place_cluster_map.get(from_p.place_id)
+                    c2 = place_cluster_map.get(to_p.place_id)
+                    if c1 is not None and c2 is not None and c1 != c2:
+                        cluster_penalty = 350
 
-            return int(base_time * 5 + base_cost + cluster_penalty)
+                # Soft day preference from Stage 4. Keep it below ordinary
+                # drop penalties so a preferred day never makes a feasible
+                # activity economically equivalent to dropping it.
+                day_penalty = 0
+                if to_node != self.hotel_index:
+                    preferred_day = self.preferred_day_by_place.get(self.places[to_node].place_id)
+                    if preferred_day is not None and preferred_day != vehicle_id:
+                        day_penalty = 500
 
-        cost_callback_index = routing.RegisterTransitCallback(routing_cost_callback)
-        routing.SetArcCostEvaluatorOfAllVehicles(cost_callback_index)
+                return int(base_time * 5 + base_cost + cluster_penalty + day_penalty)
+            return routing_cost_callback
+
+        for vehicle_id in range(self.days):
+            cost_callback_index = routing.RegisterTransitCallback(make_routing_cost_callback(vehicle_id))
+            routing.SetArcCostEvaluatorOfVehicle(cost_callback_index, vehicle_id)
 
         # 4. Add Time Dimension
         routing.AddDimension(
@@ -409,6 +423,7 @@ class TripOptimizer:
                 is_pinned = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
 
                 activities.append(ScheduledActivity(
+                    place_id=place.place_id,
                     place_name=place.name,
                     place_type=getattr(place, "place_type", "attraction"),
                     lat=place.lat,

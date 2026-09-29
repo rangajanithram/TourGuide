@@ -373,7 +373,7 @@ export default function TripForm({ onSubmit, isLoading }: TripFormProps) {
               <span>₹50k (Luxury)</span>
             </div>
             <p className="text-[10px] text-gray-500 mt-1.5 leading-tight">
-              Covers destination lodging, local cabs/metro, sightseeing fees & meals. Inter-city travel is calculated as a separate additive baseline.
+              Covers destination lodging, local transport, sightseeing and scheduled dining. Extra meals and inter-city travel are estimated separately and may exceed this cap.
             </p>
           </div>
         </div>

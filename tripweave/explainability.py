@@ -225,14 +225,18 @@ class ExplainabilityEngine:
         }
         var_type = plan.variant_type if isinstance(plan.variant_type, PlanVariantType) else PlanVariantType(plan.variant_type)
         daily_meal_pp = variant_meal_rates.get(var_type, 800)
-        days_count = max(1, len(plan.days))
+        # Count every requested trip day, including days with no scheduled stops.
+        days_count = max(1, request.days or len(plan.days))
         suggested_meals = daily_meal_pp * request.people_count * days_count
+        # Scheduled restaurant spend is already part of direct_subtotal; only
+        # reserve the remaining meal allowance to avoid double-counting it.
+        additional_meals = max(0, suggested_meals - dining_cost)
 
-        if unallocated_buffer >= suggested_meals:
-            meal_status = f"Sufficient (Buffer ₹{unallocated_buffer} covers suggested meals ₹{suggested_meals})"
+        if unallocated_buffer >= additional_meals:
+            meal_status = f"Sufficient (Buffer ₹{unallocated_buffer} covers additional meal estimate ₹{additional_meals})"
         else:
-            diff = suggested_meals - unallocated_buffer
-            meal_status = f"Exceeds buffer by ₹{diff} (Consider adding budget for off-itinerary dining)"
+            diff = additional_meals - unallocated_buffer
+            meal_status = f"Additional meals exceed remaining buffer by ₹{diff} (Consider increasing the on-ground budget)"
 
         return ExpenseBreakdown(
             lodging_inr=lodging_cost,
@@ -242,9 +246,11 @@ class ExplainabilityEngine:
             direct_subtotal_inr=direct_subtotal,
             unallocated_buffer_inr=unallocated_buffer,
             suggested_meals_inr=suggested_meals,
+            additional_meals_inr=additional_meals,
+            budget_limit_inr=request.budget_inr,
             meal_buffer_status=meal_status,
             buffer_inr=unallocated_buffer,
             estimated_meals_inr=suggested_meals,
-            total_inr=direct_subtotal,
-            per_person_inr=int(direct_subtotal / max(1, request.people_count))
+            total_inr=request.budget_inr,
+            per_person_inr=int(request.budget_inr / max(1, request.people_count))
         )

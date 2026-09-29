@@ -103,9 +103,9 @@ export default function ItineraryView({
   const activeActivitiesMap = React.useMemo(() => {
     const map = new Map<string, number>();
     for (const day of plan.days) {
-      for (const act of day.activities) {
-        map.set(act.place_name, act.estimated_cost_inr);
-      }
+      day.activities.forEach((act, activityIndex) => {
+        map.set(`${day.day_number}:${act.place_id || act.place_name}:${activityIndex}`, act.estimated_cost_inr);
+      });
     }
     return map;
   }, [plan]);
@@ -121,9 +121,9 @@ export default function ItineraryView({
     ([name, v]) => v.visited && activeActivitiesMap.has(name)
   ).length;
 
-  const totalEstimatedForVisited = Object.entries(visitedActivities).reduce((acc, [placeName, val]) => {
+  const totalEstimatedForVisited = Object.entries(visitedActivities).reduce((acc, [activityKey, val]) => {
     if (!val.visited) return acc;
-    const est = activeActivitiesMap.get(placeName);
+    const est = activeActivitiesMap.get(activityKey);
     if (est !== undefined) return acc + est;
     return acc;
   }, 0);
@@ -452,15 +452,18 @@ export default function ItineraryView({
 
               // Last-mile transfers: Outbound arrival to hotel + return departure to terminal
               const outboundLastMileCost = plan.intercity_transport.last_mile?.estimated_cost_inr || 0;
-              const returnLastMileCost = plan.intercity_transport.return_last_mile?.estimated_cost_inr || outboundLastMileCost;
-              const roundtripLastMile = outboundLastMileCost + returnLastMileCost;
+              const returnLastMileCost = plan.intercity_transport.return_last_mile?.estimated_cost_inr;
+              const roundtripLastMile = outboundLastMileCost + (returnLastMileCost ?? 0);
 
               // Direct On-Ground + Transit subtotal (base committed outlay)
               const baseDirectMin = plan.total_cost_inr + roundtripTransitMin + roundtripLastMile;
               const baseDirectMax = plan.total_cost_inr + roundtripTransitMax + roundtripLastMile;
 
               // Meal allowance integration from expense breakdown
-              const mealAllowance = plan.expense_breakdown?.suggested_meals_inr ?? plan.expense_breakdown?.estimated_meals_inr ?? 0;
+              const mealAllowance = plan.expense_breakdown?.additional_meals_inr ?? Math.max(
+                0,
+                (plan.expense_breakdown?.suggested_meals_inr ?? plan.expense_breakdown?.estimated_meals_inr ?? 0) - (plan.expense_breakdown?.dining_inr ?? 0)
+              );
               const projectedTotalMin = baseDirectMin + mealAllowance;
               const projectedTotalMax = baseDirectMax + mealAllowance;
 
@@ -507,12 +510,12 @@ export default function ItineraryView({
                     <div>
                       <span className="text-gray-500 block">Destination Transfers</span>
                       <span className="font-semibold text-gray-200">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-gray-500 block">Inbound (₹{outboundLastMileCost}) + Return (₹{returnLastMileCost})</span>
+                      <span className="text-[9px] text-gray-500 block">Inbound (₹{outboundLastMileCost}) + Return ({returnLastMileCost === undefined ? 'unavailable' : `₹${returnLastMileCost}`})</span>
                     </div>
                     <div>
                       <span className="text-gray-500 block">Estimated Meals Buffer</span>
                       <span className="font-semibold text-amber-300">~₹{mealAllowance.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-gray-500 block">Full trip dining</span>
+                      <span className="text-[9px] text-gray-500 block">Additional allowance after itinerary dining</span>
                     </div>
                   </div>
 
@@ -657,7 +660,7 @@ export default function ItineraryView({
               <Wallet className="w-5 h-5 text-amber-400" />
               <div>
                 <h4 className="font-bold text-sm text-white">Smart On-Ground Budget Allocation & Expense Reconciliation</h4>
-                <p className="text-[11px] text-gray-400">Strictly reconciled on-ground plan: Direct Subtotal + Safe Buffer = Target On-Ground Budget</p>
+                <p className="text-[11px] text-gray-400">Reconciled on-ground plan: Direct Subtotal + Unallocated Amount = Target On-Ground Budget</p>
               </div>
             </div>
             <div className="text-right">
@@ -689,7 +692,7 @@ export default function ItineraryView({
               </span>
             </div>
             <div className="bg-[#161922] border border-emerald-500/20 bg-emerald-500/5 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
-              <span className="text-[10px] uppercase font-semibold text-emerald-400 block tracking-wider">Safe Buffer</span>
+              <span className="text-[10px] uppercase font-semibold text-emerald-400 block tracking-wider">Unallocated</span>
               <span className="text-sm font-bold text-emerald-300 mt-0.5 block">₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}</span>
             </div>
           </div>
@@ -717,7 +720,7 @@ export default function ItineraryView({
           {plan.intercity_transport && (
             <div className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 leading-relaxed flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span className="font-semibold text-white">On-Ground Budget Scope:</span> Your ₹{plan.expense_breakdown.total_inr.toLocaleString('en-IN')} budget constrains on-ground hotel, sightseeing, meals & local destination transit (Subtotal ₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')} is within budget with ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')} unallocated buffer).
+                <span className="font-semibold text-white">On-Ground Budget Scope:</span> Your ₹{(formData?.budget_inr ?? plan.expense_breakdown.budget_limit_inr ?? (plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr)).toLocaleString('en-IN')} cap constrains the on-ground subtotal, including scheduled dining. The remaining buffer is ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}; extra meal estimates are advisory and may exceed it.
               </div>
               <span className="text-[10px] bg-[#11131b] px-2 py-0.5 rounded border border-amber-500/30 text-amber-400 font-medium">
                 Inter-City Travel is Additive
@@ -838,7 +841,7 @@ export default function ItineraryView({
             {/* Activities Timeline */}
             <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#222736]">
               {day.activities.map((act, actIdx) => {
-                const actKey = act.place_name;
+                const actKey = `${day.day_number}:${act.place_id || act.place_name}:${actIdx}`;
                 const visitInfo = visitedActivities[actKey];
                 const isVisited = !!visitInfo?.visited;
                 const actSpend = visitInfo?.actualCost ?? act.estimated_cost_inr;
@@ -858,7 +861,7 @@ export default function ItineraryView({
                         {/* Check-off Button */}
                         <button
                           type="button"
-                          onClick={() => toggleActivityVisited(act.place_name, act.estimated_cost_inr)}
+                          onClick={() => toggleActivityVisited(actKey, act.estimated_cost_inr)}
                           className={`p-1 rounded-md border transition-all ${
                             isVisited 
                               ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-sm' 

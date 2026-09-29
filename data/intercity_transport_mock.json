@@ -18,9 +18,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Daytime Train",
     "last_mile_note": "Arrives at Kacheguda; ~15 min auto/cab to Old City & Central Abids hotels.",
-    "notes": "Semi-high speed service with onboard meals and panoramic windows.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "blr_hyd_bus_ksrtc",
@@ -28,7 +29,7 @@
     "destination_city": "hyderabad",
     "mode": "bus",
     "operator_name": "KSRTC Airavat Club Class Multi-Axle",
-    "service_number": "KA-AC-782",
+    "service_number": null,
     "departure_station": "Kempegowda Bus Station (Majestic)",
     "departure_hub_key": "bus",
     "arrival_station": "Mahatma Gandhi Bus Station (MGBS)",
@@ -41,9 +42,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Overnight Hotel Saver",
     "last_mile_note": "Drops at MGBS; right next to Koti / Abids and 10 mins auto to Charminar.",
-    "notes": "Saves 1 night of hotel accommodation cost while sleeping comfortably.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "blr_hyd_flight_direct",
@@ -64,9 +66,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Air Link",
     "last_mile_note": "Arrives at Shamshabad (HYD); take Pushpak Airport Liner AC bus or cab (~45 min) to city hotels.",
-    "notes": "Typical non-stop air link from Bengaluru to Hyderabad. Check airline portals for live flight numbers and fares.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "mum_hyd_train_hussain",
@@ -74,7 +77,7 @@
     "destination_city": "hyderabad",
     "mode": "train",
     "operator_name": "Hussainsagar Superfast Express",
-    "service_number": "12702",
+    "service_number": "12701",
     "departure_station": "Chhatrapati Shivaji Maharaj Terminus (CSMT)",
     "departure_hub_key": "station",
     "arrival_station": "Hyderabad Deccan Railway Station (Nampally)",
@@ -87,9 +90,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Best Comfort Train",
     "last_mile_note": "Arrives directly at Nampally terminal in downtown Hyderabad; 5 mins to central hotels.",
-    "notes": "Iconic overnight train connecting Mumbai CSMT to central Hyderabad.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "mum_hyd_bus_sleeper",
@@ -97,7 +101,7 @@
     "destination_city": "hyderabad",
     "mode": "bus",
     "operator_name": "Orange Travels AC Multi-Axle Sleeper",
-    "service_number": "OT-HYD-04",
+    "service_number": null,
     "departure_station": "Dadar / Vashi Highway Terminal",
     "departure_hub_key": "station_dadar",
     "arrival_station": "Ameerpet / MGBS Bus Station",
@@ -110,9 +114,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Budget Sleeper Bus",
     "last_mile_note": "Pick drop point at Ameerpet or MGBS; easy access to metro network.",
-    "notes": "Direct sleeper connection along Mumbai-Pune-Solapur-Hyderabad National Highway.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "mum_hyd_flight_direct",
@@ -133,9 +138,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Link",
     "last_mile_note": "Express cab or Pushpak bus from HYD airport takes ~40 mins to Banjara Hills/Abids.",
-    "notes": "Typical non-stop air link from Mumbai to Hyderabad. Check airline portals for live flight numbers and fares.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "del_jai_train_vb",
@@ -156,9 +162,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest & Recommended",
     "last_mile_note": "Arrives at Jaipur Junction; ~10 min auto ride directly into Pink City / MI Road.",
-    "notes": "Under 4 hours 10 mins. Exceptional on-time record and onboard catering.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "del_jai_bus_rsrtc",
@@ -166,7 +173,7 @@
     "destination_city": "jaipur",
     "mode": "bus",
     "operator_name": "RSRTC Super Luxury Scania / Volvo",
-    "service_number": "RJ-VOL-101",
+    "service_number": null,
     "departure_station": "Bikaner House (India Gate) / Kashmere Gate ISBT",
     "departure_hub_key": "bus",
     "arrival_station": "Sindhi Camp Central Bus Stand",
@@ -179,9 +186,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Best Value & Flexible",
     "last_mile_note": "Arrives at Sindhi Camp; central walking access to Station Road hotels.",
-    "notes": "Runs along the Delhi-Mumbai Expressway; high departure frequency.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "del_mum_train_rajdhani",
@@ -202,9 +210,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Premium Overnight Train",
     "last_mile_note": "Arrives at Mumbai Central; rapid suburban train or taxi to Colaba & Marine Drive.",
-    "notes": "India's premier high-speed passenger train with full dinner, breakfast, and tea service.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "del_mum_flight_direct",
@@ -225,9 +234,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Air Corridor",
     "last_mile_note": "Western Express Highway cab takes ~40-60 mins to South Mumbai depending on traffic.",
-    "notes": "Typical non-stop air link from Delhi to Mumbai. Check airline portals for live flight numbers and fares.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "mum_blr_train_udyan",
@@ -248,9 +258,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Classic Rail Route",
     "last_mile_note": "Arrives at Majestic; direct interchange to Purple/Green metro lines to MG Road.",
-    "notes": "Traverses the Western Ghats and Deccan plateau with scenic vistas.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "mum_blr_flight_direct",
@@ -271,9 +282,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Link",
     "last_mile_note": "Take Vayu Vajra BMTC airport AC bus (Route KIAS-9/4) directly to MG Road or Indiranagar.",
-    "notes": "Typical non-stop air link from Mumbai to Bengaluru. Check airline portals for live flight numbers and fares.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "del_hyd_train_telangana",
@@ -294,9 +306,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Direct Express Train",
     "last_mile_note": "Arrives at Secunderabad Junction; connected by Hyderabad Metro Blue line.",
-    "notes": "Daily long-distance superfast train connecting national capital to Telangana.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "del_hyd_flight_direct",
@@ -317,9 +330,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Recommended for Speed",
     "last_mile_note": "Pushpak AC coach or pre-paid cab to Hyderabad city center in 40-50 mins.",
-    "notes": "Typical non-stop air link from Delhi to Hyderabad. Check airline portals for live flight numbers and fares.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "mum_jai_train_sf",
@@ -340,9 +354,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Overnight Comfort",
     "last_mile_note": "Arrives at Jaipur Junction by noon; 10 min auto directly into MI Road / City Palace zone.",
-    "notes": "Smooth overnight rail journey across Gujarat and Rajasthan.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "blr_jai_flight_direct",
@@ -363,9 +378,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Link",
     "last_mile_note": "Jaipur Airport (Sanganer) is only 11 km from Pink City center (~25 min cab).",
-    "notes": "Typical non-stop air link from Bengaluru to Jaipur. Check airline portals for live flight numbers and fares.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_blr_hyd_train_vb",
@@ -386,9 +402,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Daytime Rail Return",
     "last_mile_note": "Returns to KSR Bengaluru City (SBC); central local transit connection.",
-    "notes": "Verified IRCTC service 20703. Operates daily except Wednesdays.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_blr_hyd_bus_ksrtc",
@@ -409,9 +426,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Bus Return",
     "last_mile_note": "Returns to Kempegowda Bus Station (Majestic); central local transit connection.",
-    "notes": "Estimated intercity bus return from Hyderabad to Bengaluru. Verify live schedule on KSRTC / RSRTC / private operator portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_blr_hyd_flight_direct",
@@ -432,9 +450,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Air Return",
     "last_mile_note": "Returns to Kempegowda International Airport (BLR); central local transit connection.",
-    "notes": "Estimated non-stop air return from Hyderabad to Bengaluru. Verify live flight numbers on airline portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_mum_hyd_train_hussain",
@@ -442,7 +461,7 @@
     "destination_city": "mumbai",
     "mode": "train",
     "operator_name": "Hussainsagar Superfast Express",
-    "service_number": "12701",
+    "service_number": "12702",
     "departure_station": "Hyderabad Deccan Railway Station (Nampally)",
     "departure_hub_key": "station_nampally",
     "arrival_station": "Chhatrapati Shivaji Maharaj Terminus (CSMT)",
@@ -455,9 +474,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Overnight Rail Return",
     "last_mile_note": "Returns to Chhatrapati Shivaji Maharaj Terminus (CSMT); central local transit connection.",
-    "notes": "Verified IRCTC service 12701 connecting central Hyderabad to Mumbai CSMT.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_mum_hyd_bus_sleeper",
@@ -478,9 +498,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Bus Return",
     "last_mile_note": "Returns to Dadar / Vashi Highway Terminal; central local transit connection.",
-    "notes": "Estimated intercity bus return from Hyderabad to Mumbai. Verify live schedule on KSRTC / RSRTC / private operator portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_mum_hyd_flight_direct",
@@ -501,9 +522,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Air Return",
     "last_mile_note": "Returns to Chhatrapati Shivaji Maharaj International Airport (BOM T2); central local transit connection.",
-    "notes": "Estimated non-stop air return from Hyderabad to Mumbai. Verify live flight numbers on airline portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_del_jai_train_vb",
@@ -524,9 +546,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Fastest Morning Rail Return",
     "last_mile_note": "Returns to Delhi Cantt / New Delhi (NDLS); central local transit connection.",
-    "notes": "Verified IRCTC service 20977. Operates daily except Wednesdays.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_del_jai_bus_rsrtc",
@@ -547,9 +570,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Bus Return",
     "last_mile_note": "Returns to Bikaner House (India Gate) / Kashmere Gate ISBT; central local transit connection.",
-    "notes": "Estimated intercity bus return from Jaipur to Delhi. Verify live schedule on KSRTC / RSRTC / private operator portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_del_mum_train_rajdhani",
@@ -570,9 +594,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Premier Rajdhani Rail Return",
     "last_mile_note": "Returns to New Delhi Railway Station (NDLS); central local transit connection.",
-    "notes": "Verified IRCTC premier Rajdhani service 12951 with onboard dining.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_del_mum_flight_direct",
@@ -593,9 +618,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Air Return",
     "last_mile_note": "Returns to Indira Gandhi International Airport (DEL T3); central local transit connection.",
-    "notes": "Estimated non-stop air return from Mumbai to Delhi. Verify live flight numbers on airline portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_mum_blr_train_udyan",
@@ -603,7 +629,7 @@
     "destination_city": "mumbai",
     "mode": "train",
     "operator_name": "Udyan Express",
-    "service_number": "11301",
+    "service_number": "11302",
     "departure_station": "KSR Bengaluru City (SBC)",
     "departure_hub_key": "station",
     "arrival_station": "Chhatrapati Shivaji Maharaj Terminus (CSMT)",
@@ -616,9 +642,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Overnight Rail Return",
     "last_mile_note": "Returns to Chhatrapati Shivaji Maharaj Terminus (CSMT); central local transit connection.",
-    "notes": "Verified IRCTC service 11301 connecting Bengaluru to Mumbai.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_mum_blr_flight_direct",
@@ -639,9 +666,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Air Return",
     "last_mile_note": "Returns to Chhatrapati Shivaji Maharaj International Airport (BOM T2); central local transit connection.",
-    "notes": "Estimated non-stop air return from Bengaluru to Mumbai. Verify live flight numbers on airline portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_del_hyd_train_telangana",
@@ -662,9 +690,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Daily Rail Return",
     "last_mile_note": "Returns to New Delhi Railway Station (NDLS); central local transit connection.",
-    "notes": "Verified IRCTC service 12723 connecting Hyderabad to New Delhi.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_del_hyd_flight_direct",
@@ -685,9 +714,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Air Return",
     "last_mile_note": "Returns to Indira Gandhi International Airport (DEL T3); central local transit connection.",
-    "notes": "Estimated non-stop air return from Hyderabad to Delhi. Verify live flight numbers on airline portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_mum_jai_train_sf",
@@ -695,7 +725,7 @@
     "destination_city": "mumbai",
     "mode": "train",
     "operator_name": "Jaipur - Mumbai Superfast Express",
-    "service_number": "12955",
+    "service_number": "12956",
     "departure_station": "Jaipur Junction Railway Station (JP)",
     "departure_hub_key": "station",
     "arrival_station": "Mumbai Central (MMCT)",
@@ -708,9 +738,10 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Overnight Rail Return",
     "last_mile_note": "Returns to Mumbai Central (MMCT); central local transit connection.",
-    "notes": "Verified IRCTC service 12955 connecting Jaipur to Mumbai.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Train number is a route reference only; confirm direction, terminal, service days and fare with Indian Railways.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   },
   {
     "route_id": "ret_blr_jai_flight_direct",
@@ -731,8 +762,9 @@
     "availability_status": "indicative_schedule",
     "recommendation_badge": "Indicative Air Return",
     "last_mile_note": "Returns to Kempegowda International Airport (BLR); central local transit connection.",
-    "notes": "Estimated non-stop air return from Jaipur to Bengaluru. Verify live flight numbers on airline portals.",
-    "source": "Curated Intercity Transit Schedule (2026)",
-    "verified_at": "2026-09-01"
+    "notes": "Indicative corridor estimate only; confirm date-specific service, terminal and fare with the operator.",
+    "source": "TripWeave curated non-live estimate; route details are not date-verified",
+    "verified_at": null,
+    "operating_days": null
   }
 ]

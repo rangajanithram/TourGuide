@@ -28,7 +28,7 @@ from tripweave.geocoding import LocationResolver
 from tripweave.weather import WeatherProvider
 from tripweave.fatigue import FatigueAnalyzer
 from tripweave.crowd import HeuristicCrowdProvider
-from tripweave.transport import get_transport_provider
+from tripweave.transport import get_transport_provider, InterCityTransportProvider
 from tripweave.optimizer import TripOptimizer
 from tripweave.clustering import GeoClusterer
 
@@ -42,6 +42,16 @@ def run_tests():
     dist_km = calculate_distance_km(17.3616, 78.4747, 17.3833, 78.4011)
     assert 7.5 <= dist_km <= 9.0, f"Unexpected Haversine distance: {dist_km} km"
     print(f"   ✅ Haversine Distance Verified: {dist_km:.2f} km between Charminar & Golconda")
+
+    # Party fares scale by vehicle capacity or per-person tickets.
+    _, cab_one = get_travel_metrics(17.36, 78.47, 17.37, 78.48, "cab", 1)
+    _, cab_five = get_travel_metrics(17.36, 78.47, 17.37, 78.48, "cab", 5)
+    _, auto_one = get_travel_metrics(17.36, 78.47, 17.37, 78.48, "auto", 1)
+    _, auto_four = get_travel_metrics(17.36, 78.47, 17.37, 78.48, "auto", 4)
+    _, metro_two = get_travel_metrics(17.36, 78.47, 17.37, 78.48, "metro", 2)
+    assert cab_five == cab_one * 2
+    assert auto_four == auto_one * 2
+    assert metro_two == 70
 
     # Test 2: NOAA Solar Position Algorithm
     print("\n2️⃣ Testing NOAA Astronomical Solar Calculation...")
@@ -393,6 +403,9 @@ def run_tests():
     assert eb.direct_subtotal_inr == locked_plan.total_cost_inr
     # 2. Direct subtotal + Safe unallocated buffer == User budget
     assert eb.direct_subtotal_inr + eb.unallocated_buffer_inr == locked_req.budget_inr
+    assert eb.budget_limit_inr == locked_req.budget_inr
+    assert eb.total_inr == locked_req.budget_inr
+    assert eb.additional_meals_inr == max(0, eb.suggested_meals_inr - eb.dining_inr)
     # 3. Buffer vs Suggested Meals status
     assert "Sufficient" in eb.meal_buffer_status or "Exceeds" in eb.meal_buffer_status
     print(f"   ✅ Reconciled Accounting Verified: Direct Subtotal (₹{eb.direct_subtotal_inr}) + Safe Buffer (₹{eb.unallocated_buffer_inr}) == Total Budget (₹{locked_req.budget_inr})")
@@ -735,18 +748,33 @@ def run_tests():
     print(f"   ✅ Return Last-Mile Verified: {ret_lm.destination_hotel} -> {ret_lm.arrival_terminal}")
     print(f"      {ret_lm.distance_km} km • ~{ret_lm.estimated_time_min} mins via {ret_lm.recommended_mode} (₹{ret_lm.estimated_cost_inr})")
 
-    # Verify Day-of-Week Schedule Compatibility (e.g. Vande Bharat runs except Wed)
-    # Case A: Return on a Wednesday (2026-11-25 is a Wednesday)
+    # Schedule text is not treated as structured weekday evidence. Both legs
+    # should be explicitly described as unverified while operating_days is absent.
     wed_summary = tp.get_transport_summary(
         "bengaluru", "hyderabad", "Hotel Central", 17.3850, 78.4867,
         variant_type="balanced", people_count=2,
         start_date=date(2026, 11, 23), end_date=date(2026, 11, 25)
     )
     assert wed_summary is not None and wed_summary.return_option is not None
-    # If a train is selected, ensure it doesn't violate "except Wed" or has advice warning
-    if "except wed" in wed_summary.return_option.departure_window.lower():
-        assert "Notice:" in wed_summary.transit_advice or "Wednesday" in wed_summary.transit_advice
-    print("   ✅ Return Day-of-Week Schedule Intelligence Verified (Wednesday non-operational checks active)")
+    assert wed_summary.transit_advice.lower().count("unverified") >= 2
+    sample_route = tp.get_routes("bengaluru", "hyderabad")[0]
+    assert InterCityTransportProvider.route_operates_on_date(sample_route, date(2026, 11, 25)) is None
+    known_weekdays = sample_route.model_copy(update={"operating_days": [0, 1, 3, 4, 5, 6]})
+    assert InterCityTransportProvider.route_operates_on_date(known_weekdays, date(2026, 11, 25)) is False
+    assert InterCityTransportProvider.route_operates_on_date(known_weekdays, date(2026, 11, 26)) is True
+    print("   ✅ Outbound and return schedule uncertainty is surfaced; structured weekday checks are regression-tested")
+
+    # Direction-specific service-number regression checks for curated train refs.
+    expected_train_refs = {
+        "mum_hyd_train_hussain": "12701",
+        "ret_mum_hyd_train_hussain": "12702",
+        "ret_mum_blr_train_udyan": "11302",
+        "ret_mum_jai_train_sf": "12956",
+    }
+    route_by_id = {route.route_id: route for route in tp._routes}
+    for route_id, service_number in expected_train_refs.items():
+        assert route_by_id[route_id].service_number == service_number
+    assert all(route.availability_status == "indicative_schedule" and route.verified_at is None for route in tp._routes)
 
     # Verify Stage 4 Workload Balancing Algorithm directly
     clusterer = GeoClusterer(eps_km=6.0)
@@ -757,12 +785,13 @@ def run_tests():
         3: [Place(place_id="p4", name="Place 4", place_type="attraction", lat=17.41, lng=78.41, duration_minutes=60, estimated_cost_per_person_inr=50)],
     }
     balanced_2d = clusterer.balance_workload(mock_clusters, days=2, pace="balanced")
-    assert len(balanced_2d) == 2, f"Expected 2 merged clusters for 2 days, got {len(balanced_2d)}"
-    print(f"   ✅ Stage 4 Workload Balancing Algorithm Verified: 4 spatial clusters balanced into {len(balanced_2d)} day-partitions")
+    assert set(balanced_2d) == {0, 1}
+    assert sorted(p.place_id for group in balanced_2d.values() for p in group) == ["p1", "p2", "p3", "p4"]
+    assert max(len(group) for group in balanced_2d.values()) <= 3
+    assert clusterer.balance_workload(mock_clusters, days=0) == {}
+    print(f"   ✅ Stage 4 Workload Balancing Verified: all 4 places assigned exactly once across {len(balanced_2d)} day preferences")
 
     print("\n🎉 ALL 40 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()
-
-

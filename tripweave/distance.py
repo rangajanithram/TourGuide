@@ -28,6 +28,7 @@ def get_travel_metrics(lat1: float, lng1: float, lat2: float, lng2: float, mode:
     Applies urban road curvature factor (1.25x for road vehicles) and standard metro/auto fares.
     """
     straight_km = calculate_distance_km(lat1, lng1, lat2, lng2)
+    party_size = max(1, people_count)
     # Urban road factor (city street layout is not straight-line)
     road_km = straight_km * 1.25 if mode in ("cab", "auto", "walk") else straight_km
     
@@ -40,7 +41,9 @@ def get_travel_metrics(lat1: float, lng1: float, lat2: float, lng2: float, mode:
     elif mode == "auto":
         speed_kmh = 20.0
         # ₹30 base fare (includes first 1.5 km) + ₹15/km
-        cost = int(30 + max(0, road_km - 1.5) * 15)
+        per_vehicle_cost = int(30 + max(0, road_km - 1.5) * 15)
+        # Indicative urban capacity: up to 3 passengers per auto-rickshaw.
+        cost = per_vehicle_cost * math.ceil(party_size / 3)
         minutes = int((road_km / speed_kmh) * 60) + 5  # 5 min wait/traffic
         return max(7, minutes), cost
         
@@ -48,14 +51,16 @@ def get_travel_metrics(lat1: float, lng1: float, lat2: float, lng2: float, mode:
         # Rapid transit speed between stations
         speed_kmh = 32.0
         # ₹35 avg ticket per person
-        cost = 35 * people_count
+        cost = 35 * party_size
         minutes = int((straight_km / speed_kmh) * 60) + 12 # 12 min walking to/from station & ticketing
         return max(15, minutes), cost
         
     else:  # "cab" (Uber/Ola/taxi)
         speed_kmh = 24.0
         # ₹50 base fare + ₹20/km
-        cost = int(50 + road_km * 20)
+        per_vehicle_cost = int(50 + road_km * 20)
+        # Indicative capacity: up to 4 passengers per standard cab.
+        cost = per_vehicle_cost * math.ceil(party_size / 4)
         minutes = int((road_km / speed_kmh) * 60) + 7  # 7 min pickup wait & parking
         return max(10, minutes), cost
 
@@ -75,5 +80,4 @@ def compute_detour_cost_rupees(
     Converts detour distance and opportunity time into ₹ before combining — never mixes units.
     """
     return (max(0.0, extra_km) * per_km_rs) + (max(0, extra_min) * time_value_rs_per_min)
-
 

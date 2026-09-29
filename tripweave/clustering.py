@@ -102,51 +102,47 @@ class GeoClusterer:
         days: int,
         pace: Any = "balanced"
     ) -> Dict[int, List[Place]]:
+        """Create soft day assignments, preserving nearby groups where practical.
+
+        Each spatial cluster is ordered by nearest-neighbor distance, split into
+        pace-sized chunks, then assigned to the currently lightest day. The
+        optimizer consumes these assignments as soft preferences; time windows,
+        budgets, and pinned stops remain the hard constraints.
         """
-        Stage 4: Balances attraction workloads and spatial cluster distributions across trip days.
-        If number of spatial clusters exceeds trip days, merges adjacent clusters by centroid distance.
-        If clusters are fewer than days, partitions largest clusters.
-        Applies pace-specific density limits (relaxed: 2/day, balanced: 3/day, intensive: 4/day).
-        """
-        if not clusters:
+        if not clusters or days <= 0:
             return {}
 
         pace_str = pace.value if hasattr(pace, "value") else str(pace).lower()
+        max_stops = {"relaxed": 2, "balanced": 3, "intensive": 4}.get(pace_str, 3)
+        day_places: Dict[int, List[Place]] = {day: [] for day in range(days)}
+        day_minutes = [0] * days
+        chunks: List[List[Place]] = []
 
-        # Work on a copy of clusters
-        balanced: Dict[int, List[Place]] = {k: list(v) for k, v in clusters.items()}
+        for cluster in clusters.values():
+            remaining = list(cluster)
+            ordered: List[Place] = []
+            if remaining:
+                ordered.append(remaining.pop(0))
+            while remaining:
+                last = ordered[-1]
+                next_place = min(
+                    remaining,
+                    key=lambda p: calculate_distance_km(last.lat, last.lng, p.lat, p.lng)
+                )
+                ordered.append(next_place)
+                remaining.remove(next_place)
+            chunks.extend(ordered[i:i + max_stops] for i in range(0, len(ordered), max_stops))
 
-        # If we have more clusters than days, iteratively merge the two closest clusters
-        while len(balanced) > max(1, days):
-            keys = list(balanced.keys())
-            best_pair = None
-            min_dist = float("inf")
-            for i in range(len(keys)):
-                c1_places = balanced[keys[i]]
-                c1_lat = sum(p.lat for p in c1_places) / len(c1_places)
-                c1_lng = sum(p.lng for p in c1_places) / len(c1_places)
-                for j in range(i + 1, len(keys)):
-                    c2_places = balanced[keys[j]]
-                    c2_lat = sum(p.lat for p in c2_places) / len(c2_places)
-                    c2_lng = sum(p.lng for p in c2_places) / len(c2_places)
-                    d = calculate_distance_km(c1_lat, c1_lng, c2_lat, c2_lng)
-                    if d < min_dist:
-                        min_dist = d
-                        best_pair = (keys[i], keys[j])
+        # Place larger chunks first so greedy assignment does not strand them.
+        chunks.sort(key=lambda chunk: (-len(chunk), -sum(max(0, p.duration_minutes) for p in chunk)))
+        for chunk in chunks:
+            eligible = [d for d in range(days) if len(day_places[d]) + len(chunk) <= max_stops]
+            target_days = eligible or list(range(days))
+            target = min(target_days, key=lambda d: (day_minutes[d], len(day_places[d]), d))
+            day_places[target].extend(chunk)
+            day_minutes[target] += sum(max(0, p.duration_minutes) for p in chunk)
 
-            if best_pair:
-                k1, k2 = best_pair
-                balanced[k1].extend(balanced[k2])
-                del balanced[k2]
-            else:
-                break
-
-        # Re-index balanced clusters sequentially
-        reindexed: Dict[int, List[Place]] = {}
-        for idx, (k, p_list) in enumerate(balanced.items()):
-            reindexed[idx] = p_list
-
-        return reindexed
+        return day_places
 
     def get_cluster_name(self, places: List[Place]) -> str:
         """

@@ -116,7 +116,11 @@ def _build_single_plan(
     # Stage 4: Workload Balancing & Cluster Synthesis
     t_stage4 = time.perf_counter()
     balanced_clusters = clusterer.balance_workload(clusters, days=request.days, pace=request.pace)
-    cluster_labels = {cid: clusterer.get_cluster_name(cplaces) for cid, cplaces in balanced_clusters.items()}
+    preferred_day_by_place = {
+        place.place_id: day_id
+        for day_id, day_group in balanced_clusters.items()
+        for place in day_group
+    }
     timings[4] = round(max(0.01, (time.perf_counter() - t_stage4) * 1000), 2)
 
     if hotel_summary.nights > 0:
@@ -145,7 +149,8 @@ def _build_single_plan(
         start_date=request.start_date,
         variant_type=variant,
         locked_activities=request.locked_activities,
-        group_profile=request.group_profile
+        group_profile=request.group_profile,
+        preferred_day_by_place=preferred_day_by_place
     )
     
     try:

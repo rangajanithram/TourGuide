@@ -217,6 +217,8 @@ class ExpenseBreakdown(BaseModel):
     direct_subtotal_inr: int = 0
     unallocated_buffer_inr: int = 0
     suggested_meals_inr: int = 0
+    additional_meals_inr: int = 0
+    budget_limit_inr: int = 0
     meal_buffer_status: str = Field(default="Sufficient", description="Status comparing buffer against estimated meal needs")
 
     # Backwards-compatibility aliases
@@ -226,6 +228,7 @@ class ExpenseBreakdown(BaseModel):
     per_person_inr: int = 0
 
 class ScheduledActivity(BaseModel):
+    place_id: Optional[str] = None
     place_name: str
     place_type: str = Field(default="attraction", description="'attraction' or 'restaurant'")
     lat: float = Field(default=0.0, description="Activity latitude for map pin")

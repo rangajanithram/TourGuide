@@ -6,8 +6,8 @@ with arrival station to centroid hotel last-mile reconciliation per Blueprint Se
 import os
 import json
 from datetime import date
-from typing import List, Optional, Dict
-from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Literal
+from pydantic import BaseModel, Field, model_validator
 
 from tripweave.config import settings
 from tripweave.geocoding import LocationResolver
@@ -17,7 +17,7 @@ class InterCityRoute(BaseModel):
     route_id: str
     origin_city: str
     destination_city: str
-    mode: str = Field(..., description="'train', 'bus', or 'flight'")
+    mode: Literal["train", "bus", "flight"]
     operator_name: str
     service_number: Optional[str] = None
     departure_station: str
@@ -25,16 +25,27 @@ class InterCityRoute(BaseModel):
     arrival_station: str
     arrival_hub_key: Optional[str] = "station"
     departure_window: str
-    typical_duration_min: int
-    typical_fare_min: int
-    typical_fare_max: int
+    typical_duration_min: int = Field(..., gt=0)
+    typical_fare_min: int = Field(..., ge=0)
+    typical_fare_max: int = Field(..., ge=0)
     fare_class: str
-    availability_status: str = "available"
+    availability_status: str = "indicative_schedule"
+    # Monday=0 ... Sunday=6. None means the curated record has no verified
+    # weekday operating data, so it must never be presented as date-confirmed.
+    operating_days: Optional[List[int]] = None
     recommendation_badge: Optional[str] = None
     last_mile_note: str
     notes: Optional[str] = None
-    source: str = "Curated Intercity Transit Schedule (2026)"
-    verified_at: str = "2026-09-01"
+    source: str = "TripWeave curated estimate; confirm with the transport operator"
+    verified_at: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_route_values(self):
+        if self.typical_fare_max < self.typical_fare_min:
+            raise ValueError("typical_fare_max must be greater than or equal to typical_fare_min")
+        if self.operating_days is not None and any(day < 0 or day > 6 for day in self.operating_days):
+            raise ValueError("operating_days values must use Monday=0 through Sunday=6")
+        return self
 
 class LastMileConnection(BaseModel):
     arrival_terminal: str
@@ -85,6 +96,8 @@ class InterCityTransportProvider:
         return [r for r in self._routes if r.origin_city == orig and r.destination_city == dest]
 
     def _select_best_route(self, routes: List[InterCityRoute], variant_type: str) -> InterCityRoute:
+        if not routes:
+            raise ValueError("Cannot recommend a route from an empty route list")
         v = variant_type.lower()
         if v == "budget":
             # Prefer lowest min fare (bus or budget train)
@@ -102,6 +115,17 @@ class InterCityTransportProvider:
                 return sorted(trains, key=lambda r: r.typical_duration_min)[0]
             return routes[0]
 
+    @staticmethod
+    def route_operates_on_date(route: InterCityRoute, travel_date: Optional[date]) -> Optional[bool]:
+        """Return True/False only when weekday data is explicitly recorded.
+
+        None means the route's schedule has not been date-verified; descriptive
+        text in departure_window is intentionally not parsed as structured data.
+        """
+        if travel_date is None or route.operating_days is None:
+            return None
+        return travel_date.weekday() in route.operating_days
+
     def get_transport_summary(
         self,
         origin_city: str,
@@ -118,22 +142,23 @@ class InterCityTransportProvider:
         if not routes:
             return None
 
-        # Select recommended outbound route tailored to variant
+        # Prefer a route explicitly recorded as operating on the departure date.
+        # Curated mock rows currently have no such data, so keep the normal
+        # variant recommendation but surface that schedule status is unknown.
         v = variant_type.lower()
-        recommended = self._select_best_route(routes, v)
+        outbound_on_date = [r for r in routes if self.route_operates_on_date(r, start_date) is True]
+        outbound_unverified = [r for r in routes if self.route_operates_on_date(r, start_date) is None]
+        outbound_warning = None
+        if outbound_on_date:
+            recommended = self._select_best_route(outbound_on_date, v)
+        else:
+            recommended = self._select_best_route(outbound_unverified or routes, v)
+            if start_date is not None:
+                outbound_warning = f"Outbound service weekday operation is unverified for {start_date.strftime('%A')}; confirm the indicative schedule with the operator."
 
         # Date compatibility check for return leg
-        return_dow = end_date.strftime("%a") if end_date else None
         return_dow_full = end_date.strftime("%A") if end_date else None
-        date_warning = None
-
-        def operates_on_return_day(route: InterCityRoute) -> bool:
-            if not return_dow:
-                return True
-            win_lower = route.departure_window.lower()
-            if f"except {return_dow.lower()}" in win_lower:
-                return False
-            return True
+        date_warning = outbound_warning
 
         # Look up return routes (destination -> origin)
         return_routes = self.get_routes(destination_city, origin_city)
@@ -141,19 +166,26 @@ class InterCityTransportProvider:
 
         if return_routes:
             matching_mode_return = [r for r in return_routes if r.mode == recommended.mode]
-            operating_matching = [r for r in matching_mode_return if operates_on_return_day(r)]
-            operating_all = [r for r in return_routes if operates_on_return_day(r)]
+            operating_matching = [r for r in matching_mode_return if self.route_operates_on_date(r, end_date) is True]
+            operating_all = [r for r in return_routes if self.route_operates_on_date(r, end_date) is True]
+            unverified_matching = [r for r in matching_mode_return if self.route_operates_on_date(r, end_date) is None]
+            unverified_all = [r for r in return_routes if self.route_operates_on_date(r, end_date) is None]
 
             if operating_matching:
                 return_option = self._select_best_route(operating_matching, v)
             elif operating_all:
                 return_option = self._select_best_route(operating_all, v)
-                date_warning = f"Notice: Preferred {recommended.mode} has no scheduled run on your return date ({return_dow_full}). Selected alternate operating service ({return_option.mode.upper()})."
-            elif matching_mode_return:
-                return_option = self._select_best_route(matching_mode_return, v)
-                date_warning = f"Notice: {return_option.operator_name} departure window indicates '{return_option.departure_window}', which may not operate on your return day ({return_dow_full}). Please confirm schedule with operator."
+                return_warning = f"No date-matched {recommended.mode} record is available for {return_dow_full or 'your return date'}; selected a route with structured weekday data. Confirm with the operator."
+            elif unverified_matching:
+                return_option = self._select_best_route(unverified_matching, v)
+                return_warning = f"Return service weekday operation is unverified for {return_dow_full or 'your date'}; confirm the indicative schedule with the operator."
+            elif unverified_all:
+                return_option = self._select_best_route(unverified_all, v)
+                return_warning = f"Return service weekday operation is unverified for {return_dow_full or 'your date'}; confirm the indicative schedule with the operator."
             else:
-                return_option = self._select_best_route(return_routes, v)
+                return_option = self._select_best_route(matching_mode_return or return_routes, v)
+                return_warning = f"No return service is recorded as operating on {return_dow_full or 'your return date'}. The displayed option is an unconfirmed fallback; check before travel."
+            date_warning = " ".join(warning for warning in (date_warning, return_warning) if warning)
         else:
             # Explicit symmetric estimate with clear provenance
             return_option = InterCityRoute(
@@ -177,7 +209,7 @@ class InterCityTransportProvider:
                 last_mile_note=f"Returns to {recommended.departure_station}",
                 notes="Estimated reverse route schedule benchmark based on outbound rates. Check operator portal for exact schedules.",
                 source=recommended.source,
-                verified_at=recommended.verified_at
+                verified_at=None
             )
 
         # Compute outbound last-mile: arrival terminal -> hotel

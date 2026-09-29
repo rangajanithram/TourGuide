@@ -30,6 +30,8 @@ export interface ExpenseBreakdown {
   direct_subtotal_inr?: number;
   unallocated_buffer_inr?: number;
   suggested_meals_inr?: number;
+  additional_meals_inr?: number;
+  budget_limit_inr?: number;
   meal_buffer_status?: string;
   estimated_meals_inr: number;
   buffer_inr: number;
@@ -46,6 +48,7 @@ export interface CrowdForecast {
 }
 
 export interface ScheduledActivity {
+  place_id?: string | null;
   place_name: string;
   place_type?: string;
   lat?: number;
