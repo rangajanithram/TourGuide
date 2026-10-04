@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { 
-  MapPin, Calendar, Users, IndianRupee, Car, 
-  Sparkles, Pin, Tag, SlidersHorizontal, Check, 
-  Train, Clock, Share2, HeartHandshake, Eye, EyeOff
+  MapPin, Calendar, Users, IndianRupee, Car,
+  Sparkles, Pin, Tag, SlidersHorizontal, Check,
+  Share2, HeartHandshake, EyeOff
 } from 'lucide-react';
 import { TripFormData, TripPlan } from '../types/trip';
 

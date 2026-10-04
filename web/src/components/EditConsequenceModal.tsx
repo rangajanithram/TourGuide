@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  X, ArrowRightLeft, Trash2, Sun, AlertTriangle, CheckCircle2, 
-  Clock, IndianRupee, MapPin, Compass, Sparkles, RefreshCw
+  X, ArrowRightLeft, Trash2, Sun, AlertTriangle, CheckCircle2,
+  Compass, Sparkles, RefreshCw
 } from 'lucide-react';
 import { 
-  TripPlan, DayPlan, ScheduledActivity, EditActionType, 
+  TripPlan, DayPlan, EditActionType,
   EditConsequenceResponse, PlaceCandidate 
 } from '../types/trip';
 
@@ -256,7 +256,7 @@ export default function EditConsequenceModal({
             <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl space-y-1 text-rose-300">
               <span className="font-bold block">Drop Stop Confirmation:</span>
               <p className="text-[11px] leading-relaxed text-rose-200/90">
-                Dropping <strong className="text-white">'{targetActivity.place_name}'</strong> will stitch the preceding 
+                Dropping <strong className="text-white">&apos;{targetActivity.place_name}&apos;</strong> will stitch the preceding
                 and succeeding stops directly together, recalculating commute times and removing entry fees.
               </p>
             </div>
@@ -266,7 +266,7 @@ export default function EditConsequenceModal({
             <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-1 text-amber-300">
               <span className="font-bold block">NOAA Sunset Recalibration:</span>
               <p className="text-[11px] leading-relaxed text-amber-200/90">
-                Moves <strong className="text-white">'{targetActivity.place_name}'</strong> into the astronomical golden hour 
+                Moves <strong className="text-white">&apos;{targetActivity.place_name}&apos;</strong> into the astronomical golden hour
                 time-window for Day {dayNumber}, reordering neighboring stops chronologically.
               </p>
             </div>

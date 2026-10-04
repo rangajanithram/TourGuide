@@ -1,7 +1,7 @@
 from enum import Enum
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
 from tripweave.crowd import CrowdForecast
 from tripweave.transport import InterCityTransportSummary
 
@@ -271,6 +271,7 @@ class TripPlan(BaseModel):
     variant_type: PlanVariantType = PlanVariantType.BALANCED
     hotel_summary: Optional[HotelStaySummary] = None
     estimated_transport_cost_inr: int = 0
+    transport_budget_limit_inr: Optional[int] = Field(None, ge=1)
     transport_mode: TransportMode
     transport_budget_status: str = Field(default="Within budget", description="Status of transport spend relative to user cap")
     days: List[DayPlan]
@@ -332,26 +333,55 @@ class TirednessSeverity(str, Enum):
     EXHAUSTED = "exhausted"    # Drop all non-essential sightseeing, head back to hotel or straight to dinner
 
 class RebalanceTiredRequest(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    destination: str
+    model_config = ConfigDict(extra="forbid")
+    destination: str = Field(..., min_length=2, max_length=80)
     plan: TripPlan
-    day_number: int
-    current_time_str: str = Field(default="02:30 PM", description="Current time of day e.g. '02:30 PM' or '14:30'")
-    current_activity_index: Optional[int] = Field(None, description="Index of activity currently at or just finished")
+    day_number: int = Field(..., ge=1)
+    current_time_str: str = Field(default="14:30")
+    # -1 means no itinerary stop is completed; otherwise this is the index of
+    # the current or most recently completed stop in the selected day.
+    current_activity_index: Optional[int] = Field(None, ge=-1)
+    current_location_lat: Optional[float] = Field(None, ge=-90, le=90)
+    current_location_lng: Optional[float] = Field(None, ge=-180, le=180)
     tiredness_level: TirednessSeverity = Field(default=TirednessSeverity.MODERATE)
-    people_count: int = Field(default=2, gt=0)
+    people_count: int = Field(default=2, gt=0, le=20)
     transport_mode: TransportMode = Field(default=TransportMode.CAB)
+    pace: PacePreference = Field(default=PacePreference.BALANCED)
+    budget_limit_inr: Optional[int] = Field(None, gt=0)
+
+    @field_validator("current_time_str", mode="before")
+    @classmethod
+    def normalize_current_time(cls, value):
+        if not isinstance(value, str):
+            raise ValueError("current_time_str must be a time string")
+        raw = value.strip().upper()
+        for fmt in ("%H:%M", "%I:%M %p"):
+            try:
+                return datetime.strptime(raw, fmt).strftime("%H:%M")
+            except ValueError:
+                continue
+        raise ValueError("current_time_str must use HH:MM or HH:MM AM/PM format")
+
+    @model_validator(mode="after")
+    def validate_location_pair(self):
+        if (self.current_location_lat is None) != (self.current_location_lng is None):
+            raise ValueError("current_location_lat and current_location_lng must be provided together")
+        return self
 
 class RebalanceTiredResponse(BaseModel):
     is_feasible: bool
     original_day: DayPlan
     revised_day: DayPlan
+    updated_plan: TripPlan
     dropped_activities: List[str] = Field(default_factory=list)
     inserted_breaks: List[str] = Field(default_factory=list)
-    saved_walking_km: float = 0.0
-    saved_transit_minutes: int = 0
-    fatigue_reduction_pct: float = 0.0
+    route_distance_delta_km: float = 0.0
+    transit_time_delta_minutes: int = 0
+    transport_cost_delta_inr: int = 0
+    fatigue_change_pct: float = 0.0
+    budget_within_limit: Optional[bool] = None
+    transport_budget_within_limit: Optional[bool] = None
+    feasibility_notes: List[str] = Field(default_factory=list)
     old_fatigue_score: int = 0
     new_fatigue_score: int = 0
     summary_message: str
-

@@ -421,9 +421,9 @@ def get_candidates_for_swap(destination: str, exclude_ids: Optional[str] = None)
 @app.post("/api/itinerary/rebalance-day", response_model=RebalanceTiredResponse, tags=["Live In-Trip Mode"])
 def rebalance_tired_day(request: RebalanceTiredRequest):
     """
-    Blueprint Section 13 (Live In-Trip Mode):
-    Dynamically adapts and relaxes the remaining portion of a day's schedule
-    when travelers experience fatigue, heat exhaustion, or schedule delays.
+    Produce a constraint-checked heuristic adjustment to the remaining day.
+    The client supplies trip progress; this endpoint does not track a live trip
+    state or perform a full OR-Tools re-optimization.
     """
     try:
         return ItineraryEditor.rebalance_tired_day(request)
@@ -432,5 +432,4 @@ def rebalance_tired_day(request: RebalanceTiredRequest):
     except Exception as e:
         logger.error(f"Error rebalancing tired day: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
-
 

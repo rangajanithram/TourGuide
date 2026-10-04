@@ -40,7 +40,13 @@ class FatigueAnalyzer:
         pace_key = pace.value if hasattr(pace, "value") else str(pace).lower()
         pace_multiplier = cls.PACE_MULTIPLIERS.get(pace_key, 1.0)
 
-        act_count = len(day.activities)
+        # Generated rest periods are not sightseeing visits and should not add
+        # activity density or transfer load to the fatigue estimate.
+        exertion_activities = [
+            activity for activity in day.activities
+            if activity.place_type != "rest_break" and activity.experience_tag != "rest_break"
+        ]
+        act_count = len(exertion_activities)
         # Transfers: Hotel -> 1 -> 2 -> ... -> N -> Hotel (N + 1 legs if N > 0)
         transfers = (act_count + 1) if act_count > 0 else 0
 
@@ -141,4 +147,3 @@ class FatigueAnalyzer:
             "group_profile": profile_key,
             "daily_breakdown": daily_results
         }
-

@@ -178,6 +178,7 @@ export interface TripPlan {
   variant_type: 'budget' | 'balanced' | 'comfort';
   hotel_summary?: HotelStaySummary | null;
   estimated_transport_cost_inr: number;
+  transport_budget_limit_inr?: number | null;
   transport_mode: 'cab' | 'auto' | 'metro' | 'walk';
   transport_budget_status: string;
   days: DayPlan[];
@@ -269,22 +270,30 @@ export interface RebalanceTiredRequest {
   day_number: number;
   current_time_str: string;
   current_activity_index?: number | null;
+  current_location_lat?: number | null;
+  current_location_lng?: number | null;
   tiredness_level: TirednessSeverity;
   people_count: number;
   transport_mode: 'cab' | 'auto' | 'metro' | 'walk';
+  pace: 'relaxed' | 'balanced' | 'intensive';
+  budget_limit_inr?: number | null;
 }
 
 export interface RebalanceTiredResponse {
   is_feasible: boolean;
   original_day: DayPlan;
   revised_day: DayPlan;
+  updated_plan: TripPlan;
   dropped_activities: string[];
   inserted_breaks: string[];
-  saved_walking_km: number;
-  saved_transit_minutes: number;
-  fatigue_reduction_pct: number;
+  route_distance_delta_km: number;
+  transit_time_delta_minutes: number;
+  transport_cost_delta_inr: number;
+  fatigue_change_pct: number;
+  budget_within_limit: boolean | null;
+  transport_budget_within_limit: boolean | null;
+  feasibility_notes: string[];
   old_fatigue_score: number;
   new_fatigue_score: number;
   summary_message: string;
 }
-

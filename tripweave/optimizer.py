@@ -587,6 +587,7 @@ class TripOptimizer:
             variant_type=self.variant_type,
             hotel_summary=self.hotel_summary,
             estimated_transport_cost_inr=total_transport_cost,
+            transport_budget_limit_inr=self.max_transport_budget,
             transport_mode=TransportMode(self.transport_mode),
             transport_budget_status=transport_status,
             days=[d for d in day_plans if d.activities],

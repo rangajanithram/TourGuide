@@ -66,6 +66,12 @@ export default function ItineraryView({
     onUpdatePlan?.(nextPlan);
   };
 
+  const handleApplyRebalancedPlan = (updatedPlan: TripPlan) => {
+    setPlanHistory(prev => [...prev, activePlan]);
+    setActivePlan(updatedPlan);
+    onUpdatePlan?.(updatedPlan);
+  };
+
   const handleUndo = () => {
     if (planHistory.length === 0) return;
     const previous = planHistory[planHistory.length - 1];
@@ -1324,7 +1330,9 @@ export default function ItineraryView({
           initialDayNumber={rebalanceDayNumber}
           peopleCount={formData?.people_count || 1}
           transportMode={formData?.transport_mode || currentPlan.transport_mode || 'cab'}
-          onApplyUpdate={handleApplyDayUpdate}
+          pace={formData?.pace || 'balanced'}
+          budgetLimit={formData?.budget_inr || currentPlan.expense_breakdown?.budget_limit_inr || undefined}
+          onApplyUpdate={handleApplyRebalancedPlan}
         />
       )}
     </div>

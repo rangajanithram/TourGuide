@@ -3,7 +3,7 @@ TripWeave Interactive Itinerary Customizer & Edit Consequences Engine.
 Blueprint Section 12: Handles user actions (swap, remove, pin, move to sunset)
 with deterministic physics impact previews (cost delta, travel delta, time feasibility).
 """
-import math
+import re
 from datetime import datetime, time as dt_time, timedelta
 from typing import List, Optional, Tuple, Dict, Any
 
@@ -19,16 +19,15 @@ from tripweave.provider import get_places_provider
 from tripweave.fatigue import FatigueAnalyzer
 
 def _parse_time_str(t_str: str) -> dt_time:
-    """Parses 'HH:MM AM/PM' or 'HH:MM' string into a dt_time object."""
+    """Parse a supported 24-hour or 12-hour time; never silently invent 09:00."""
+    if not isinstance(t_str, str):
+        raise ValueError("Time must be a string in HH:MM or HH:MM AM/PM format")
     cleaned = t_str.strip().upper()
-    try:
-        if "AM" in cleaned or "PM" in cleaned:
-            dt = datetime.strptime(cleaned, "%I:%M %p")
-        else:
-            dt = datetime.strptime(cleaned, "%H:%M")
-        return dt.time()
-    except Exception:
-        return dt_time(9, 0)
+    if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", cleaned):
+        return datetime.strptime(cleaned, "%H:%M").time()
+    if re.fullmatch(r"(?:0?[1-9]|1[0-2]):[0-5]\d (?:AM|PM)", cleaned):
+        return datetime.strptime(cleaned, "%I:%M %p").time()
+    raise ValueError(f"Invalid time '{t_str}'. Use HH:MM or HH:MM AM/PM.")
 
 def _format_time(t: dt_time) -> str:
     """Formats dt_time to 12-hour AM/PM string."""
@@ -41,9 +40,10 @@ def _format_time(t: dt_time) -> str:
     return f"{h12:02d}:{m:02d} {suffix}"
 
 def _add_minutes(t: dt_time, mins: int) -> dt_time:
-    """Adds minutes to a dt_time object, wrapping within 24h."""
+    """Add minutes within one itinerary day; reject rather than clamp overrun."""
     total_m = t.hour * 60 + t.minute + mins
-    total_m = max(0, min(total_m, 23 * 60 + 59))
+    if total_m < 0 or total_m > 23 * 60 + 59:
+        raise ValueError("The revised schedule extends beyond the current day")
     return dt_time(total_m // 60, total_m % 60)
 
 def _minutes_between(t1: dt_time, t2: dt_time) -> int:
@@ -51,6 +51,31 @@ def _minutes_between(t1: dt_time, t2: dt_time) -> int:
     m1 = t1.hour * 60 + t1.minute
     m2 = t2.hour * 60 + t2.minute
     return m2 - m1
+
+
+def _is_sunset_activity(activity: ScheduledActivity) -> bool:
+    tag = (activity.experience_tag or "").lower()
+    return "sunset" in tag or "golden_hour" in tag or "golden hour" in tag
+
+
+def _estimated_leg(
+    start: Tuple[float, float],
+    end: Tuple[float, float],
+    mode: str,
+    people: int,
+) -> Tuple[float, int, int]:
+    """Return estimated route km, travel minutes, and fare for one leg.
+
+    The route distance remains a straight-line approximation with a road
+    multiplier for road modes; time and fare use the shared mode calculator.
+    Zero-distance legs are truly zero rather than minimum-fare trips.
+    """
+    straight_km = calculate_distance_km(start[0], start[1], end[0], end[1])
+    if straight_km < 0.01:
+        return 0.0, 0, 0
+    route_km = straight_km * (1.25 if mode in ("cab", "auto", "walk") else 1.0)
+    minutes, cost = get_travel_metrics(start[0], start[1], end[0], end[1], mode, people)
+    return route_km, minutes, cost
 
 
 class ItineraryEditor:
@@ -419,300 +444,425 @@ class ItineraryEditor:
 
     @classmethod
     def rebalance_tired_day(cls, request: RebalanceTiredRequest) -> RebalanceTiredResponse:
-        """
-        Blueprint Section 13 (Live In-Trip Mode):
-        Dynamically adapts and relaxes the remaining portion of a day's schedule
-        when travelers experience fatigue, heat exhaustion, or schedule delays.
-        """
-        plan = request.plan
-        day_match = [d for d in plan.days if d.day_number == request.day_number]
-        if not day_match:
-            raise ValueError(f"Day number {request.day_number} not found in plan.")
+        """Apply a transparent, constraint-checked heuristic to the remaining day.
 
-        target_day = day_match[0]
+        This is not a global OR-Tools re-optimization. It preserves stop order,
+        applies the selected relief policy, estimates changed route legs, and
+        refuses to label the result feasible when known time or budget rules fail.
+        """
+        from datetime import date
+        from tripweave.models import ExpenseBreakdown
+        from tripweave.provider import get_places_provider
+
+        plan = request.plan
+        target_day = next((day for day in plan.days if day.day_number == request.day_number), None)
+        if target_day is None:
+            raise ValueError(f"Day number {request.day_number} not found in plan.")
         activities = target_day.activities
         if not activities:
             raise ValueError(f"Day {request.day_number} has no scheduled activities to rebalance.")
+        if request.current_activity_index is not None and request.current_activity_index >= len(activities):
+            raise ValueError("current_activity_index is outside the selected day's activity list.")
 
-        mode_str = request.transport_mode.value if hasattr(request.transport_mode, "value") else str(request.transport_mode)
-        people = max(1, request.people_count)
-
-        # Parse current time
-        current_t = _parse_time_str(request.current_time_str)
-
-        # Retrieve hotel anchor coordinates
-        hotel_lat = plan.hotel_summary.lat if (plan.hotel_summary and plan.hotel_summary.lat) else activities[0].lat
-        hotel_lng = plan.hotel_summary.lng if (plan.hotel_summary and plan.hotel_summary.lng) else activities[0].lng
-
-        # Partition activities into completed/current vs remaining
-        completed_acts: List[ScheduledActivity] = []
-        remaining_acts: List[ScheduledActivity] = []
-
-        for idx, a in enumerate(activities):
-            a_start = _parse_time_str(a.start_time)
-
-            if request.current_activity_index is not None:
-                if idx <= request.current_activity_index:
-                    completed_acts.append(a)
-                else:
-                    remaining_acts.append(a)
-            else:
-                # If current_time is after the start time, consider it completed or underway
-                if a_start < current_t:
-                    completed_acts.append(a)
-                else:
-                    remaining_acts.append(a)
-
-        # If all activities are already completed or underway, there's nothing left to rebalance
-        if not remaining_acts:
-            return RebalanceTiredResponse(
-                is_feasible=True,
-                original_day=target_day,
-                revised_day=target_day,
-                dropped_activities=[],
-                inserted_breaks=[],
-                saved_walking_km=0.0,
-                saved_transit_minutes=0,
-                fatigue_reduction_pct=0.0,
-                old_fatigue_score=target_day.fatigue_score or 50,
-                new_fatigue_score=target_day.fatigue_score or 50,
-                summary_message="All activities for today are already completed or currently underway. Enjoy your evening!"
-            )
-
-        # Analyze remaining activities
-        dropped_names: List[str] = []
-        inserted_break_descriptions: List[str] = []
-        retained_acts: List[ScheduledActivity] = []
-
-        # Identify anchor coordinates where the user currently is and break start time
-        if completed_acts:
-            last_completed = completed_acts[-1]
-            curr_lat = last_completed.lat or hotel_lat
-            curr_lng = last_completed.lng or hotel_lng
-            anchor_name = last_completed.place_name
-            last_end_t = _parse_time_str(last_completed.end_time)
-            # Break should not start before the last completed activity finishes
-            if _minutes_between(current_t, last_end_t) > 0:
-                break_start_t = last_end_t
-            else:
-                break_start_t = current_t
-        else:
-            curr_lat, curr_lng = hotel_lat, hotel_lng
-            anchor_name = "Hotel / Starting Base"
-            break_start_t = current_t
-
-        # Apply Tiredness Strategy
-        if request.tiredness_level == TirednessSeverity.EXHAUSTED:
-            # Drop all non-essential sightseeing; keep only locked activities and evening dinner
-            for a in remaining_acts:
-                is_dinner = (a.place_type == "restaurant" and _parse_time_str(a.start_time).hour >= 18)
-                if a.is_locked or is_dinner:
-                    retained_acts.append(a)
-                else:
-                    dropped_names.append(a.place_name)
-
-            # Insert an afternoon rest & recharge break
-            break_duration = 90  # 90 mins relaxation
-            break_name = f"Relax & Recharge Break (near {anchor_name} / Hotel Base)"
-            inserted_break_descriptions.append(break_name)
-
-            break_act = ScheduledActivity(
-                place_name=break_name,
-                place_type="hotel",
-                lat=hotel_lat,
-                lng=hotel_lng,
-                start_time=_format_time(break_start_t),
-                end_time=_format_time(_add_minutes(break_start_t, break_duration)),
-                estimated_cost_inr=0,
-                is_locked=True,
-                experience_tag="relaxation_recharge"
-            )
-
-        elif request.tiredness_level == TirednessSeverity.MODERATE:
-            # Drop 1 optional stop with highest walking/fatigue; add 45m cafe break; preserve sunset & dinner
-            candidates_to_drop = [
-                a for a in remaining_acts 
-                if not a.is_locked and a.place_type != "restaurant" and a.experience_tag not in ["golden_hour_sunset", "sunset"]
-            ]
-
-            if candidates_to_drop:
-                # Drop the candidate with longest duration or furthest away
-                stop_to_drop = max(candidates_to_drop, key=lambda a: _minutes_between(_parse_time_str(a.start_time), _parse_time_str(a.end_time)))
-                dropped_names.append(stop_to_drop.place_name)
-                retained_acts = [a for a in remaining_acts if a.place_name != stop_to_drop.place_name]
-            else:
-                retained_acts = list(remaining_acts)
-
-            # Insert 45m cafe / tea rest break
-            break_duration = 45
-            break_name = f"Afternoon Tea & Rest Break (near {anchor_name})"
-            inserted_break_descriptions.append(break_name)
-
-            break_act = ScheduledActivity(
-                place_name=break_name,
-                place_type="restaurant",
-                lat=curr_lat,
-                lng=curr_lng,
-                start_time=_format_time(break_start_t),
-                end_time=_format_time(_add_minutes(break_start_t, break_duration)),
-                estimated_cost_inr=150 * people,
-                is_locked=True,
-                experience_tag="cafe_rest_buffer"
-            )
-
-        else:  # MILD
-            # Keep all stops, shorten heavy visits by 20%, and insert a 30m coffee/tea pause
-            break_duration = 30
-            break_name = f"Scenic Chai & Rest Pause (near {anchor_name})"
-            inserted_break_descriptions.append(break_name)
-
-            break_act = ScheduledActivity(
-                place_name=break_name,
-                place_type="restaurant",
-                lat=curr_lat,
-                lng=curr_lng,
-                start_time=_format_time(break_start_t),
-                end_time=_format_time(_add_minutes(break_start_t, break_duration)),
-                estimated_cost_inr=100 * people,
-                is_locked=True,
-                experience_tag="cafe_rest_buffer"
-            )
-
-            # Slightly trim durations of remaining long visits
-            for a in remaining_acts:
-                dur = _minutes_between(_parse_time_str(a.start_time), _parse_time_str(a.end_time))
-                if dur > 90 and not a.is_locked and a.place_type != "restaurant":
-                    retained_acts.append(a.model_copy())
-                else:
-                    retained_acts.append(a)
-
-        # Re-chronologize remaining schedule from break_start_t
-        rescheduled_activities: List[ScheduledActivity] = list(completed_acts)
-        curr_cursor = _add_minutes(break_start_t, break_duration)
-        
-        # Add the break activity
-        break_act_final = break_act.model_copy(update={
-            "start_time": _format_time(break_start_t),
-            "end_time": _format_time(curr_cursor)
-        })
-        rescheduled_activities.append(break_act_final)
-
-        # Now sequence remaining retained acts
-        prev_p_lat = break_act_final.lat or curr_lat
-        prev_p_lng = break_act_final.lng or curr_lng
-
-        for a in retained_acts:
-            # Transit time from previous stop
-            a_lat = a.lat or hotel_lat
-            a_lng = a.lng or hotel_lng
-            t_min, _ = get_travel_metrics(prev_p_lat, prev_p_lng, a_lat, a_lng, mode_str, people)
-            transit_buffer = max(15, min(60, t_min))
-
-            # New start time
-            curr_cursor = _add_minutes(curr_cursor, transit_buffer)
-            dur = max(30, _minutes_between(_parse_time_str(a.start_time), _parse_time_str(a.end_time)))
-            
-            # If sunset or dinner, respect evening timing
-            if a.experience_tag in ["golden_hour_sunset", "sunset"]:
-                orig_start = _parse_time_str(a.start_time)
-                if _minutes_between(curr_cursor, orig_start) > 0:
-                    curr_cursor = orig_start
-            elif a.place_type == "restaurant" and _parse_time_str(a.start_time).hour >= 18:
-                orig_start = _parse_time_str(a.start_time)
-                if _minutes_between(curr_cursor, orig_start) > 0:
-                    curr_cursor = orig_start
-
-            new_start = _format_time(curr_cursor)
-            curr_cursor = _add_minutes(curr_cursor, dur)
-            new_end = _format_time(curr_cursor)
-
-            updated_a = a.model_copy(update={
-                "start_time": new_start,
-                "end_time": new_end
-            })
-            rescheduled_activities.append(updated_a)
-            prev_p_lat, prev_p_lng = a_lat, a_lng
-
-        # Compute transit distances before vs after
-        def compute_day_km(acts: List[ScheduledActivity]) -> float:
-            total_km = 0.0
-            p_lat, p_lng = hotel_lat, hotel_lng
-            for act in acts:
-                a_l = act.lat or hotel_lat
-                a_g = act.lng or hotel_lng
-                total_km += calculate_distance_km(p_lat, p_lng, a_l, a_g)
-                p_lat, p_lng = a_l, a_g
-            total_km += calculate_distance_km(p_lat, p_lng, hotel_lat, hotel_lng)
-            return round(total_km, 2)
-
-        orig_km = compute_day_km(activities)
-        revised_km = compute_day_km(rescheduled_activities)
-        saved_km = max(0.0, round(orig_km - revised_km, 1))
-
-        # Travel time savings
-        orig_transit_min = int(orig_km * 3.5)
-        revised_transit_min = int(revised_km * 3.5)
-        saved_transit = max(0, orig_transit_min - revised_transit_min)
-
-        # Fatigue Evaluation
-        pace_pref = PacePreference.BALANCED
-        group_prof = GroupProfile.DEFAULT
-        if plan.fatigue_report and "group_profile" in plan.fatigue_report:
-            try:
-                group_prof = GroupProfile(plan.fatigue_report["group_profile"])
-            except Exception:
-                group_prof = GroupProfile.DEFAULT
-
-        old_eval = FatigueAnalyzer.evaluate_day(target_day, pace=pace_pref, group_profile=group_prof, est_transit_km=orig_km)
-        old_score = old_eval["score"]
-
-        # Build revised DayPlan
-        new_cost = sum(a.estimated_cost_inr for a in rescheduled_activities)
-        revised_day_temp = target_day.model_copy(update={
-            "activities": rescheduled_activities,
-            "day_cost_inr": new_cost
-        })
-        new_eval = FatigueAnalyzer.evaluate_day(revised_day_temp, pace=PacePreference.RELAXED, group_profile=group_prof, est_transit_km=revised_km)
-        new_score = new_eval["score"]
-
-        # Ensure fatigue reduction is reflected
-        if new_score >= old_score and old_score > 30:
-            new_score = max(20, int(old_score * 0.65))
-
-        reduction_pct = round(max(0.0, (old_score - new_score) / max(1, old_score) * 100), 1)
-
-        revised_day = target_day.model_copy(update={
-            "activities": rescheduled_activities,
-            "day_cost_inr": new_cost,
-            "fatigue_score": new_score,
-            "fatigue_level": new_eval["level"]
-        })
-
-        # Summary message
-        if dropped_names:
-            drop_str = ", ".join(f"'{name}'" for name in dropped_names)
-            summary = (
-                f"Dropped {drop_str} to alleviate fatigue. "
-                f"Added a {break_duration}-min rest break. "
-                f"Saved ~{saved_km:.1f} km of travel/walking and reduced day fatigue by {reduction_pct}%."
-            )
-        else:
-            summary = (
-                f"Relaxed pacing by inserting a {break_duration}-min scenic rest break and cushioning buffer times. "
-                f"Fatigue index decreased by {reduction_pct}% while preserving all scheduled stops."
-            )
-
-        return RebalanceTiredResponse(
-            is_feasible=True,
-            original_day=target_day,
-            revised_day=revised_day,
-            dropped_activities=dropped_names,
-            inserted_breaks=inserted_break_descriptions,
-            saved_walking_km=saved_km,
-            saved_transit_minutes=saved_transit,
-            fatigue_reduction_pct=reduction_pct,
-            old_fatigue_score=old_score,
-            new_fatigue_score=new_score,
-            summary_message=summary
+        current_time = _parse_time_str(request.current_time_str)
+        current_minute = current_time.hour * 60 + current_time.minute
+        mode = request.transport_mode.value
+        people = request.people_count
+        hotel_summary = plan.hotel_summary
+        hotel = (
+            (hotel_summary.lat, hotel_summary.lng)
+            if hotel_summary is not None
+            else (activities[0].lat, activities[0].lng)
         )
 
+        completed: List[Tuple[int, ScheduledActivity]] = []
+        remaining: List[Tuple[int, ScheduledActivity]] = []
+        for index, activity in enumerate(activities):
+            activity_start = _parse_time_str(activity.start_time)
+            if request.current_activity_index is not None:
+                is_completed = index <= request.current_activity_index
+            else:
+                is_completed = activity_start < current_time
+            (completed if is_completed else remaining).append((index, activity))
+
+        # Replace an unvisited generated break on a repeated replan instead of
+        # stacking multiple synthetic breaks into the same day's schedule.
+        if remaining and all(activity.place_type == "rest_break" for _, activity in remaining):
+            remaining = []
+        else:
+            remaining = [(index, activity) for index, activity in remaining if activity.place_type != "rest_break"]
+
+        budget_limit = request.budget_limit_inr or (
+            plan.expense_breakdown.budget_limit_inr if plan.expense_breakdown else None
+        )
+        if not remaining:
+            is_within_budget = plan.total_cost_inr <= budget_limit if budget_limit else None
+            transport_within = (
+                plan.estimated_transport_cost_inr <= plan.transport_budget_limit_inr
+                if plan.transport_budget_limit_inr is not None else None
+            )
+            no_work_notes = []
+            if is_within_budget is False:
+                no_work_notes.append(f"The current on-ground total ₹{plan.total_cost_inr} exceeds the budget limit ₹{budget_limit}.")
+            if transport_within is False:
+                no_work_notes.append("The current estimated local transport total exceeds its transport cap.")
+            return RebalanceTiredResponse(
+                is_feasible=is_within_budget is not False and transport_within is not False,
+                original_day=target_day,
+                revised_day=target_day,
+                updated_plan=plan,
+                budget_within_limit=is_within_budget,
+                transport_budget_within_limit=transport_within,
+                feasibility_notes=no_work_notes,
+                old_fatigue_score=target_day.fatigue_score or 0,
+                new_fatigue_score=target_day.fatigue_score or 0,
+                summary_message="There are no remaining stops to rebalance.",
+            )
+
+        if request.current_location_lat is not None:
+            current_location = (request.current_location_lat, request.current_location_lng)
+        elif completed:
+            last_activity = completed[-1][1]
+            current_location = (last_activity.lat, last_activity.lng)
+        else:
+            current_location = hotel
+
+        base_minute = current_minute
+        if completed:
+            last_end = _parse_time_str(completed[-1][1].end_time)
+            base_minute = max(base_minute, last_end.hour * 60 + last_end.minute)
+
+        dropped: List[Tuple[int, ScheduledActivity]] = []
+        retained = list(remaining)
+        shortened_durations: Dict[int, int] = {}
+        if request.tiredness_level == TirednessSeverity.EXHAUSTED:
+            retained = []
+            for item in remaining:
+                _, activity = item
+                is_evening_meal = activity.place_type == "restaurant" and _parse_time_str(activity.start_time).hour >= 18
+                if activity.is_locked or is_evening_meal:
+                    retained.append(item)
+                else:
+                    dropped.append(item)
+            break_duration = 90
+            break_name = "Hotel rest break"
+            break_location = hotel
+            _, return_to_hotel_minutes, _ = _estimated_leg(current_location, hotel, mode, people)
+            break_start_minute = base_minute + return_to_hotel_minutes
+        elif request.tiredness_level == TirednessSeverity.MODERATE:
+            candidates = [
+                item for item in remaining
+                if not item[1].is_locked
+                and item[1].place_type not in ("restaurant", "rest_break")
+                and not _is_sunset_activity(item[1])
+            ]
+            if candidates:
+                def relief_value(candidate: Tuple[int, ScheduledActivity]) -> int:
+                    position = next(i for i, item in enumerate(remaining) if item[0] == candidate[0])
+                    activity = candidate[1]
+                    previous = current_location if position == 0 else (remaining[position - 1][1].lat, remaining[position - 1][1].lng)
+                    following = hotel if position == len(remaining) - 1 else (remaining[position + 1][1].lat, remaining[position + 1][1].lng)
+                    direct = _estimated_leg(previous, following, mode, people)[1]
+                    via = _estimated_leg(previous, (activity.lat, activity.lng), mode, people)[1]
+                    via += _estimated_leg((activity.lat, activity.lng), following, mode, people)[1]
+                    dwell = max(0, _minutes_between(_parse_time_str(activity.start_time), _parse_time_str(activity.end_time)))
+                    return dwell + max(0, via - direct)
+                to_drop = max(candidates, key=relief_value)
+                dropped.append(to_drop)
+                retained = [item for item in remaining if item[0] != to_drop[0]]
+            break_duration = 45
+            break_name = "Rest break at current location"
+            break_location = current_location
+            break_start_minute = base_minute
+        else:
+            break_duration = 30
+            break_name = "Rest break at current location"
+            break_location = current_location
+            break_start_minute = base_minute
+            for index, activity in remaining:
+                duration = _minutes_between(_parse_time_str(activity.start_time), _parse_time_str(activity.end_time))
+                if duration > 90 and not activity.is_locked and activity.place_type not in ("restaurant", "rest_break"):
+                    shortened_durations[index] = max(30, int(round(duration * 0.8)))
+
+        dropped_ids = {index for index, _ in dropped}
+        retained = [item for item in retained if item[0] not in dropped_ids]
+        dropped_names = [activity.place_name for _, activity in dropped]
+        feasibility_notes: List[str] = []
+        schedule_fits_day = True
+
+        if request.tiredness_level == TirednessSeverity.EXHAUSTED:
+            feasibility_notes.append(
+                f"Includes an estimated {return_to_hotel_minutes}-minute trip from the current location to the hotel."
+            )
+
+        def extended_time(total_minutes: int) -> str:
+            day_offset, within_day = divmod(total_minutes, 24 * 60)
+            label = _format_time(dt_time(within_day // 60, within_day % 60))
+            return f"{label} (+{day_offset} day)" if day_offset else label
+
+        break_end_minute = break_start_minute + break_duration
+        if break_start_minute >= 24 * 60 or break_end_minute >= 24 * 60:
+            schedule_fits_day = False
+            feasibility_notes.append("The rest break would extend beyond this calendar day.")
+        # Use a coarse, already-planned location for the persisted synthetic
+        # break. Exact browser GPS is used below for this one calculation only.
+        if request.current_location_lat is not None:
+            persisted_break_location = (
+                (completed[-1][1].lat, completed[-1][1].lng) if completed else hotel
+            )
+        else:
+            persisted_break_location = break_location
+        break_activity = ScheduledActivity(
+            place_id=f"tripweave-rest-{request.day_number}-{request.tiredness_level.value}",
+            place_name=break_name,
+            place_type="rest_break",
+            lat=persisted_break_location[0],
+            lng=persisted_break_location[1],
+            start_time=extended_time(break_start_minute),
+            end_time=extended_time(break_end_minute),
+            estimated_cost_inr=0,
+            is_locked=True,
+            experience_tag="rest_break",
+            verification_status="not_applicable",
+            last_verified_date=None,
+            source_reference="Generated rest period; not a venue or purchase",
+        )
+
+        revised_activities: List[ScheduledActivity] = [activity for _, activity in completed]
+        revised_activities.append(break_activity)
+        scheduled_windows: List[Tuple[ScheduledActivity, int, int]] = []
+        cursor = break_end_minute
+        previous_location = break_location
+        for index, activity in retained:
+            next_location = (activity.lat, activity.lng)
+            _, leg_minutes, _ = _estimated_leg(previous_location, next_location, mode, people)
+            arrival = cursor + leg_minutes
+            original_start = _parse_time_str(activity.start_time)
+            original_start_minute = original_start.hour * 60 + original_start.minute
+            if _is_sunset_activity(activity) or (
+                activity.place_type == "restaurant" and original_start.hour >= 18
+            ):
+                arrival = max(arrival, original_start_minute)
+
+            original_duration = _minutes_between(_parse_time_str(activity.start_time), _parse_time_str(activity.end_time))
+            if original_duration <= 0:
+                schedule_fits_day = False
+                feasibility_notes.append(f"'{activity.place_name}' has an invalid original time window.")
+                original_duration = 30
+            duration = shortened_durations.get(index, max(30, original_duration))
+            end_minute = arrival + duration
+            if arrival >= 24 * 60 or end_minute >= 24 * 60:
+                schedule_fits_day = False
+                feasibility_notes.append(f"'{activity.place_name}' would extend beyond this calendar day.")
+            scheduled = activity.model_copy(update={
+                "start_time": extended_time(arrival),
+                "end_time": extended_time(end_minute),
+            })
+            revised_activities.append(scheduled)
+            scheduled_windows.append((activity, arrival, end_minute))
+            cursor = end_minute
+            previous_location = next_location
+
+        # Check known calendar closures and opening windows against the curated
+        # catalog. Unknown venues remain explicitly unchecked rather than assumed valid.
+        catalog = {place.place_id.casefold(): place for place in get_places_provider().get_places(request.destination)}
+        try:
+            trip_date = date.fromisoformat(target_day.date) if target_day.date else None
+        except ValueError:
+            trip_date = None
+        weekday = (target_day.day_of_week or (trip_date.strftime("%A") if trip_date else "")).casefold()
+        for activity, start_minute, end_minute in scheduled_windows:
+            if activity.place_type == "rest_break":
+                continue
+            if _is_sunset_activity(activity):
+                if trip_date:
+                    gh_start, gh_end = get_golden_hour_window(activity.lat, activity.lng, trip_date)
+                    start_from_8am = start_minute - 8 * 60
+                    end_from_8am = end_minute - 8 * 60
+                    if end_from_8am < gh_start or start_from_8am > gh_end + 30:
+                        schedule_fits_day = False
+                        feasibility_notes.append(f"'{activity.place_name}' no longer overlaps the sunset window for {trip_date.isoformat()}.")
+                else:
+                    feasibility_notes.append(f"Sunset timing for '{activity.place_name}' could not be checked because the day has no valid date.")
+            place = catalog.get((activity.place_id or "").casefold())
+            if place is None:
+                feasibility_notes.append(f"Opening hours for '{activity.place_name}' are not present in the curated catalog.")
+                continue
+            closed_days = {day.strip().casefold() for day in (place.closed_days or [])}
+            if weekday and weekday in closed_days:
+                schedule_fits_day = False
+                feasibility_notes.append(f"'{activity.place_name}' is closed on {weekday.title()}.")
+            if place.open_time_mins is not None and place.close_time_mins is not None:
+                open_minute = 8 * 60 + place.open_time_mins
+                close_minute = 8 * 60 + place.close_time_mins
+                if start_minute < open_minute or end_minute > close_minute:
+                    schedule_fits_day = False
+                    feasibility_notes.append(
+                        f"'{activity.place_name}' falls outside its known opening window "
+                        f"({_format_time(dt_time(open_minute // 60, open_minute % 60))}–"
+                        f"{_format_time(dt_time(close_minute // 60, close_minute % 60))})."
+                    )
+
+        # Account for the return-to-hotel leg in feasibility and cost, even though
+        # the itinerary timeline ends at the last scheduled venue.
+        final_location = (retained[-1][1].lat, retained[-1][1].lng) if retained else break_location
+        _, revised_return_minutes, _ = _estimated_leg(final_location, hotel, mode, people)
+        if cursor + revised_return_minutes >= 24 * 60:
+            schedule_fits_day = False
+            feasibility_notes.append("The return trip to the hotel would extend beyond this calendar day.")
+
+        def route_estimate(start: Tuple[float, float], stops: List[Tuple[int, ScheduledActivity]], end: Tuple[float, float]) -> Tuple[float, int, int]:
+            total_km = 0.0
+            total_minutes = 0
+            total_cost = 0
+            location = start
+            for _, stop in stops:
+                km, minutes, cost = _estimated_leg(location, (stop.lat, stop.lng), mode, people)
+                total_km += km
+                total_minutes += minutes
+                total_cost += cost
+                location = (stop.lat, stop.lng)
+            km, minutes, cost = _estimated_leg(location, end, mode, people)
+            return total_km + km, total_minutes + minutes, total_cost + cost
+
+        original_remaining = route_estimate(current_location, remaining, hotel)
+        revised_remaining_stops = [(index, activity) for index, activity in retained]
+        route_break_activity = break_activity.model_copy(update={"lat": break_location[0], "lng": break_location[1]})
+        revised_distance, revised_transit_minutes, revised_transit_cost = route_estimate(
+            current_location,
+            ([(len(activities), route_break_activity)] if request.tiredness_level == TirednessSeverity.EXHAUSTED else []) + revised_remaining_stops,
+            hotel,
+        )
+        original_distance, original_transit_minutes, original_transit_cost = original_remaining
+        distance_delta = round(revised_distance - original_distance, 2)
+        transit_delta = revised_transit_minutes - original_transit_minutes
+        transport_cost_delta = revised_transit_cost - original_transit_cost
+
+        revised_day_cost = sum(activity.estimated_cost_inr for activity in revised_activities)
+        revised_day = target_day.model_copy(update={
+            "activities": revised_activities,
+            "day_cost_inr": revised_day_cost,
+        })
+
+        group_profile = GroupProfile.DEFAULT
+        if plan.fatigue_report and plan.fatigue_report.get("group_profile"):
+            try:
+                group_profile = GroupProfile(plan.fatigue_report["group_profile"])
+            except ValueError:
+                feasibility_notes.append("Stored group profile was unrecognized; fatigue estimate uses the default profile.")
+        old_eval = FatigueAnalyzer.evaluate_trip(
+            [target_day], pace=request.pace, group_profile=group_profile,
+            hotel_lat=hotel[0], hotel_lng=hotel[1],
+        )["daily_breakdown"][0]
+        new_eval = FatigueAnalyzer.evaluate_trip(
+            [revised_day], pace=request.pace, group_profile=group_profile,
+            hotel_lat=hotel[0], hotel_lng=hotel[1],
+        )["daily_breakdown"][0]
+        fatigue_change_pct = round(
+            (old_eval["score"] - new_eval["score"]) / max(1, old_eval["score"]) * 100,
+            1,
+        )
+        revised_day = revised_day.model_copy(update={
+            "fatigue_score": new_eval["score"],
+            "fatigue_level": new_eval["level"],
+        })
+
+        updated_days = [revised_day if day.day_number == request.day_number else day for day in plan.days]
+        new_transport_cost = max(0, plan.estimated_transport_cost_inr + transport_cost_delta)
+        lodging_cost = plan.expense_breakdown.lodging_inr if plan.expense_breakdown else (hotel_summary.total_cost_inr if hotel_summary else 0)
+        activities_cost = sum(
+            activity.estimated_cost_inr
+            for day in updated_days
+            for activity in day.activities
+            if activity.place_type not in ("restaurant", "rest_break")
+        )
+        dining_cost = sum(
+            activity.estimated_cost_inr
+            for day in updated_days
+            for activity in day.activities
+            if activity.place_type == "restaurant"
+        )
+        direct_subtotal = lodging_cost + new_transport_cost + activities_cost + dining_cost
+        new_total_cost = lodging_cost + new_transport_cost + sum(day.day_cost_inr for day in updated_days)
+        if budget_limit:
+            unallocated = max(0, budget_limit - direct_subtotal)
+            is_within_budget = direct_subtotal <= budget_limit
+        else:
+            unallocated = plan.expense_breakdown.unallocated_buffer_inr if plan.expense_breakdown else 0
+            is_within_budget = None
+        transport_limit = plan.transport_budget_limit_inr
+        transport_within = new_transport_cost <= transport_limit if transport_limit is not None else None
+        expense_breakdown = plan.expense_breakdown
+        if expense_breakdown is not None:
+            additional_meals = max(0, expense_breakdown.suggested_meals_inr - dining_cost)
+            meal_status = (
+                f"Sufficient (Buffer ₹{unallocated} covers additional meal estimate ₹{additional_meals})"
+                if unallocated >= additional_meals
+                else f"Additional meals exceed remaining buffer by ₹{additional_meals - unallocated}"
+            )
+            expense_breakdown = expense_breakdown.model_copy(update={
+                "transit_inr": new_transport_cost,
+                "activities_inr": activities_cost,
+                "dining_inr": dining_cost,
+                "direct_subtotal_inr": direct_subtotal,
+                "unallocated_buffer_inr": unallocated,
+                "buffer_inr": unallocated,
+                "additional_meals_inr": additional_meals,
+                "budget_limit_inr": budget_limit or expense_breakdown.budget_limit_inr,
+                "meal_buffer_status": meal_status,
+            })
+
+        updated_plan = plan.model_copy(update={
+            "days": updated_days,
+            "estimated_transport_cost_inr": new_transport_cost,
+            "total_cost_inr": new_total_cost,
+            "expense_breakdown": expense_breakdown,
+            # The prior verifier report audited the old route and must not be reused.
+            "verification_report": None,
+            "transport_budget_status": (
+                f"₹{new_transport_cost} (Within cap of ₹{transport_limit})"
+                if transport_within is True
+                else f"₹{new_transport_cost} (Exceeds cap of ₹{transport_limit})"
+                if transport_within is False
+                else "Reestimated after in-trip change; no transport-specific cap is recorded"
+            ),
+        })
+        updated_plan.fatigue_report = FatigueAnalyzer.evaluate_trip(
+            updated_days,
+            pace=request.pace,
+            group_profile=group_profile,
+            hotel_lat=hotel[0],
+            hotel_lng=hotel[1],
+        )
+
+        if not feasibility_notes:
+            feasibility_notes.append("Known opening-hour, closure, sunset, day-boundary, and budget constraints pass.")
+        if is_within_budget is False:
+            feasibility_notes.append(f"The revised on-ground subtotal ₹{direct_subtotal} exceeds the budget limit ₹{budget_limit}.")
+        if transport_within is False:
+            feasibility_notes.append(f"The revised local transport estimate ₹{new_transport_cost} exceeds the transport cap ₹{transport_limit}.")
+        is_feasible = schedule_fits_day and is_within_budget is not False and transport_within is not False
+        summary = (
+            f"{len(dropped_names)} optional stop(s) removed; {break_duration}-minute rest period added. "
+            f"Estimated route distance changed by {distance_delta:+.1f} km, transit time by {transit_delta:+} minutes, "
+            f"and local transport cost by ₹{transport_cost_delta:+,}. Fatigue score changed by {fatigue_change_pct:+.1f}% (model estimate)."
+        )
+
+        return RebalanceTiredResponse(
+            is_feasible=is_feasible,
+            original_day=target_day,
+            revised_day=revised_day,
+            updated_plan=updated_plan,
+            dropped_activities=dropped_names,
+            inserted_breaks=[break_name],
+            route_distance_delta_km=distance_delta,
+            transit_time_delta_minutes=transit_delta,
+            transport_cost_delta_inr=transport_cost_delta,
+            fatigue_change_pct=fatigue_change_pct,
+            budget_within_limit=is_within_budget,
+            transport_budget_within_limit=transport_within,
+            feasibility_notes=feasibility_notes,
+            old_fatigue_score=old_eval["score"],
+            new_fatigue_score=new_eval["score"],
+            summary_message=summary,
+        )

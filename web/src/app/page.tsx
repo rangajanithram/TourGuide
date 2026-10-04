@@ -155,8 +155,8 @@ export default function Home() {
         lockedActs = urlPins.split(',').map(s => s.trim()).filter(Boolean);
       }
       const urlOriginType = params.get('origin_type');
-      if (urlOriginType && ['hotel', 'center', 'station', 'airport'].includes(urlOriginType)) {
-        originType = urlOriginType as any;
+      if (urlOriginType === 'hotel' || urlOriginType === 'center' || urlOriginType === 'station' || urlOriginType === 'airport') {
+        originType = urlOriginType;
       }
       const urlStartLoc = params.get('start_location') || params.get('hub');
       if (urlStartLoc) {
