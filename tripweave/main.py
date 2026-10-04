@@ -14,7 +14,8 @@ from tripweave.models import (
     TripRequest, TripPlan, Place, MultiVariantTripPlan, 
     PlanVariantType, PacePreference, TransportPreference, 
     TransportMode, HotelPreference, WeatherSummary,
-    EditConsequenceRequest, EditConsequenceResponse
+    EditConsequenceRequest, EditConsequenceResponse,
+    RebalanceTiredRequest, RebalanceTiredResponse
 )
 from tripweave.feasibility import FeasibilityFilter
 from tripweave.optimizer import TripOptimizer, InfeasibleItineraryError
@@ -416,4 +417,20 @@ def get_candidates_for_swap(destination: str, exclude_ids: Optional[str] = None)
         return ItineraryEditor.get_candidate_alternatives(destination, exclude_list)
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@app.post("/api/itinerary/rebalance-day", response_model=RebalanceTiredResponse, tags=["Live In-Trip Mode"])
+def rebalance_tired_day(request: RebalanceTiredRequest):
+    """
+    Blueprint Section 13 (Live In-Trip Mode):
+    Dynamically adapts and relaxes the remaining portion of a day's schedule
+    when travelers experience fatigue, heat exhaustion, or schedule delays.
+    """
+    try:
+        return ItineraryEditor.rebalance_tired_day(request)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error rebalancing tired day: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 

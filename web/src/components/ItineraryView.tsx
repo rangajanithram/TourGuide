@@ -8,11 +8,12 @@ import {
   CloudRain, Flame, Utensils, Wallet,
   HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users,
   Train, Plane, Car, ArrowRight, CheckSquare, Square,
-  ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw
+  ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw, Zap
 } from 'lucide-react';
 import { TripPlan, TripFormData, DayPlan, EditActionType } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
 import EditConsequenceModal from './EditConsequenceModal';
+import LiveRebalanceModal from './LiveRebalanceModal';
 
 interface ItineraryViewProps {
   plan: TripPlan;
@@ -41,6 +42,7 @@ export default function ItineraryView({
     activityIndex: number;
     initialAction: EditActionType;
   } | null>(null);
+  const [rebalanceDayNumber, setRebalanceDayNumber] = useState<number | null>(null);
 
   useEffect(() => {
     setActivePlan(plan);
@@ -938,6 +940,17 @@ export default function ItineraryView({
                 <div className="text-xs font-semibold text-gray-400">
                   Day Tickets: <span className="text-white">₹{day.day_cost_inr.toLocaleString('en-IN')}</span>
                 </div>
+
+                {/* Live In-Trip Rebalancer Trigger Button */}
+                <button
+                  type="button"
+                  onClick={() => setRebalanceDayNumber(day.day_number)}
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition-all active:scale-95 shadow-sm hover:border-amber-400"
+                  title="Feeling fatigued, running late, or heat exhausted? Dynamically rebalance remaining stops with rest buffers."
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400/20" />
+                  <span>I&apos;m Tired / Rebalance</span>
+                </button>
               </div>
             </div>
 
@@ -1297,6 +1310,20 @@ export default function ItineraryView({
           activityIndex={modalConfig.activityIndex}
           initialAction={modalConfig.initialAction}
           peopleCount={formData?.people_count || 1}
+          onApplyUpdate={handleApplyDayUpdate}
+        />
+      )}
+
+      {/* Live In-Trip Rebalancer Modal */}
+      {rebalanceDayNumber !== null && (
+        <LiveRebalanceModal
+          isOpen={rebalanceDayNumber !== null}
+          onClose={() => setRebalanceDayNumber(null)}
+          destination={destination}
+          plan={currentPlan}
+          initialDayNumber={rebalanceDayNumber}
+          peopleCount={formData?.people_count || 1}
+          transportMode={formData?.transport_mode || currentPlan.transport_mode || 'cab'}
           onApplyUpdate={handleApplyDayUpdate}
         />
       )}

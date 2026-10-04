@@ -260,3 +260,31 @@ export interface EditConsequenceResponse {
   impact_summary: string;
   suggested_updated_day?: DayPlan | null;
 }
+
+export type TirednessSeverity = 'mild' | 'moderate' | 'exhausted';
+
+export interface RebalanceTiredRequest {
+  destination: string;
+  plan: TripPlan;
+  day_number: number;
+  current_time_str: string;
+  current_activity_index?: number | null;
+  tiredness_level: TirednessSeverity;
+  people_count: number;
+  transport_mode: 'cab' | 'auto' | 'metro' | 'walk';
+}
+
+export interface RebalanceTiredResponse {
+  is_feasible: boolean;
+  original_day: DayPlan;
+  revised_day: DayPlan;
+  dropped_activities: string[];
+  inserted_breaks: string[];
+  saved_walking_km: number;
+  saved_transit_minutes: number;
+  fatigue_reduction_pct: number;
+  old_fatigue_score: number;
+  new_fatigue_score: number;
+  summary_message: string;
+}
+

@@ -323,3 +323,35 @@ class EditConsequenceResponse(BaseModel):
     feasibility_notes: List[str] = Field(default_factory=list)
     impact_summary: str
     suggested_updated_day: Optional[DayPlan] = None
+
+# --- LIVE IN-TRIP REBALANCER ("I'M TIRED" MODE) MODELS ---
+
+class TirednessSeverity(str, Enum):
+    MILD = "mild"              # Add 30m rest/cafe buffer, relax pace
+    MODERATE = "moderate"      # Drop 1 low-priority stop, add 45m rest break, preserve dinner/sunset
+    EXHAUSTED = "exhausted"    # Drop all non-essential sightseeing, head back to hotel or straight to dinner
+
+class RebalanceTiredRequest(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    destination: str
+    plan: TripPlan
+    day_number: int
+    current_time_str: str = Field(default="02:30 PM", description="Current time of day e.g. '02:30 PM' or '14:30'")
+    current_activity_index: Optional[int] = Field(None, description="Index of activity currently at or just finished")
+    tiredness_level: TirednessSeverity = Field(default=TirednessSeverity.MODERATE)
+    people_count: int = Field(default=2, gt=0)
+    transport_mode: TransportMode = Field(default=TransportMode.CAB)
+
+class RebalanceTiredResponse(BaseModel):
+    is_feasible: bool
+    original_day: DayPlan
+    revised_day: DayPlan
+    dropped_activities: List[str] = Field(default_factory=list)
+    inserted_breaks: List[str] = Field(default_factory=list)
+    saved_walking_km: float = 0.0
+    saved_transit_minutes: int = 0
+    fatigue_reduction_pct: float = 0.0
+    old_fatigue_score: int = 0
+    new_fatigue_score: int = 0
+    summary_message: str
+
