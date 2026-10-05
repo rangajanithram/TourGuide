@@ -297,3 +297,46 @@ export interface RebalanceTiredResponse {
   new_fatigue_score: number;
   summary_message: string;
 }
+
+export type ExpenseCategory = 'dining' | 'transit' | 'lodging' | 'activities' | 'shopping' | 'other';
+
+export interface GroupMember {
+  id: string;
+  name: string;
+  upi_id?: string;
+  avatar_color?: string;
+}
+
+export interface ExpenseSplit {
+  member_id: string;
+  amount_inr: number;
+}
+
+export interface GroupExpense {
+  id: string;
+  title: string;
+  amount_inr: number;
+  category: ExpenseCategory;
+  paid_by_member_id: string;
+  split_type: 'equal' | 'custom';
+  splits: ExpenseSplit[];
+  created_at: string;
+  activity_ref?: string;
+  notes?: string;
+}
+
+export interface SettlementTransfer {
+  id: string;
+  from_member_id: string;
+  to_member_id: string;
+  amount_inr: number;
+  is_settled: boolean;
+  settled_at?: string;
+  payment_method?: 'upi' | 'cash' | 'manual';
+}
+
+export interface TripExpenseLedger {
+  members: GroupMember[];
+  expenses: GroupExpense[];
+  settlements: SettlementTransfer[];
+}

@@ -10,10 +10,12 @@ import {
   Train, Plane, Car, ArrowRight, CheckSquare, Square,
   ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw, Zap
 } from 'lucide-react';
-import { TripPlan, TripFormData, DayPlan, EditActionType } from '../types/trip';
+import { TripPlan, TripFormData, DayPlan, EditActionType, GroupMember, TripExpenseLedger, ExpenseCategory } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
+import { calculateOptimalSettlements } from '../utils/settlement';
 import EditConsequenceModal from './EditConsequenceModal';
 import LiveRebalanceModal from './LiveRebalanceModal';
+import GroupExpenseModal from './GroupExpenseModal';
 
 interface ItineraryViewProps {
   plan: TripPlan;
@@ -43,6 +45,13 @@ export default function ItineraryView({
     initialAction: EditActionType;
   } | null>(null);
   const [rebalanceDayNumber, setRebalanceDayNumber] = useState<number | null>(null);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [initialExpenseToAdd, setInitialExpenseToAdd] = useState<{
+    title: string;
+    amount: number;
+    category: ExpenseCategory;
+    activityRef?: string;
+  } | null>(null);
 
   useEffect(() => {
     setActivePlan(plan);
@@ -150,6 +159,66 @@ export default function ItineraryView({
       }
     }
   };
+
+  const ledgerStorageKey = `tripweave_ledger_${tripSignature}`;
+  const peopleCount = formData?.people_count || currentPlan.hotel_summary?.people_accommodated || 1;
+
+  const defaultMembers: GroupMember[] = React.useMemo(() => {
+    const list: GroupMember[] = [
+      { id: 'm_host', name: 'You (Host)' }
+    ];
+    for (let i = 2; i <= peopleCount; i++) {
+      list.push({ id: `m_${i}`, name: `Traveler ${i}` });
+    }
+    return list;
+  }, [peopleCount]);
+
+  const [ledger, setLedger] = useState<TripExpenseLedger>({
+    members: defaultMembers,
+    expenses: [],
+    settlements: []
+  });
+
+  // Load persisted ledger from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem(ledgerStorageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.members) && Array.isArray(parsed.expenses)) {
+          setLedger(parsed);
+          return;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    setLedger({
+      members: defaultMembers,
+      expenses: [],
+      settlements: []
+    });
+  }, [ledgerStorageKey, defaultMembers]);
+
+  const handleUpdateLedger = (updatedLedger: TripExpenseLedger) => {
+    setLedger(updatedLedger);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(ledgerStorageKey, JSON.stringify(updatedLedger));
+      } catch {
+        // ignore
+      }
+    }
+  };
+
+  const pendingSettlements = React.useMemo(() => {
+    return calculateOptimalSettlements(ledger.members, ledger.expenses, ledger.settlements);
+  }, [ledger]);
+
+  const totalLedgerSpent = React.useMemo(() => {
+    return ledger.expenses.reduce((sum, e) => sum + e.amount_inr, 0);
+  }, [ledger.expenses]);
 
   const toggleActivityVisited = (placeName: string, defaultCost: number) => {
     const current = visitedActivities[placeName];
@@ -373,6 +442,27 @@ export default function ItineraryView({
                 <Copy className="w-3.5 h-3.5 text-gray-400" />
                 <span>Copy Text</span>
               </>
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setInitialExpenseToAdd(null);
+              setIsExpenseModalOpen(true);
+            }}
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#161922] hover:bg-[#1e2230] border border-amber-500/30 hover:border-amber-500/60 text-amber-300 text-xs font-semibold transition-all shadow-sm active:scale-95"
+            title="Open Group Expense Ledger & UPI Split Settlement Engine"
+          >
+            <Wallet className="w-3.5 h-3.5 text-amber-400" />
+            <span>Group Splits</span>
+            {ledger.expenses.length > 0 && (
+              <span className="ml-1 text-[10px] bg-amber-500/20 text-amber-300 px-1.5 py-0.2 rounded-full font-bold">
+                {ledger.expenses.length}
+              </span>
+            )}
+            {pendingSettlements.length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title={`${pendingSettlements.length} settlement(s) due`} />
             )}
           </button>
         </div>
@@ -1190,11 +1280,30 @@ export default function ItineraryView({
                             </button>
                           )}
                         </div>
-                        <div className="text-[11px] text-gray-400">
-                          Budgeted: ₹{act.estimated_cost_inr} • 
-                          <span className={actSpend <= act.estimated_cost_inr ? 'text-emerald-400 ml-1' : 'text-rose-400 ml-1'}>
-                            {actSpend <= act.estimated_cost_inr ? '✓ Under' : `+₹${actSpend - act.estimated_cost_inr} over`}
+                        <div className="flex items-center space-x-2 text-[11px] text-gray-400">
+                          <span>
+                            Budgeted: ₹{act.estimated_cost_inr} •
+                            <span className={actSpend <= act.estimated_cost_inr ? 'text-emerald-400 ml-1' : 'text-rose-400 ml-1'}>
+                              {actSpend <= act.estimated_cost_inr ? '✓ Under' : `+₹${actSpend - act.estimated_cost_inr} over`}
+                            </span>
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setInitialExpenseToAdd({
+                                title: act.place_name,
+                                amount: actSpend || act.estimated_cost_inr,
+                                category: act.place_type === 'restaurant' ? 'dining' : 'activities',
+                                activityRef: actKey
+                              });
+                              setIsExpenseModalOpen(true);
+                            }}
+                            className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-colors"
+                            title="Log to Group Ledger and split among travelers"
+                          >
+                            <Wallet className="w-3 h-3 text-amber-400" />
+                            <span>Split with Group</span>
+                          </button>
                         </div>
                       </div>
                     )}
@@ -1267,27 +1376,38 @@ export default function ItineraryView({
         </div>
       )}
 
-      {/* Feature 2: Floating Live Expense Tracker Dashboard */}
-      {totalVisitedCount > 0 && (
+      {/* Feature 2 & 3C: Floating Live Group Expense Tracker & UPI Settlement Bar */}
+      {(totalVisitedCount > 0 || ledger.expenses.length > 0) && (
         <div className="sticky bottom-4 z-40 bg-[#11131b]/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold">
+            <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold shrink-0">
               💰
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Live Expense Tracker</h4>
-                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
-                  {totalVisitedCount} of {totalStops} Stops Visited
-                </span>
+              <div className="flex items-center space-x-2 flex-wrap">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Live Group Expense Tracker</h4>
+                {totalVisitedCount > 0 && (
+                  <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                    {totalVisitedCount} of {totalStops} Stops Visited
+                  </span>
+                )}
+                {ledger.expenses.length > 0 && (
+                  <span className="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-bold">
+                    {ledger.expenses.length} Group Spends
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-gray-400 mt-0.5">
-                Actual Logged Spend: <span className="text-white font-bold">₹{totalActualSpent.toLocaleString('en-IN')}</span> • Estimated for visited: <span className="text-gray-300">₹{totalEstimatedForVisited.toLocaleString('en-IN')}</span>
+                Logged Spend: <span className="text-white font-bold">₹{Math.max(totalActualSpent, totalLedgerSpent).toLocaleString('en-IN')}</span> • Est for visited: <span className="text-gray-300">₹{totalEstimatedForVisited.toLocaleString('en-IN')}</span> • {pendingSettlements.length > 0 ? (
+                  <span className="text-rose-400 font-semibold">{pendingSettlements.length} UPI transfer(s) due</span>
+                ) : (
+                  <span className="text-emerald-400 font-semibold">All debts settled</span>
+                )}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="text-right">
               <span className="text-[10px] text-gray-400 block uppercase font-semibold">Remaining Trip Budget</span>
               <span className={`text-sm font-extrabold ${remainingBudget >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
@@ -1296,13 +1416,44 @@ export default function ItineraryView({
             </div>
             <button
               type="button"
-              onClick={() => setVisitedActivities({})}
+              onClick={() => {
+                setInitialExpenseToAdd(null);
+                setIsExpenseModalOpen(true);
+              }}
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-black shadow-md transition-all active:scale-95 flex items-center space-x-1"
+            >
+              <Wallet className="w-3.5 h-3.5" />
+              <span>UPI Split & Ledger</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setVisitedActivities({});
+                handleUpdateLedger({ ...ledger, expenses: [], settlements: [] });
+              }}
               className="px-2.5 py-1 text-[11px] rounded-lg bg-[#161922] hover:bg-[#1e2230] border border-[#222736] text-gray-400 hover:text-gray-200 transition-colors"
+              title="Reset logged expenses"
             >
               Reset
             </button>
           </div>
         </div>
+      )}
+
+      {/* Group Expense & UPI Settlement Modal */}
+      {isExpenseModalOpen && (
+        <GroupExpenseModal
+          isOpen={isExpenseModalOpen}
+          onClose={() => {
+            setIsExpenseModalOpen(false);
+            setInitialExpenseToAdd(null);
+          }}
+          destination={destination}
+          plan={currentPlan}
+          ledger={ledger}
+          onUpdateLedger={handleUpdateLedger}
+          initialAddExpense={initialExpenseToAdd}
+        />
       )}
 
       {/* Edit Consequence Modal */}
