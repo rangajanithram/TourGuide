@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Compass, Layers } from 'lucide-react';
+import Link from 'next/link';
+import { BookOpen, Compass, Layers } from 'lucide-react';
 
 export default function Header() {
   return (
@@ -22,7 +23,20 @@ export default function Header() {
           </div>
         </div>
 
-        <div className="flex items-center space-x-4">
+        <nav aria-label="Main navigation" className="flex items-center gap-2 sm:gap-4">
+          <Link
+            href="/guide"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[#2b3040] bg-[#11131b] px-3 py-2 text-xs font-semibold text-gray-200 transition-colors hover:border-amber-500/50 hover:text-amber-300"
+          >
+            <BookOpen className="h-3.5 w-3.5 text-amber-400" />
+            <span>How to use</span>
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-amber-400"
+          >
+            Open planner
+          </Link>
           <div className="hidden md:flex items-center space-x-3 text-xs text-gray-400 bg-[#11131b] border border-[#1e2230] px-3 py-1.5 rounded-lg">
             <div className="flex items-center space-x-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -34,7 +48,7 @@ export default function Header() {
               <span>DBSCAN Clustering</span>
             </div>
           </div>
-        </div>
+        </nav>
       </div>
     </header>
   );
