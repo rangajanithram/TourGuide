@@ -1,0 +1,288 @@
+/* The Forest Line: full-bleed scenery and alternating editorial field notes. */
+.journey-guide {
+  --paper: #f4f2e7;
+  --ink: #233e31;
+  --orange: #b96b43;
+  font-family: var(--font-geist-sans), sans-serif;
+}
+.journey-header {
+  background: #f4f2e7ee;
+}
+.guide-account-link {
+  font-size: 11px;
+  margin-left: auto;
+}
+.journey-header nav {
+  margin-left: auto;
+}
+.journey-layout {
+  display: block;
+  max-width: none;
+  padding: 0;
+  position: relative;
+  background: #e4ead8;
+}
+.journey-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: none!important;
+  overflow: visible;
+  box-shadow: none;
+  pointer-events: none;
+  z-index: auto;
+  isolation: auto;
+}
+.nature-railway {
+  z-index: 0;
+  position: sticky;
+  top: 83px;
+  width: 100%;
+  height: calc(100svh - 83px);
+  overflow: clip;
+  background: radial-gradient(ellipse at center,#c3d3ad,#e4ead8);
+}
+.nature-railway canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.nature-fallback {
+  padding: 30px;
+  text-align: right;
+  color: #314d3c;
+}
+.nature-fallback small {
+  display: block;
+  margin-top: 10px;
+}
+.journey-stories {
+  position: relative;
+  z-index: 2;
+  padding: 0 6%;
+}
+.story-chapter {
+  width: min(490px, 44%);
+  min-height: 115svh;
+  padding: 100px 0;
+  margin-right: auto;
+  scroll-margin-top: 83px;
+}
+.story-chapter:nth-child(even) {
+  margin-right: 0;
+  margin-left: auto;
+}
+.story-chapter:before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 4% -65px;
+  background: radial-gradient(ellipse, #f4f2e7ff 15%, #f4f2e7f0 48%, #f4f2e7a8 66%, #f4f2e700 73%);
+  pointer-events: none;
+}
+.intro-chapter {
+  min-height: calc(110svh - 83px);
+}
+.journey-guide h1 {
+  font-size: clamp(53px, 5.3vw, 83px);
+  letter-spacing: -3.4px;
+}
+.journey-guide h1 em,.journey-guide h2 em {
+  color: #617749;
+}
+.chapter-description {
+  color: #52634e;
+  font-size: 15px;
+}
+.interactive-card {
+  background: #fffdf3ed;
+  border-color: #c9d3bc;
+  box-shadow: 0 15px 50px #29442a0c;
+}
+.scene-topline,.scene-postmark,.scene-bottom,.scene-sun,.scene-orbit {
+  display: none;
+}
+.scene-controls {
+  position: fixed;
+  top: auto;
+  bottom: 22px;
+  right: 22px;
+  display: flex;
+  flex-direction: row;
+  pointer-events: auto;
+  z-index: 25;
+  border: 1px solid #bcc9ad;
+  background: #f4f2e7e8;
+  padding: 5px;
+  border-radius: 30px;
+}
+.scene-controls button {
+  background: transparent;
+  border: 0;
+}
+.arrival-strip {
+  position: relative;
+  z-index: 3;
+}
+.destinations-section,.manual-section,.faq-section,.boarding-section,.journey-footer {
+  position: relative;
+}
+.destinations-section {
+  background-image: radial-gradient(#76896120 .7px,transparent .7px);
+  background-size: 9px 9px;
+}
+.idea-section {
+  background: #263f32;
+}
+.boarding-pass {
+  background: #e4e8d3;
+}
+@media(max-width:899px) {
+  .journey-header {
+    gap: 12px;
+  }
+  .journey-header nav {
+    display: none;
+  }
+  .journey-layout {
+    max-width: none;
+    padding: 0;
+  }
+  .journey-stage {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    max-height: none;
+    min-height: 0;
+    border-radius: 0;
+  }
+  .nature-railway {
+    top: 65px;
+    height: calc(100svh - 65px);
+  }
+  .journey-stories {
+    padding: 0 6%;
+  }
+  .story-chapter {
+    width: min(450px, 75%);
+    min-height: 115svh;
+    padding: 100px 0;
+    scroll-margin-top: 65px;
+  }
+  .story-chapter:before {
+    inset: 7% -45px;
+  }
+  .scene-controls {
+    top: auto;
+    right: 14px;
+    bottom: 14px;
+  }
+  .journey-guide h1 {
+    font-size: 60px;
+  }
+}
+@media(max-width:540px) {
+  .guide-account-link {
+    font-size: 9px;
+  }
+  .journey-header .nav-planner {
+    padding: 9px 11px;
+    font-size: 9px;
+  }
+  .journey-header .nav-planner svg {
+    display: none;
+  }
+  .journey-header .journey-brand {
+    font-size: 18px;
+    gap: 5px;
+  }
+  .journey-stories {
+    padding: 0 7%;
+  }
+  .story-chapter,.story-chapter:nth-child(even) {
+    width: 100%;
+    margin: 0;
+    min-height: 130svh;
+    padding: 32svh 0 100px;
+  }
+  .story-chapter:before {
+    inset: 23svh -35px 20px;
+    background: linear-gradient(transparent,#f4f2e7e8 12%,#f4f2e7fa 78%,transparent);
+  }
+  .intro-chapter {
+    padding-top: 26svh;
+  }
+  .journey-guide h1 {
+    font-size: 52px;
+    letter-spacing: -2.5px;
+  }
+  .chapter-description {
+    font-size: 13px;
+  }
+  .scene-controls {
+    bottom: 10px;
+    right: 10px;
+  }
+}
+/* Viewport-aware editorial scale and glass navigation. */
+.journey-header {
+  height: 66px;
+  background: rgba(246,247,235,.76);
+  backdrop-filter: blur(22px) saturate(1.25);
+  border-bottom: 1px solid #ffffff80;
+  box-shadow: 0 6px 28px #1d382c08;
+}
+.journey-guide h1,.journey-guide h2 {
+  font-family: 'Palatino Linotype','Book Antiqua',Palatino,Georgia,serif;
+  text-wrap: balance;
+  font-weight: 500;
+}
+.journey-guide h1 { font-size: clamp(38px,4.1vw,64px); line-height: 1.04; letter-spacing: -2.3px; margin: 20px 0; }
+.journey-guide h2 { font-size: clamp(32px,3.4vw,49px); }
+.story-chapter { width: min(560px,45%); }
+.intro-chapter { min-height: calc(100svh - 66px); padding: 35px 0; }
+.chapter-description { font-size: 14px; line-height: 1.75; margin-bottom: 22px; }
+.hero-footnote { margin-top: 18px; }
+.scroll-invitation { margin-top: 18px; }
+.nature-railway { top: 66px; height: calc(100svh - 66px); }
+.weather-picker { display: flex; flex-direction: column; font-size: 9px; gap: 2px; padding: 3px 10px; color: var(--ink); }
+.weather-picker select { border: 0; background: transparent; color: inherit; font-size: 12px; max-width: 125px; cursor: pointer; }
+.scene-controls { align-items: center; backdrop-filter: blur(16px); box-shadow: 0 6px 25px #142d2520; }
+.journey-guide.is-night { --paper: #14272b; --ink: #e8eee0; --muted: #b9cbbb; --line: #3a5253; background: var(--paper); color: var(--ink); color-scheme: dark; }
+.is-night .journey-header { background: #12272cce; border-color: #6b989338; }
+.is-night .story-chapter:before { background: radial-gradient(ellipse,#12272bfa 15%,#12272bf0 48%,#12272ba8 65%,transparent 75%); }
+.is-night .journey-layout { background: #11272f; }
+.is-night h1 em,.is-night h2 em { color: #adc799; }
+.is-night .chapter-description,.is-night .eyebrow,.is-night .chapter-number span,.is-night .chapter-aside { color: #c1d1be; }
+.is-night .interactive-card { background: #1d3435f2; border-color: #49615b; }
+.is-night .interactive-card small,.is-night .demo-label,.is-night .card-eyebrow,.is-night .budget-legend,.is-night .sample-price>span,.is-night .sample-price small { color: #c0cfb9; }
+.is-night .scene-controls { background: #142c32e8; border-color: #66857e; }
+.is-night .scene-controls button { color: #eef3dc; }
+.is-night .scene-controls button[aria-pressed=true] { background: #456059; }
+.is-night .scene-controls option { background: #142c32; }
+.is-night .arrival-strip,.is-night .boarding-pass { background: #203b3b; color: #e1e9ce; }
+.is-night .journey-button { background: #b6cea0; color: #192d2b!important; }
+.is-night .pace-options button { color: #ccdbc1; }
+.is-night .pace-options button.selected { color: #223c2e; }
+.is-night .nav-planner:hover { background: #385149; }
+.is-night .idea-section { background: #0d2226; }
+@media(min-width:900px) and (max-height:760px) {
+  .journey-guide h1 { font-size: clamp(36px,3.8vw,53px); }
+  .intro-chapter { padding: 22px 0; }
+  .hero-footnote { margin-top: 12px; }
+  .scroll-invitation { margin-top: 10px; }
+}
+@media(max-width:540px) {
+  .journey-guide h1 { font-size: 42px; }
+  .story-chapter,.story-chapter:nth-child(even) { width: 100%; }
+  .intro-chapter { padding: 24svh 0 60px; min-height: calc(100svh - 66px); }
+  .scene-controls { bottom: 8px; right: 8px; }
+  .weather-picker { padding: 3px 6px; }
+  .weather-picker select { font-size: 11px; max-width: 100px; }
+  .is-night .story-chapter:before { background: linear-gradient(transparent,#12272bf0 12%,#12272bfa 78%,transparent); }
+}

@@ -32,7 +32,7 @@ export default function Header() {
             <span>How to use</span>
           </Link>
           <Link
-            href="/"
+            href="/planner"
             className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-2 text-xs font-bold text-black transition-colors hover:bg-amber-400"
           >
             Open planner
