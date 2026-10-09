@@ -1,0 +1,2 @@
+-- Deprecated prototype entry point. Apply migrations/20261009152206_auth_account_isolation.sql instead.
+-- Do not run the previous metadata trigger or broad grants.

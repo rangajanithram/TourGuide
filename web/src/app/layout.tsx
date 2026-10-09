@@ -15,6 +15,8 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+import { AuthProvider } from "@/context/AuthContext";
+
 export const metadata: Metadata = {
   title: "TripWeave — Algorithmic Travel Itinerary Optimizer",
   description: "Deterministic travel itinerary optimization engine powered by Google OR-Tools, DBSCAN neighborhood clustering, and solar sunset geometry.",
@@ -30,7 +32,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );

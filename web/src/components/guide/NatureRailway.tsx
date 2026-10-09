@@ -1,5 +1,8 @@
 'use client';
 
+// @refresh reset
+// Rebuild the imperative Three.js scene when its geometry changes in development.
+
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import * as THREE from 'three';
 
@@ -135,6 +138,22 @@ export default function NatureRailway({ progress, night, paused, rotation, weath
       if (!i) add(cube,dark,0,1.65,.6,.3,.6,.3,car);
     }
     const reduced = matchMedia('(prefers-reduced-motion: reduce)');
+    const glowMaterial = new THREE.MeshBasicMaterial({ color: '#fff3a3' });
+    materials.push(glowMaterial);
+    // Local +Z is the locomotive's forward direction. Keep the lens and light
+    // together, just outside the front face, so both follow the route tangent.
+    add(geometry(new THREE.SphereGeometry(1, 12, 8)), glowMaterial, 0, .85, 1.08, .14, .14, .08, cars[0]);
+    const headlight = new THREE.SpotLight('#fff0b2', 22, 14, .35, 1, 1.2);
+    headlight.position.set(0, .85, 1.17);
+    headlight.target.position.set(0, .05, 8);
+    cars[0].add(headlight, headlight.target);
+    const flyPositions = new Float32Array(90 * 3);
+    for (let i=0;i<90;i++) { flyPositions[i*3]=random()*64-32; flyPositions[i*3+1]=.8+random()*2; flyPositions[i*3+2]=random()*55-27; }
+    const flyGeometry = geometry(new THREE.BufferGeometry());
+    flyGeometry.setAttribute('position', new THREE.BufferAttribute(flyPositions,3));
+    const flyMaterial = new THREE.PointsMaterial({ color:'#ffe891', size:.15, transparent:true, opacity:.85, blending:THREE.AdditiveBlending, depthWrite:false });
+    materials.push(flyMaterial);
+    const fireflies = new THREE.Points(flyGeometry,flyMaterial); scene.add(fireflies);
     let width = 1, height = 1, dirty = true, visible = true, lost = false;
     const resize = () => { width = el.clientWidth; height = el.clientHeight; if (!width || !height) return; const span = width < 700 ? 24 : 26; camera.left=-span; camera.right=span; camera.top=span*height/width; camera.bottom=-camera.top; camera.updateProjectionMatrix(); renderer.setSize(width,height,false); dirty=true; };
     const observer = new ResizeObserver(resize); observer.observe(el); resize();
@@ -149,15 +168,22 @@ export default function NatureRailway({ progress, night, paused, rotation, weath
       const dt=Math.min((time-last)/1000,.1); last=time;
       const config=controls.current;
       const target=THREE.MathUtils.clamp(progress.current,0,1);
-      const movingWeather = config.weather !== "clear" && !config.paused && !reduced.matches;
+      const movingWeather = (config.weather !== "clear" || config.night) && !config.paused && !reduced.matches;
       if (!dirty && !movingWeather && Math.abs(current-target)<.00001 && previousNight===config.night && previousRotation===config.rotation && previousWeather===config.weather) return;
       current=reduced.matches || config.paused ? target : THREE.MathUtils.damp(current,target,5,dt);
       const t=.12+current*.825;
       const position=route.getPointAt(t);
       cars.forEach((car,i) => { const fraction=Math.max(0,t-i*2.2/trackLength); car.position.copy(route.getPointAt(fraction)); const direction=route.getTangentAt(fraction); car.rotation.y=Math.atan2(direction.x,direction.z); });
       const centerZ=position.z;
-      camera.position.set(Math.sin(config.rotation)*6,55,centerZ+17);
-      camera.lookAt(0,0,centerZ);
+      headlight.visible=config.night;
+      fireflies.visible=config.night; fireflies.position.z=centerZ;
+      fireflies.position.x=Math.sin(elapsed*.35)*.7;
+      flyMaterial.opacity=.65+Math.sin(elapsed*1.2)*.2;
+      // Reserve the opposite half of the desktop scene for the moving train.
+      // Chapter cards alternate sides; use the same continuous chapter progress.
+      const framingX = width >= 900 ? position.x - 11 * Math.cos(current * Math.PI * 4) : 0;
+      camera.position.set(framingX + Math.sin(config.rotation)*6,55,centerZ+17);
+      camera.lookAt(framingX,0,centerZ);
       ambient.intensity=config.night ? .3 : config.weather === 'rain' ? 1.1 : 2;
       ambient.color.set(config.night ? '#698fca' : '#f1f6ff');
       sun.intensity=config.night ? .2 : config.weather === 'rain' ? .4 : 1.5;

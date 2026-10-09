@@ -2,7 +2,7 @@ import os
 import time
 import logging
 from typing import List, Optional, Dict
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 logger = logging.getLogger("tripweave")
@@ -11,8 +11,8 @@ from tripweave.config import settings
 from tripweave.provider import get_places_provider
 from tripweave.verifier import ItineraryVerifier
 from tripweave.models import (
-    TripRequest, TripPlan, Place, MultiVariantTripPlan, 
-    PlanVariantType, PacePreference, TransportPreference, 
+    TripRequest, TripPlan, Place, MultiVariantTripPlan,
+    PlanVariantType, PacePreference, TransportPreference,
     TransportMode, HotelPreference, WeatherSummary,
     EditConsequenceRequest, EditConsequenceResponse,
     RebalanceTiredRequest, RebalanceTiredResponse
@@ -21,6 +21,7 @@ from tripweave.feasibility import FeasibilityFilter
 from tripweave.optimizer import TripOptimizer, InfeasibleItineraryError
 from tripweave.transport import get_transport_provider
 from tripweave.editor import ItineraryEditor
+from tripweave.auth import get_current_user, UserProfile
 
 # 1. Initialize FastAPI Application
 app = FastAPI(
@@ -33,10 +34,22 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health", tags=["Health"])
+@app.get("/", tags=["Health"])
+def health_check():
+    """Health check endpoint for deployment platforms (Render, Railway, Fly.io)."""
+    return {
+        "status": "healthy",
+        "service": "TripWeave Optimization Engine API",
+        "version": "1.0.0"
+    }
 
 
 def get_database_places(destination: str = "hyderabad") -> List[Place]:
@@ -50,7 +63,7 @@ def get_database_places(destination: str = "hyderabad") -> List[Place]:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 def _build_single_plan(
-    request: TripRequest, 
+    request: TripRequest,
     variant: PlanVariantType = PlanVariantType.BALANCED,
     prefetched_weather: Optional[Dict[str, WeatherSummary]] = None,
     return_timings: bool = False
@@ -108,7 +121,7 @@ def _build_single_plan(
     valid_places = viable_candidates
     transport_reserve = est_transport_budget
     timings[2] = round(max(0.01, (time.perf_counter() - t_stage2) * 1000), 2)
-        
+
     # Stage 3: DBSCAN Geo-Clustering
     t_stage3 = time.perf_counter()
     from tripweave.clustering import GeoClusterer
@@ -135,7 +148,7 @@ def _build_single_plan(
 
     # Resolve routing depot
     selected_hotel = selected_hotel_place
-        
+
     # Stage 6: OR-Tools VRP Scheduling
     t_stage6 = time.perf_counter()
     optimizer = TripOptimizer(
@@ -155,7 +168,7 @@ def _build_single_plan(
         group_profile=request.group_profile,
         preferred_day_by_place=preferred_day_by_place
     )
-    
+
     try:
         itinerary = optimizer.generate_plan()
     except (InfeasibleItineraryError, ValueError) as e:
@@ -185,8 +198,8 @@ def _build_single_plan(
     except Exception:
         total_km = 30.0
     fatigue_info = FatigueAnalyzer.evaluate_trip(
-        itinerary.days, 
-        pace=request.pace, 
+        itinerary.days,
+        pace=request.pace,
         group_profile=request.group_profile,
         total_transit_km=total_km,
         hotel_lat=selected_hotel.lat,
@@ -206,9 +219,9 @@ def _build_single_plan(
         weather_map = prefetched_weather
     else:
         weather_map = WeatherProvider.get_daily_forecasts(
-            selected_hotel.lat, 
-            selected_hotel.lng, 
-            start_date=request.start_date, 
+            selected_hotel.lat,
+            selected_hotel.lng,
+            start_date=request.start_date,
             end_date=request.end_date,
             days=request.days
         )
@@ -298,11 +311,11 @@ def generate_variants(request: TripRequest):
 
     # Step A: Build balanced plan first (primary user baseline) and capture actual stage timings
     plan_balanced, stage_timings = _build_single_plan(
-        request, 
-        variant=PlanVariantType.BALANCED, 
+        request,
+        variant=PlanVariantType.BALANCED,
         return_timings=True
     )
-    
+
     # Extract weather from balanced plan to share across all variants (avoids 3x redundant network calls)
     shared_weather: Dict[str, WeatherSummary] = {}
     for day in plan_balanced.days:
@@ -433,3 +446,19 @@ def rebalance_tired_day(request: RebalanceTiredRequest):
         logger.error(f"Error rebalancing tired day: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+
+# ---------------------------------------------------------------------------
+# AUTHENTICATION & IDENTITY ENDPOINTS
+# ---------------------------------------------------------------------------
+@app.get("/api/auth/me", response_model=UserProfile, tags=["Authentication"])
+def api_get_me(current_user: UserProfile = Depends(get_current_user)):
+    """Trusted identity from Supabase; planning endpoints remain stateless guest tools."""
+    return current_user
+
+
+@app.post("/api/auth/signup", tags=["Authentication"], deprecated=True)
+@app.post("/api/auth/login", tags=["Authentication"], deprecated=True)
+@app.post("/api/auth/google", tags=["Authentication"], deprecated=True)
+@app.post("/api/auth/logout", tags=["Authentication"], deprecated=True)
+def retired_local_auth():
+    raise HTTPException(status_code=410, detail="Use Supabase authentication through the web application.")

@@ -5,7 +5,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import ExperienceMetrics from './ExperienceMetrics';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowRight, Check, Compass, MapPin, Minus, Moon, Pause, Play, Plus, RotateCcw, Sun, Ticket, TrainFront, Users, Wallet, Route, Coffee, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, Compass, MapPin, Minus, Moon, Pause, Play, Plus, RotateCcw, Sun, Ticket, TrainFront, Users, Wallet, Route, Coffee, Sparkles, CloudFog, CloudRain } from 'lucide-react';
 
 const TravelWorld = dynamic(() => import('./NatureRailway'), { ssr: false, loading: () => <div className="world-loading">Assembling your little world…</div> });
 const stations = [
@@ -56,6 +56,7 @@ export default function JourneyGuide() {
   const [station, setStation] = useState(0);
   const [night, setNight] = useState(false);
   const [weather, setWeather] = useState('clear');
+  const [journeyVisible, setJourneyVisible] = useState(true);
   const [paused, setPaused] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [variant, setVariant] = useState<keyof typeof variants>('balanced');
@@ -67,6 +68,8 @@ export default function JourneyGuide() {
 
   useEffect(() => {
     let frame = 0;
+    const sceneObserver = new IntersectionObserver(([entry]) => setJourneyVisible(entry.isIntersecting));
+    if (journey.current) sceneObserver.observe(journey.current);
     const update = () => {
       frame = 0;
       const chapters = journey.current?.querySelectorAll<HTMLElement>('[data-chapter]');
@@ -86,7 +89,7 @@ export default function JourneyGuide() {
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
     update();
-    return () => { cancelAnimationFrame(frame); window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule); };
+    return () => { sceneObserver.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule); };
   }, []);
 
   function openExample(city: string) {
@@ -110,16 +113,16 @@ export default function JourneyGuide() {
 
     <div className="journey-layout" ref={journey}>
       <div className="journey-stories">
-        <section id="departure" className="story-chapter intro-chapter" data-chapter>
+        <section id="departure" className="story-chapter intro-chapter" data-chapter><div className="cloud-note">
           <div className="eyebrow"><span /> YOUR NEXT GREAT STORY STARTS HERE</div>
           <h1>A little planning.<br />A whole lot of <em>possibility.</em></h1>
           <p className="chapter-description">Less time figuring it all out. More time being there. Meet the travel planner that brings your places, people, time, and budget into one journey.</p>
           <a className="journey-button" href="#preferences">Let’s take the scenic route <ArrowDown size={18} /></a>
           <div className="hero-footnote"><span className="ticket-mini"><Ticket size={19} /></span><span>One winding railway. Five discoveries.<br /><strong>A better way to meet TripWeave.</strong></span></div>
           <div className="scroll-invitation"><span className="scroll-line" /> SCROLL TO FOLLOW THE FOREST LINE</div>
-        </section>
+        </div></section>
 
-        <section id="preferences" className="story-chapter" data-chapter>
+        <section id="preferences" className="story-chapter" data-chapter><div className="cloud-note">
           <div className="chapter-number">01 <span>THE DEPARTURE BOARD</span></div>
           <p className="city-kicker"><MapPin size={14} /> A little inspiration from Jaipur</p>
           <h2>Your trip.<br /><em>Your kind of day.</em></h2>
@@ -129,9 +132,9 @@ export default function JourneyGuide() {
             <div className="pace-result" key={pace}><Coffee size={21} /><p>Room for up to <strong>{pace === 'relaxed' ? 2 : pace === 'balanced' ? 3 : 4} activities a day.</strong><small>Actual stops depend on travel time, hours, and feasibility.</small></p></div>
           </div>
           <p className="chapter-aside">A good itinerary should feel like you. With enough breathing room to enjoy it.</p>
-        </section>
+        </div></section>
 
-        <section id="possibilities" className="story-chapter" data-chapter>
+        <section id="possibilities" className="story-chapter" data-chapter><div className="cloud-note">
           <div className="chapter-number">02 <span>MORE THAN ONE WAY THERE</span></div>
           <p className="city-kicker"><MapPin size={14} /> Finding our rhythm in Delhi</p>
           <h2>See the options.<br /><em>Feel the difference.</em></h2>
@@ -143,9 +146,9 @@ export default function JourneyGuide() {
             <div className="budget-legend">{[['Stay', option.lodging], ['Local travel', option.transit], ['Visits', option.visits], ['Dining', option.dining]].map(([name, cost], i) => <div key={name}><i className={`budget-color-${i}`} /><span>{name}</span><strong>{money(Number(cost))}</strong></div>)}</div>
             <p className="demo-label">Illustrative values, not a live quote. Excludes getting to the city and a contingency buffer.</p>
           </div>
-        </section>
+        </div></section>
 
-        <section id="detours" className="story-chapter" data-chapter>
+        <section id="detours" className="story-chapter" data-chapter><div className="cloud-note">
           <div className="chapter-number">03 <span>THE UNPLANNED IS PART OF IT</span></div>
           <p className="city-kicker"><MapPin size={14} /> A slow afternoon in Bengaluru</p>
           <h2>Leave a little room<br /><em>for the detour.</em></h2>
@@ -155,9 +158,9 @@ export default function JourneyGuide() {
             <button className="detour-toggle" aria-pressed={rest} onClick={() => setRest(!rest)}><Coffee size={17} />{rest ? 'Bring back the museum' : 'I could use a café break'}<ArrowRight size={16} /></button>
             <p className="demo-label">A visual example. Real itinerary changes need fresh feasibility checks.</p>
           </div>
-        </section>
+        </div></section>
 
-        <section id="together" className="story-chapter" data-chapter>
+        <section id="together" className="story-chapter" data-chapter><div className="cloud-note">
           <div className="chapter-number">04 <span>GOOD COMPANY, CLEAR NUMBERS</span></div>
           <p className="city-kicker"><MapPin size={14} /> Making memories in Mumbai</p>
           <h2>Share the moments.<br /><em>And the math.</em></h2>
@@ -168,7 +171,7 @@ export default function JourneyGuide() {
             <p className="split-total"><Check size={15} /> Every rupee accounted for. Total: ₹2,400.</p>
             <p className="demo-label">Local interactive example. Nothing is saved or paid here.</p>
           </div>
-        </section>
+        </div></section>
       </div>
 
       <aside className="journey-stage" aria-label="Interactive miniature travel world">
@@ -176,7 +179,7 @@ export default function JourneyGuide() {
         <div className="scene-orbit orbit-one" /><div className="scene-orbit orbit-two" /><div className="scene-sun" />
         <TravelWorld weather={weather} progress={progress} night={night} paused={paused} rotation={rotation} />
         <div className="scene-postmark">TAKE THE<strong>scenic route.</strong><span>WITH TRIPWEAVE</span></div>
-        <div className="scene-controls"><label className="weather-picker">Scenery<select aria-label="Illustrated weather" value={weather} onChange={event => setWeather(event.target.value)}><option value="clear">Sunshine</option><option value="mist">Mountain mist</option><option value="rain">Gentle rain</option></select></label><button onClick={() => setNight(!night)} aria-label={night ? 'Switch to daytime scenery' : 'Switch to evening scenery'} aria-pressed={night} title="Day / evening">{night ? <Sun size={18} /> : <Moon size={18} />}</button><button onClick={() => setRotation(value => value + Math.PI / 4)} aria-label="Rotate the miniature world" title="Rotate world"><RotateCcw size={18} /></button><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume ambient animation' : 'Pause ambient animation'} aria-pressed={paused} title="Pause / play">{paused ? <Play size={18} /> : <Pause size={18} />}</button></div>
+        <div className="scene-controls" hidden={!journeyVisible}><div className="weather-icons" role="group" aria-label="Illustrated weather">{[{value:'clear',label:'Sunshine',icon:Sun},{value:'mist',label:'Mountain mist',icon:CloudFog},{value:'rain',label:'Gentle rain',icon:CloudRain}].map(item => <button key={item.value} onClick={() => setWeather(item.value)} aria-label={item.label} title={item.label} aria-pressed={weather === item.value}><item.icon size={19} /></button>)}</div><button onClick={() => setNight(!night)} aria-label={night ? 'Switch to daytime scenery' : 'Switch to evening scenery'} aria-pressed={night} title="Day / evening">{night ? <Sun size={18} /> : <Moon size={18} />}</button><button onClick={() => setRotation(value => value + Math.PI / 4)} aria-label="Rotate the miniature world" title="Rotate world"><RotateCcw size={18} /></button><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume ambient animation' : 'Pause ambient animation'} aria-pressed={paused} title="Pause / play">{paused ? <Play size={18} /> : <Pause size={18} />}</button></div>
         <div className="scene-bottom"><div className="station-readout"><div><span>NOW EXPLORING</span><strong>{stations[station].city}</strong></div><p>{stations[station].coordinates}<span>0{station + 1} <i>/ 05</i></span></p></div>
           <div className="rail-progress"><div ref={progressBar} /></div>
           <nav className="station-navigation" aria-label="Journey stops">{stations.map((stop, i) => <a key={stop.id} className={station === i ? 'current' : ''} href={`#${stop.id}`} aria-current={station === i ? 'step' : undefined}><span>{i < station ? <Check size={12} /> : i + 1}</span><strong>{stop.city}</strong></a>)}</nav>

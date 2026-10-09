@@ -440,7 +440,7 @@
 .account-guest:hover { background: #eaf0df; }
 .account-form-panel input:focus { border-color: #829a69; }
 @media(min-width:850px) and (min-height:680px) {
-  .account-shell { max-height: calc(100svh - 110px); }
+  .account-shell { max-height: none; }
 }
 @media(min-width:850px) and (max-height:760px) {
   .account-header { height: 52px; }
@@ -462,3 +462,143 @@
   .account-footer { padding-bottom: 16px; }
 }
 @media(prefers-reduced-motion:reduce) { .account-story,.account-form-panel { transition: none; } }
+
+/* Security, Password Strength & Google OAuth Enhancements */
+.account-google-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #3c4043;
+  border: 1px solid #dadce0;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(60,64,67,0.08);
+}
+.account-google-btn:hover {
+  background: #f8f9fa;
+  border-color: #c6c9cc;
+  box-shadow: 0 2px 6px rgba(60,64,67,0.15);
+}
+.account-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.account-error-banner {
+  background: #fdf2f2;
+  border: 1px solid #f8b4b4;
+  color: #9b1c1c;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+  margin-bottom: 12px;
+}
+
+.account-success-banner {
+  background: #def7ec;
+  border: 1px solid #84e1bc;
+  color: #03543f;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.password-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+.password-meter-bar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+}
+.password-meter-segment {
+  flex: 1;
+  height: 100%;
+  border-radius: 2px;
+  background: #e2e8f0;
+  transition: background 0.25s ease;
+}
+.password-meter-segment.weak {
+  background: #ef4444;
+}
+.password-meter-segment.medium {
+  background: #f59e0b;
+}
+.password-meter-segment.strong {
+  background: #10b981;
+}
+.password-meter-text {
+  font-size: 10px;
+  display: flex;
+  justify-content: space-between;
+  color: #64748b;
+}
+
+.account-security-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #556b2f;
+  background: #eef4e8;
+  border: 1px solid #d4e2c8;
+  padding: 6px 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.google-auth-wrapper {
+  position: relative;
+  width: 100%;
+}
+.google-btn-rendered:not(:empty) + .account-google-btn {
+  display: none;
+}
+.google-btn-rendered {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.google-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+.google-modal-content {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e2e8f0;
+}
+.google-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}

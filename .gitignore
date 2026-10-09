@@ -10,6 +10,9 @@ __pycache__/
 env/
 venv/
 ENV/
+*.db
+*.sqlite
+*.sqlite3
 
 # System and OS Files
 .DS_Store
@@ -29,3 +32,10 @@ htmlcov/
 web/node_modules/
 web/.next/
 web/out/
+
+.env.*
+!.env.example
+
+web/.next-auth/
+.auth-npm-audit.json
+supabase/.temp/
