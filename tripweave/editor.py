@@ -8,21 +8,24 @@ from datetime import datetime, time as dt_time, timedelta
 from typing import List, Optional, Tuple, Dict, Any
 
 from tripweave.models import (
-    TripPlan, DayPlan, ScheduledActivity, Place, EditActionType,
-    EditConsequenceRequest, EditConsequenceResponse, TransportMode,
+    TripRequest, TripPlan, DayPlan, ScheduledActivity, Place, EditActionType,
+    EditConsequenceRequest, EditConsequenceResponse, TransportMode, TransportPreference,
     TirednessSeverity, RebalanceTiredRequest, RebalanceTiredResponse,
-    PacePreference, GroupProfile
+    PacePreference, GroupProfile, ExpenseBreakdown
 )
 from tripweave.distance import calculate_distance_km, get_travel_metrics
 from tripweave.solar import get_golden_hour_window
 from tripweave.provider import get_places_provider
 from tripweave.fatigue import FatigueAnalyzer
+from tripweave.verifier import ItineraryVerifier
+from tripweave.route_accounting import trip_transport_cost, trip_route_metrics
 
 def _parse_time_str(t_str: str) -> dt_time:
     """Parse a supported 24-hour or 12-hour time; never silently invent 09:00."""
     if not isinstance(t_str, str):
         raise ValueError("Time must be a string in HH:MM or HH:MM AM/PM format")
     cleaned = t_str.strip().upper()
+    cleaned = re.sub(r"\s*\(\+\d+\s+DAY\)\s*$", "", cleaned).strip()
     if re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", cleaned):
         return datetime.strptime(cleaned, "%H:%M").time()
     if re.fullmatch(r"(?:0?[1-9]|1[0-2]):[0-5]\d (?:AM|PM)", cleaned):
@@ -78,6 +81,21 @@ def _estimated_leg(
     return route_km, minutes, cost
 
 
+def _edit_route_delta(before: TripPlan, after: TripPlan, people: int) -> Tuple[float, int, int]:
+    base = (before.hotel_summary.lat, before.hotel_summary.lng)
+    old = trip_route_metrics(before.days, base, before.transport_mode, people)
+    new = trip_route_metrics(after.days, base, after.transport_mode, people)
+
+    def visit_minutes(plan):
+        return sum(
+            _minutes_between(_parse_time_str(activity.start_time), _parse_time_str(activity.end_time))
+            for day in plan.days for activity in day.activities
+        )
+
+    visit_delta = visit_minutes(after) - visit_minutes(before)
+    return round(new[0] - old[0], 2), new[1] - old[1], visit_delta + new[1] - old[1]
+
+
 class ItineraryEditor:
     """
     Engine for simulating and previewing the physical consequences of itinerary edits.
@@ -104,6 +122,141 @@ class ItineraryEditor:
             candidates.append(p)
         return candidates
 
+    @staticmethod
+    def _build_updated_plan_and_verify(
+        plan: TripPlan,
+        updated_day: DayPlan,
+        destination: str,
+        transport_mode: TransportMode,
+        people_count: int,
+        budget_limit_inr: Optional[int] = None,
+        all_places: Optional[List[Place]] = None,
+        pace: PacePreference = PacePreference.BALANCED,
+    ) -> Tuple[TripPlan, DayPlan, Any]:
+        """Reconciles day costs, expense breakdown, fatigue report, and runs independent Stage 8 verification."""
+        day_activity_cost = sum(a.estimated_cost_inr for a in updated_day.activities)
+        updated_day = updated_day.model_copy(update={"day_cost_inr": day_activity_cost})
+
+        if not plan.hotel_summary:
+            raise ValueError("A hotel/base location is required to verify route edits")
+        hotel_lat = plan.hotel_summary.lat
+        hotel_lng = plan.hotel_summary.lng
+
+        group_profile = GroupProfile.DEFAULT
+        if plan.fatigue_report and plan.fatigue_report.get("group_profile"):
+            try:
+                group_profile = GroupProfile(plan.fatigue_report["group_profile"])
+            except ValueError:
+                group_profile = GroupProfile.DEFAULT
+
+        updated_days = [updated_day if d.day_number == updated_day.day_number else d for d in plan.days]
+        fatigue_info = FatigueAnalyzer.evaluate_trip(
+            updated_days,
+            pace=pace,
+            group_profile=group_profile,
+            hotel_lat=hotel_lat,
+            hotel_lng=hotel_lng,
+        )
+        matched_fatigue = next(
+            (d for d in fatigue_info["daily_breakdown"] if d["day_number"] == updated_day.day_number),
+            None,
+        )
+        if matched_fatigue:
+            updated_day = updated_day.model_copy(update={
+                "fatigue_score": matched_fatigue["score"],
+                "fatigue_level": matched_fatigue["level"],
+            })
+            updated_days = [updated_day if d.day_number == updated_day.day_number else d for d in plan.days]
+
+        new_transport_cost = trip_transport_cost(updated_days, (hotel_lat, hotel_lng), transport_mode, people_count)
+        lodging_cost = (
+            plan.expense_breakdown.lodging_inr
+            if plan.expense_breakdown
+            else (plan.hotel_summary.total_cost_inr if plan.hotel_summary else 0)
+        )
+        activities_cost = sum(
+            a.estimated_cost_inr
+            for d in updated_days
+            for a in d.activities
+            if a.place_type not in ("restaurant", "rest_break")
+        )
+        dining_cost = sum(
+            a.estimated_cost_inr
+            for d in updated_days
+            for a in d.activities
+            if a.place_type == "restaurant"
+        )
+        direct_subtotal = lodging_cost + new_transport_cost + activities_cost + dining_cost
+        new_total_cost = lodging_cost + new_transport_cost + sum(d.day_cost_inr for d in updated_days)
+
+        resolved_budget_limit = budget_limit_inr or (
+            plan.expense_breakdown.budget_limit_inr if plan.expense_breakdown else None
+        )
+        expense_breakdown = plan.expense_breakdown
+        if expense_breakdown is not None:
+            limit_val = resolved_budget_limit or expense_breakdown.budget_limit_inr or new_total_cost
+            unallocated = max(0, limit_val - direct_subtotal)
+            additional_meals = max(0, expense_breakdown.suggested_meals_inr - dining_cost)
+            meal_status = (
+                f"Sufficient (Buffer ₹{unallocated} covers additional meal estimate ₹{additional_meals})"
+                if unallocated >= additional_meals
+                else f"Additional meals exceed remaining buffer by ₹{additional_meals - unallocated}"
+            )
+            expense_breakdown = expense_breakdown.model_copy(update={
+                "transit_inr": new_transport_cost,
+                "activities_inr": activities_cost,
+                "dining_inr": dining_cost,
+                "direct_subtotal_inr": direct_subtotal,
+                "unallocated_buffer_inr": unallocated,
+                "buffer_inr": unallocated,
+                "additional_meals_inr": additional_meals,
+                "budget_limit_inr": limit_val,
+                "total_inr": max(limit_val, direct_subtotal),
+                "per_person_inr": direct_subtotal // max(1, people_count),
+                "meal_buffer_status": meal_status,
+            })
+
+        transport_limit = plan.transport_budget_limit_inr
+        transport_within = new_transport_cost <= transport_limit if transport_limit is not None else None
+        updated_plan = plan.model_copy(update={
+            "days": updated_days,
+            "estimated_transport_cost_inr": new_transport_cost,
+            "total_cost_inr": new_total_cost,
+            "expense_breakdown": expense_breakdown,
+            "fatigue_report": fatigue_info,
+            "transport_budget_status": (
+                f"₹{new_transport_cost} (Within cap of ₹{transport_limit})"
+                if transport_within is True
+                else f"₹{new_transport_cost} (Exceeds cap of ₹{transport_limit})"
+                if transport_within is False
+                else plan.transport_budget_status
+            ),
+        })
+
+        catalog_places = all_places if all_places is not None else get_places_provider().get_places(destination)
+        synthetic_req = TripRequest.model_construct(
+            destination=destination.lower().strip(),
+            days=max(1, len(updated_days)),
+            budget_inr=resolved_budget_limit if resolved_budget_limit is not None else max(500, new_total_cost),
+            people_count=max(1, people_count),
+            pace=pace,
+            group_profile=group_profile,
+            transport_mode=transport_mode,
+            transport_pref=TransportPreference.model_construct(
+                mode=transport_mode,
+                max_budget_inr=transport_limit,
+            ),
+            locked_activities=[a.place_id or a.place_name for d in updated_days for a in d.activities if a.is_locked and a.place_type != "rest_break"],
+        )
+        report = ItineraryVerifier.verify(
+            updated_plan,
+            synthetic_req,
+            catalog_places,
+            strict_route_reconciliation=True,
+        )
+        updated_plan.verification_report = report
+        return updated_plan, updated_day, report
+
     @classmethod
     def preview_edit(cls, request: EditConsequenceRequest) -> EditConsequenceResponse:
         """
@@ -111,6 +264,8 @@ class ItineraryEditor:
         evaluating the physics, cost, and time feasibility deltas.
         """
         plan = request.plan
+        # An edit changes stops, not the chosen variant's transport mode.
+        request = request.model_copy(update={"transport_mode": plan.transport_mode})
         day_match = [d for d in plan.days if d.day_number == request.day_number]
         if not day_match:
             raise ValueError(f"Day number {request.day_number} not found in plan.")
@@ -162,58 +317,70 @@ class ItineraryEditor:
         # Action 1: REMOVE
         # -------------------------------------------------------------
         if request.action == EditActionType.REMOVE:
+            feasibility_notes: List[str] = []
+            is_feasible = True
+            if target_act.is_locked:
+                is_feasible = False
+                feasibility_notes.append(
+                    f"⚠️ Pinned constraint: '{target_act.place_name}' is pinned as a mandatory stop. Unpin it first before removing it."
+                )
+
             new_dist_direct = calculate_distance_km(prev_lat, prev_lng, next_lat, next_lng)
             new_t_min, new_transit_cost = get_travel_metrics(prev_lat, prev_lng, next_lat, next_lng, mode_str, people)
 
             delta_km = round(new_dist_direct - old_dist_total, 2)
             delta_transit_min = new_t_min - old_transit_min
-            delta_cost = (new_transit_cost - old_transit_cost) - target_act.estimated_cost_inr
+            transit_cost_delta = new_transit_cost - old_transit_cost
+            delta_cost = transit_cost_delta - target_act.estimated_cost_inr
             delta_total_duration = delta_transit_min - target_duration
 
             # Reconstruct updated day without target activity
-            new_activities: List[ScheduledActivity] = []
-            curr_time = _parse_time_str(activities[0].start_time) if activities else dt_time(9, 0)
-            
-            for i, a in enumerate(activities):
-                if i == idx:
-                    continue
-                # Recalculate timing
-                a_dur = max(30, _minutes_between(_parse_time_str(a.start_time), _parse_time_str(a.end_time)))
-                a_start = _format_time(curr_time)
-                curr_time = _add_minutes(curr_time, a_dur)
-                a_end = _format_time(curr_time)
-                curr_time = _add_minutes(curr_time, 20) # commute buffer
-                
-                new_act = a.model_copy(update={
-                    "start_time": a_start,
-                    "end_time": a_end
-                })
-                new_activities.append(new_act)
+            # Preserve appointments; verification checks the new direct leg.
+            new_activities = [a.model_copy(deep=True) for i, a in enumerate(activities) if i != idx]
 
             updated_day = target_day.model_copy(update={
                 "activities": new_activities,
-                "day_cost_inr": max(0, target_day.day_cost_inr + delta_cost)
+                "day_cost_inr": sum(a.estimated_cost_inr for a in new_activities)
             })
+            updated_plan, updated_day, report = cls._build_updated_plan_and_verify(
+                plan=plan,
+                updated_day=updated_day,
+                destination=request.destination,
+                transport_mode=request.transport_mode,
+                people_count=people,
+                budget_limit_inr=request.budget_limit_inr,
+                pace=request.pace,
+            )
+            route_delta = _edit_route_delta(plan, updated_plan, people)
+            if not report.is_valid:
+                is_feasible = False
+                for err in report.errors:
+                    if err not in feasibility_notes:
+                        feasibility_notes.append(f"⚠️ Verifier check: {err}")
+            if is_feasible and not feasibility_notes:
+                feasibility_notes.append("Direct connection between remaining stops passes schedule and budget verification.")
 
-            savings_inr = abs(delta_cost)
+            delta_cost = updated_plan.total_cost_inr - plan.total_cost_inr
+            delta_km, delta_transit_min = route_delta[:2]
             km_saved = abs(delta_km)
             summary = (
-                f"Dropping '{target_act.place_name}' saves ₹{savings_inr:,} in fees & fares, "
+                f"Dropping '{target_act.place_name}' changes fees and fares by ₹{delta_cost:+,}, "
                 f"reducing day transit by {km_saved:.1f} km (~{abs(delta_transit_min)} mins)."
             )
 
             return EditConsequenceResponse(
-                is_feasible=True,
+                is_feasible=is_feasible,
                 action=request.action,
                 target_activity_name=target_act.place_name,
                 replacement_activity_name=None,
                 delta_cost_inr=delta_cost,
-                delta_transit_km=delta_km,
-                delta_transit_minutes=delta_transit_min,
-                delta_duration_minutes=delta_total_duration,
-                feasibility_notes=["Direct connection between remaining stops is physically valid."],
+                delta_transit_km=route_delta[0],
+                delta_transit_minutes=route_delta[1],
+                delta_duration_minutes=route_delta[2],
+                feasibility_notes=feasibility_notes,
                 impact_summary=summary,
-                suggested_updated_day=updated_day
+                suggested_updated_day=updated_day,
+                updated_plan=updated_plan,
             )
 
         # -------------------------------------------------------------
@@ -232,8 +399,14 @@ class ItineraryEditor:
             repl_place = repl_list[0]
 
             # Feasibility Checks
-            feasibility_notes: List[str] = []
+            feasibility_notes = []
             is_feasible = True
+
+            if target_act.is_locked:
+                is_feasible = False
+                feasibility_notes.append(
+                    f"⚠️ Pinned constraint: '{target_act.place_name}' is pinned as a mandatory stop. Unpin it first before swapping."
+                )
 
             # 1. Day of week closure check
             dow = (target_day.day_of_week or "").strip().lower()
@@ -287,13 +460,17 @@ class ItineraryEditor:
             viewpoints = getattr(repl_place, "best_viewpoints", None) or []
             rec_viewpoint = viewpoints[0] if viewpoints else None
 
-            # Reconstruct updated day with swapped place
-            new_activities: List[ScheduledActivity] = []
+            # Reconstruct updated day with swapped place and cascade subsequent stops if needed
+            new_activities = []
             for i, a in enumerate(activities):
                 if i == idx:
-                    # Calculate new start & end time
                     st = _parse_time_str(a.start_time)
-                    et = _add_minutes(st, repl_duration)
+                    try:
+                        et = _add_minutes(st, repl_duration)
+                    except ValueError as err:
+                        is_feasible = False
+                        feasibility_notes.append(f"⚠️ Schedule overflow: {err}")
+                        et = _parse_time_str(a.end_time)
                     swapped_act = ScheduledActivity(
                         place_id=repl_place.place_id,
                         place_name=repl_place.name,
@@ -311,31 +488,76 @@ class ItineraryEditor:
                         source_reference=repl_place.source_reference
                     )
                     new_activities.append(swapped_act)
+                elif i > idx and new_activities:
+                    prev_act = new_activities[-1]
+                    prev_et = _parse_time_str(prev_act.end_time)
+                    orig_st = _parse_time_str(a.start_time)
+                    orig_et = _parse_time_str(a.end_time)
+                    orig_dur = max(30, _minutes_between(orig_st, orig_et))
+                    _, leg_m, _ = _estimated_leg((prev_act.lat, prev_act.lng), (a.lat, a.lng), mode_str, people)
+                    min_next_start_m = prev_et.hour * 60 + prev_et.minute + max(10, leg_m)
+                    orig_start_m = orig_st.hour * 60 + orig_st.minute
+                    if min_next_start_m > orig_start_m:
+                        try:
+                            shifted_st = dt_time(min_next_start_m // 60, min_next_start_m % 60)
+                            shifted_et = _add_minutes(shifted_st, orig_dur)
+                            new_activities.append(a.model_copy(update={
+                                "start_time": _format_time(shifted_st),
+                                "end_time": _format_time(shifted_et),
+                            }))
+                        except ValueError as err:
+                            is_feasible = False
+                            feasibility_notes.append(f"⚠️ Schedule overflow after swap: {err}")
+                            new_activities.append(a.model_copy())
+                    else:
+                        new_activities.append(a.model_copy())
                 else:
                     new_activities.append(a.model_copy())
 
             updated_day = target_day.model_copy(update={
                 "activities": new_activities,
-                "day_cost_inr": max(0, target_day.day_cost_inr + delta_cost)
+                "day_cost_inr": sum(a.estimated_cost_inr for a in new_activities)
             })
 
             # Check operating hours compatibility
             open_mins = getattr(repl_place, "open_time_mins", None)
             close_mins = getattr(repl_place, "close_time_mins", None)
             if open_mins is not None and close_mins is not None:
-                open_t = dt_time((480 + open_mins) // 60, (480 + open_mins) % 60)
-                close_t = dt_time((480 + close_mins) // 60, (480 + close_mins) % 60)
+                open_abs = 480 + open_mins
+                close_abs = min(23 * 60 + 59, 480 + close_mins)
+                open_t = dt_time(open_abs // 60, open_abs % 60)
+                close_t = dt_time(close_abs // 60, close_abs % 60)
                 act_st = _parse_time_str(new_activities[idx].start_time)
                 act_et = _parse_time_str(new_activities[idx].end_time)
                 if act_st < open_t or act_et > close_t:
+                    is_feasible = False
                     feasibility_notes.append(
-                        f"⏰ Timing Advisory: Window ({new_activities[idx].start_time} - {new_activities[idx].end_time}) "
-                        f"overlaps boundary of operating hours ({_format_time(open_t)} - {_format_time(close_t)})."
+                        f"⏰ Timing Conflict: Window ({new_activities[idx].start_time} - {new_activities[idx].end_time}) "
+                        f"falls outside known operating hours ({_format_time(open_t)} - {_format_time(close_t)})."
                     )
 
-            if is_feasible and not feasibility_notes:
-                feasibility_notes.append("100% time & opening hours compatible.")
+            updated_plan, updated_day, report = cls._build_updated_plan_and_verify(
+                plan=plan,
+                updated_day=updated_day,
+                destination=request.destination,
+                transport_mode=request.transport_mode,
+                people_count=people,
+                budget_limit_inr=request.budget_limit_inr,
+                pace=request.pace,
+                all_places=all_places,
+            )
+            route_delta = _edit_route_delta(plan, updated_plan, people)
+            if not report.is_valid:
+                is_feasible = False
+                for err in report.errors:
+                    if err not in feasibility_notes:
+                        feasibility_notes.append(f"⚠️ Verifier check: {err}")
 
+            if is_feasible and not feasibility_notes:
+                feasibility_notes.append("Passes opening-hour, closure, route, and budget verification checks.")
+
+            delta_cost = updated_plan.total_cost_inr - plan.total_cost_inr
+            delta_km, delta_transit_min = route_delta[:2]
             cost_phrase = f"+₹{delta_cost:,}" if delta_cost > 0 else f"-₹{abs(delta_cost):,}" if delta_cost < 0 else "₹0 cost delta"
             km_phrase = f"+{delta_km:.1f} km" if delta_km > 0 else f"{delta_km:.1f} km"
             min_phrase = f"+{delta_transit_min} mins commute" if delta_transit_min > 0 else f"{delta_transit_min} mins commute"
@@ -351,12 +573,13 @@ class ItineraryEditor:
                 target_activity_name=target_act.place_name,
                 replacement_activity_name=repl_place.name,
                 delta_cost_inr=delta_cost,
-                delta_transit_km=delta_km,
-                delta_transit_minutes=delta_transit_min,
-                delta_duration_minutes=delta_duration,
+                delta_transit_km=route_delta[0],
+                delta_transit_minutes=route_delta[1],
+                delta_duration_minutes=route_delta[2],
                 feasibility_notes=feasibility_notes,
                 impact_summary=summary,
-                suggested_updated_day=updated_day
+                suggested_updated_day=updated_day,
+                updated_plan=updated_plan,
             )
 
         # -------------------------------------------------------------
@@ -368,36 +591,46 @@ class ItineraryEditor:
             new_activities = list(activities)
             new_activities[idx] = updated_act
             updated_day = target_day.model_copy(update={"activities": new_activities})
+            updated_plan, updated_day, report = cls._build_updated_plan_and_verify(
+                plan=plan,
+                updated_day=updated_day,
+                destination=request.destination,
+                transport_mode=request.transport_mode,
+                people_count=people,
+                budget_limit_inr=request.budget_limit_inr,
+                pace=request.pace,
+            )
+            route_delta = _edit_route_delta(plan, updated_plan, people)
 
             status_str = "pinned/locked" if new_locked_state else "unlocked"
-            summary = f"'{target_act.place_name}' is now {status_str}. Future re-optimizations will enforce this priority."
+            summary = f"'{target_act.place_name}' is now {status_str}. Future re-optimizations and edits will enforce this priority."
 
             return EditConsequenceResponse(
-                is_feasible=True,
+                is_feasible=report.is_valid,
                 action=request.action,
                 target_activity_name=target_act.place_name,
                 replacement_activity_name=None,
-                delta_cost_inr=0,
-                delta_transit_km=0.0,
-                delta_transit_minutes=0,
-                delta_duration_minutes=0,
-                feasibility_notes=[f"Constraint updated: is_locked={new_locked_state}"],
+                delta_cost_inr=updated_plan.total_cost_inr - plan.total_cost_inr,
+                delta_transit_km=route_delta[0],
+                delta_transit_minutes=route_delta[1],
+                delta_duration_minutes=route_delta[2],
+                feasibility_notes=[f"Constraint updated: is_locked={new_locked_state}"] + [f"⚠️ {e}" for e in report.errors],
                 impact_summary=summary,
-                suggested_updated_day=updated_day
+                suggested_updated_day=updated_day,
+                updated_plan=updated_plan,
             )
 
         # -------------------------------------------------------------
         # Action 4: MOVE_TO_SUNSET
         # -------------------------------------------------------------
         elif request.action == EditActionType.MOVE_TO_SUNSET:
-            # Target date
             if target_day.date:
                 try:
                     target_date = datetime.strptime(target_day.date, "%Y-%m-%d").date()
-                except Exception:
-                    target_date = datetime.now().date()
+                except ValueError as error:
+                    raise ValueError("A valid trip date is required for sunset scheduling") from error
             else:
-                target_date = datetime.now().date()
+                raise ValueError("A trip date is required for sunset scheduling")
 
             gh_start_m, sunset_m = get_golden_hour_window(act_lat, act_lng, target_date)
 
@@ -414,11 +647,53 @@ class ItineraryEditor:
                 "is_locked": True
             })
 
-            new_activities = list(activities)
-            new_activities[idx] = updated_act
-            # Sort activities chronologically by start_time
+            other_activities = [a.model_copy() for i, a in enumerate(activities) if i != idx]
+            # Repack other activities around the sunset slot if they would overlap
+            repacked_others: List[ScheduledActivity] = []
+            curr_m = 9 * 60
+            for a in other_activities:
+                st = _parse_time_str(a.start_time)
+                et = _parse_time_str(a.end_time)
+                dur = max(30, _minutes_between(st, et))
+                st_m = st.hour * 60 + st.minute
+                et_m = et.hour * 60 + et.minute
+                # Check if [st_m, et_m] overlaps [start_abs_m - 15, end_abs_m + 15]
+                if not (et_m <= start_abs_m - 15 or st_m >= end_abs_m + 15):
+                    # Try placing before sunset slot or after sunset slot
+                    if curr_m + dur <= start_abs_m - 15:
+                        new_st_m = curr_m
+                    else:
+                        new_st_m = max(curr_m, end_abs_m + 20)
+                    new_et_m = new_st_m + dur
+                    if new_et_m <= 21 * 60 + 45:
+                        a = a.model_copy(update={
+                            "start_time": _format_time(dt_time(new_st_m // 60, new_st_m % 60)),
+                            "end_time": _format_time(dt_time(new_et_m // 60, new_et_m % 60)),
+                        })
+                        curr_m = new_et_m + 20
+                else:
+                    curr_m = max(curr_m, et_m + 20)
+                repacked_others.append(a)
+
+            new_activities = repacked_others + [updated_act]
             new_activities.sort(key=lambda a: _parse_time_str(a.start_time))
             updated_day = target_day.model_copy(update={"activities": new_activities})
+
+            updated_plan, updated_day, report = cls._build_updated_plan_and_verify(
+                plan=plan,
+                updated_day=updated_day,
+                destination=request.destination,
+                transport_mode=request.transport_mode,
+                people_count=people,
+                budget_limit_inr=request.budget_limit_inr,
+                pace=request.pace,
+            )
+            route_delta = _edit_route_delta(plan, updated_plan, people)
+            feasibility_notes = ["Astronomically aligned with NOAA solar position for this date."]
+            is_feasible = report.is_valid
+            if not report.is_valid:
+                for err in report.errors:
+                    feasibility_notes.append(f"⚠️ Verifier check: {err}")
 
             summary = (
                 f"Moved '{target_act.place_name}' to Astronomical Golden Hour ({_format_time(gh_start_t)} - {_format_time(sunset_t)}) "
@@ -426,17 +701,18 @@ class ItineraryEditor:
             )
 
             return EditConsequenceResponse(
-                is_feasible=True,
+                is_feasible=is_feasible,
                 action=request.action,
                 target_activity_name=target_act.place_name,
                 replacement_activity_name=None,
-                delta_cost_inr=0,
-                delta_transit_km=0.0,
-                delta_transit_minutes=0,
-                delta_duration_minutes=0,
-                feasibility_notes=["Astronomically verified with NOAA solar position."],
+                delta_cost_inr=updated_plan.total_cost_inr - plan.total_cost_inr,
+                delta_transit_km=route_delta[0],
+                delta_transit_minutes=route_delta[1],
+                delta_duration_minutes=route_delta[2],
+                feasibility_notes=feasibility_notes,
                 impact_summary=summary,
-                suggested_updated_day=updated_day
+                suggested_updated_day=updated_day,
+                updated_plan=updated_plan,
             )
 
         else:
@@ -455,6 +731,7 @@ class ItineraryEditor:
         from tripweave.provider import get_places_provider
 
         plan = request.plan
+        request = request.model_copy(update={"transport_mode": plan.transport_mode})
         target_day = next((day for day in plan.days if day.day_number == request.day_number), None)
         if target_day is None:
             raise ValueError(f"Day number {request.day_number} not found in plan.")
@@ -501,13 +778,16 @@ class ItineraryEditor:
                 plan.estimated_transport_cost_inr <= plan.transport_budget_limit_inr
                 if plan.transport_budget_limit_inr is not None else None
             )
-            no_work_notes = []
+            baseline_request = TripRequest.model_construct(destination=request.destination, days=len(plan.days), budget_inr=budget_limit or plan.total_cost_inr, people_count=people, pace=request.pace, transport_mode=plan.transport_mode, locked_activities=[a.place_id or a.place_name for d in plan.days for a in d.activities if a.is_locked and a.place_type != "rest_break"])
+            baseline_report = ItineraryVerifier.verify(plan, baseline_request, get_places_provider().get_places(request.destination))
+            plan = plan.model_copy(update={"verification_report": baseline_report})
+            no_work_notes = list(baseline_report.errors)
             if is_within_budget is False:
                 no_work_notes.append(f"The current on-ground total ₹{plan.total_cost_inr} exceeds the budget limit ₹{budget_limit}.")
             if transport_within is False:
                 no_work_notes.append("The current estimated local transport total exceeds its transport cap.")
             return RebalanceTiredResponse(
-                is_feasible=is_within_budget is not False and transport_within is not False,
+                is_feasible=baseline_report.is_valid and is_within_budget is not False and transport_within is not False,
                 original_day=target_day,
                 revised_day=target_day,
                 updated_plan=plan,
@@ -768,7 +1048,8 @@ class ItineraryEditor:
         })
 
         updated_days = [revised_day if day.day_number == request.day_number else day for day in plan.days]
-        new_transport_cost = max(0, plan.estimated_transport_cost_inr + transport_cost_delta)
+        new_transport_cost = trip_transport_cost(updated_days, hotel, request.transport_mode, people)
+        transport_cost_delta = new_transport_cost - plan.estimated_transport_cost_inr
         lodging_cost = plan.expense_breakdown.lodging_inr if plan.expense_breakdown else (hotel_summary.total_cost_inr if hotel_summary else 0)
         activities_cost = sum(
             activity.estimated_cost_inr
@@ -810,6 +1091,8 @@ class ItineraryEditor:
                 "additional_meals_inr": additional_meals,
                 "budget_limit_inr": budget_limit or expense_breakdown.budget_limit_inr,
                 "meal_buffer_status": meal_status,
+                "total_inr": max(budget_limit or expense_breakdown.budget_limit_inr or direct_subtotal, direct_subtotal),
+                "per_person_inr": direct_subtotal // people,
             })
 
         updated_plan = plan.model_copy(update={
@@ -817,7 +1100,6 @@ class ItineraryEditor:
             "estimated_transport_cost_inr": new_transport_cost,
             "total_cost_inr": new_total_cost,
             "expense_breakdown": expense_breakdown,
-            # The prior verifier report audited the old route and must not be reused.
             "verification_report": None,
             "transport_budget_status": (
                 f"₹{new_transport_cost} (Within cap of ₹{transport_limit})"
@@ -835,13 +1117,44 @@ class ItineraryEditor:
             hotel_lng=hotel[1],
         )
 
+        synthetic_req = TripRequest.model_construct(
+            destination=request.destination.lower().strip(),
+            days=max(1, len(updated_days)),
+            budget_inr=budget_limit if budget_limit is not None else max(500, new_total_cost),
+            people_count=max(1, people),
+            pace=request.pace,
+            group_profile=group_profile,
+            transport_mode=request.transport_mode,
+            transport_pref=TransportPreference.model_construct(
+                mode=request.transport_mode,
+                max_budget_inr=transport_limit,
+            ),
+            locked_activities=[a.place_id or a.place_name for d in plan.days for a in d.activities if a.is_locked and a.place_type != "rest_break"],
+        )
+        ver_report = ItineraryVerifier.verify(
+            updated_plan,
+            synthetic_req,
+            list(catalog.values()),
+            strict_route_reconciliation=True,
+            live_position=current_location,
+            live_day=request.day_number,
+        )
+        if not schedule_fits_day or is_within_budget is False or transport_within is False:
+            ver_report.is_valid = False
+            for note in feasibility_notes:
+                if note not in ver_report.errors and ("closed" in note.lower() or "sunset" in note.lower() or "beyond" in note.lower() or "outside" in note.lower()):
+                    ver_report.errors.append(note)
+        for error in ver_report.errors:
+            if error not in feasibility_notes: feasibility_notes.append(error)
+        updated_plan.verification_report = ver_report
+
         if not feasibility_notes:
             feasibility_notes.append("Known opening-hour, closure, sunset, day-boundary, and budget constraints pass.")
         if is_within_budget is False:
             feasibility_notes.append(f"The revised on-ground subtotal ₹{direct_subtotal} exceeds the budget limit ₹{budget_limit}.")
         if transport_within is False:
             feasibility_notes.append(f"The revised local transport estimate ₹{new_transport_cost} exceeds the transport cap ₹{transport_limit}.")
-        is_feasible = schedule_fits_day and is_within_budget is not False and transport_within is not False
+        is_feasible = ver_report.is_valid and schedule_fits_day and is_within_budget is not False and transport_within is not False
         summary = (
             f"{len(dropped_names)} optional stop(s) removed; {break_duration}-minute rest period added. "
             f"Estimated route distance changed by {distance_delta:+.1f} km, transit time by {transit_delta:+} minutes, "

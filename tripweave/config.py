@@ -15,6 +15,8 @@ class Settings(BaseModel):
     environment: str = Field(default_factory=lambda: os.getenv("ENVIRONMENT", "development"))
     api_host: str = Field(default_factory=lambda: os.getenv("API_HOST", "127.0.0.1"))
     api_port: int = Field(default_factory=lambda: int(os.getenv("API_PORT", "8000")))
+    solver_concurrency: int = Field(default_factory=lambda: int(os.getenv("SOLVER_CONCURRENCY", "2")), ge=1, le=16, validate_default=True)
+    solver_queue_timeout_seconds: float = Field(default_factory=lambda: float(os.getenv("SOLVER_QUEUE_TIMEOUT_SECONDS", "5")), gt=0, le=30, validate_default=True)
 
     # Allowed CORS Origins - can be comma-separated string in env, e.g. "http://localhost:3000,https://tripweave.com"
     cors_origins: List[str] = Field(default_factory=lambda: [

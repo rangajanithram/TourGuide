@@ -1,5 +1,8 @@
 export function safeNext(value: string | null | undefined): string {
-  return ['/guide', '/account', '/reset-password'].includes(value || '') ? value! : '/guide';
+  const raw = (value || '').trim();
+  if (['/guide', '/account', '/reset-password', '/trips', '/planner'].includes(raw)) return raw;
+  if (/^\/planner\?tripId=[0-9a-fA-F-]{36}$/.test(raw)) return raw;
+  return '/guide';
 }
 export function authErrorMessage(error: unknown): string {
   const e = error as { code?: string; status?: number; name?: string };

@@ -191,16 +191,64 @@ export interface TripPlan {
   disclaimer?: string;
 }
 
+export type VariantKey = 'budget' | 'balanced' | 'comfort';
+
 export interface MultiVariantTripPlan {
+  schema_version?: number;
   destination: string;
   origin_city?: string | null;
   travel_dates: string;
   synthesis_stages?: SynthesisStage[];
-  variants: {
-    budget: TripPlan;
-    balanced: TripPlan;
-    comfort: TripPlan;
-  };
+  variants: Partial<Record<VariantKey, TripPlan>>;
+  unavailable_variants?: Record<string, string>;
+}
+
+export interface TripProvenanceData {
+  schema_version: number;
+  saved_from_variant: VariantKey;
+  available_variants: VariantKey[];
+  unavailable_variants?: Record<string, string>;
+  data_source: string;
+  audit_score?: number | null;
+  is_verified_valid?: boolean | null;
+  last_modified_reason?: string;
+}
+
+export interface SavedTripRecord {
+  id: string;
+  user_id: string;
+  title: string;
+  destination: string;
+  days: number;
+  budget_inr: number;
+  start_date?: string | null;
+  end_date?: string | null;
+  selected_variant: VariantKey;
+  schema_version: number;
+  current_version: number;
+  request_data: Partial<TripFormData>;
+  itinerary_data: MultiVariantTripPlan;
+  provenance_data?: Partial<TripProvenanceData>;
+  created_at: string;
+  updated_at: string;
+}
+
+export type PlanVersionChangeType = 'initial_save' | 'edit' | 'rebalance' | 'variant_switch' | 'restore';
+
+export interface PlanVersionRecord {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  version_number: number;
+  schema_version: number;
+  change_type: PlanVersionChangeType;
+  change_summary: string;
+  selected_variant: VariantKey;
+  request_data: Partial<TripFormData>;
+  itinerary_data: MultiVariantTripPlan;
+  provenance_data?: Partial<TripProvenanceData>;
+  restored_from_version?: number | null;
+  created_at: string;
 }
 
 export interface TripFormData {
@@ -246,6 +294,7 @@ export interface EditConsequenceRequest {
   replacement_place_id?: string | null;
   people_count?: number;
   transport_mode?: 'cab' | 'auto' | 'metro' | 'walk';
+  budget_limit_inr?: number | null;
 }
 
 export interface EditConsequenceResponse {
@@ -260,6 +309,7 @@ export interface EditConsequenceResponse {
   feasibility_notes: string[];
   impact_summary: string;
   suggested_updated_day?: DayPlan | null;
+  updated_plan?: TripPlan | null;
 }
 
 export type TirednessSeverity = 'mild' | 'moderate' | 'exhausted';

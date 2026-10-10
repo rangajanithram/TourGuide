@@ -23,7 +23,7 @@ interface ItineraryViewProps {
   selectedDay?: number | 'all';
   onSelectDay?: (day: number | 'all') => void;
   formData?: TripFormData | null;
-  onUpdatePlan?: (updatedPlan: TripPlan) => void;
+  onUpdatePlan?: (updatedPlan: TripPlan, changeMeta?: { changeType: 'edit' | 'rebalance'; summary: string }) => void;
   onReoptimize?: (pinnedActivities: string[]) => void;
 }
 
@@ -53,15 +53,20 @@ export default function ItineraryView({
     activityRef?: string;
   } | null>(null);
 
-  useEffect(() => {
-    setActivePlan(plan);
-    setPlanHistory([]);
-  }, [plan]);
+  useEffect(() => { setActivePlan(plan); }, [plan]);
 
   const currentPlan = activePlan;
 
-  const handleApplyDayUpdate = (updatedDay: DayPlan) => {
+  const handleApplyDayUpdate = (updatedDay: DayPlan, newPlan?: TripPlan, summaryReason?: string) => {
     setPlanHistory(prev => [...prev, activePlan]);
+    if (newPlan) {
+      setActivePlan(newPlan);
+      onUpdatePlan?.(newPlan, {
+        changeType: 'edit',
+        summary: summaryReason || `Edited Day ${updatedDay.day_number} schedule`
+      });
+      return;
+    }
     const updatedDays = activePlan.days.map(d => d.day_number === updatedDay.day_number ? updatedDay : d);
     const newTotalActivitiesCost = updatedDays.reduce((acc, d) => acc + d.day_cost_inr, 0);
     const newTotalCost = newTotalActivitiesCost + (activePlan.hotel_summary?.total_cost_inr || 0) + activePlan.estimated_transport_cost_inr;
@@ -72,13 +77,19 @@ export default function ItineraryView({
       total_cost_inr: newTotalCost
     };
     setActivePlan(nextPlan);
-    onUpdatePlan?.(nextPlan);
+    onUpdatePlan?.(nextPlan, {
+      changeType: 'edit',
+      summary: summaryReason || `Updated Day ${updatedDay.day_number} stop`
+    });
   };
 
   const handleApplyRebalancedPlan = (updatedPlan: TripPlan) => {
     setPlanHistory(prev => [...prev, activePlan]);
     setActivePlan(updatedPlan);
-    onUpdatePlan?.(updatedPlan);
+    onUpdatePlan?.(updatedPlan, {
+      changeType: 'rebalance',
+      summary: `Rebalanced Day ${rebalanceDayNumber ?? ''} schedule for traveler fatigue`.trim()
+    });
   };
 
   const handleUndo = () => {
@@ -86,20 +97,29 @@ export default function ItineraryView({
     const previous = planHistory[planHistory.length - 1];
     setPlanHistory(prev => prev.slice(0, -1));
     setActivePlan(previous);
-    onUpdatePlan?.(previous);
+    onUpdatePlan?.(previous, {
+      changeType: 'edit',
+      summary: 'Reverted local edit via Undo'
+    });
   };
 
   const handleTogglePin = (dayNum: number, actIdx: number) => {
     const targetDay = activePlan.days.find(d => d.day_number === dayNum);
     if (!targetDay) return;
+    const targetAct = targetDay.activities[actIdx];
+    const nextLocked = !targetAct?.is_locked;
     const updatedActivities = targetDay.activities.map((a, i) => {
       if (i === actIdx) {
-        return { ...a, is_locked: !a.is_locked };
+        return { ...a, is_locked: nextLocked };
       }
       return a;
     });
     const updatedDay: DayPlan = { ...targetDay, activities: updatedActivities };
-    handleApplyDayUpdate(updatedDay);
+    handleApplyDayUpdate(
+      updatedDay,
+      undefined,
+      `${nextLocked ? 'Pinned' : 'Unpinned'} ${targetAct?.place_name || 'stop'} on Day ${dayNum}`
+    );
   };
 
   const [copiedLink, setCopiedLink] = useState(false);
@@ -390,13 +410,13 @@ export default function ItineraryView({
           <div>
             <h3 className="font-bold text-sm text-[#243e33]">{currentPlan.plan_name}</h3>
             <p className="text-[11px] text-[#526653]">
-              {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Total Subtotal
+              {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Local On-Ground Subtotal
               {currentPlan.fatigue_report?.overall_pace && ` • ${currentPlan.fatigue_report.overall_pace}`}
             </p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 flex-wrap gap-y-2">
           <button
             type="button"
             onClick={handleExportIcs}
@@ -411,17 +431,17 @@ export default function ItineraryView({
             type="button"
             onClick={handleCopyLink}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
-            title="Copy shareable browser URL with trip parameters"
+            title="Copies URL query parameters to re-run the planner with these settings (does not share your private saved snapshot)"
           >
             {copiedLink ? (
               <>
                 <Check className="w-3.5 h-3.5 text-black" />
-                <span>Link Copied!</span>
+                <span>Parameters Copied!</span>
               </>
             ) : (
               <>
                 <Link2 className="w-3.5 h-3.5 text-black" />
-                <span>Share Link</span>
+                <span>Copy Parameter Link</span>
               </>
             )}
           </button>
@@ -452,10 +472,10 @@ export default function ItineraryView({
               setIsExpenseModalOpen(true);
             }}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-amber-500/30 hover:border-amber-500/60 text-[#89532d] text-xs font-semibold transition-all shadow-sm active:scale-95"
-            title="Open Group Expense Ledger & UPI Split Settlement Engine"
+            title="Open Browser-Local Group Expense Ledger & UPI Split Tracker (stored in this browser only)"
           >
             <Wallet className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Group Splits</span>
+            <span>Group Splits (Browser-Local)</span>
             {ledger.expenses.length > 0 && (
               <span className="ml-1 text-[10px] bg-amber-500/20 text-[#89532d] px-1.5 py-0.2 rounded-full font-bold">
                 {ledger.expenses.length}
@@ -471,9 +491,9 @@ export default function ItineraryView({
       {/* Stat Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-[11px] font-semibold text-[#526653] uppercase tracking-wider block">Grand Total</span>
+          <span className="text-[11px] font-semibold text-[#526653] uppercase tracking-wider block">Local On-Ground Subtotal</span>
           <span className="text-xl font-extrabold text-[#89532d]">₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-[10px] text-[#596b57] block mt-0.5">All lodgings, transit & tickets</span>
+          <span className="text-[10px] text-[#596b57] block mt-0.5">Lodging, city transit & stops (excl. intercity & taxes)</span>
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
@@ -816,13 +836,13 @@ export default function ItineraryView({
             <div className="flex items-center space-x-2.5">
               <ShieldCheck className="w-5 h-5 text-emerald-700" />
               <div>
-                <h4 className="font-bold text-sm text-[#243e33]">Independent Physics & Feasibility Audit</h4>
-                <p className="text-[11px] text-[#526653]">Deterministic audit against opening hours, traffic physics & budget limits (Curated Seed Data)</p>
+                <h4 className="font-bold text-sm text-[#243e33]">Independent Schedule & Budget Audit (Curated Baseline)</h4>
+                <p className="text-[11px] text-[#526653]">Audits internal schedule math, opening windows, straight-line road estimates & local budget caps against curated seed data (not live ticket inventory)</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-xs font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                Score: {plan.verification_report.audit_score}/100 Validated
+                Audit Score: {plan.verification_report.audit_score}/100 (Seed Baseline)
               </span>
             </div>
           </div>
@@ -1385,7 +1405,10 @@ export default function ItineraryView({
             </div>
             <div>
               <div className="flex items-center space-x-2 flex-wrap">
-                <h4 className="text-xs font-bold text-[#243e33] uppercase tracking-wider">Live Group Expense Tracker</h4>
+                <h4 className="text-xs font-bold text-[#243e33] uppercase tracking-wider">Browser-Local Expense & UPI Split Tracker</h4>
+                <span className="text-[10px] bg-[#eef1e5] text-[#526653] border border-[#c6d2c0] px-2 py-0.5 rounded-full font-medium">
+                  Stored in this browser only
+                </span>
                 {totalVisitedCount > 0 && (
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
                     {totalVisitedCount} of {totalStops} Stops Visited
@@ -1409,7 +1432,7 @@ export default function ItineraryView({
 
           <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="text-right">
-              <span className="text-[10px] text-[#526653] block uppercase font-semibold">Remaining Trip Budget</span>
+              <span className="text-[10px] text-[#526653] block uppercase font-semibold">Remaining Local Budget</span>
               <span className={`text-sm font-extrabold ${remainingBudget >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                 ₹{remainingBudget.toLocaleString('en-IN')}
               </span>
@@ -1467,6 +1490,8 @@ export default function ItineraryView({
           activityIndex={modalConfig.activityIndex}
           initialAction={modalConfig.initialAction}
           peopleCount={formData?.people_count || 1}
+          pace={formData?.pace || 'balanced'}
+          budgetLimitInr={formData?.budget_inr || currentPlan.expense_breakdown?.budget_limit_inr || null}
           onApplyUpdate={handleApplyDayUpdate}
         />
       )}
@@ -1480,7 +1505,7 @@ export default function ItineraryView({
           plan={currentPlan}
           initialDayNumber={rebalanceDayNumber}
           peopleCount={formData?.people_count || 1}
-          transportMode={formData?.transport_mode || currentPlan.transport_mode || 'cab'}
+          transportMode={currentPlan.transport_mode || formData?.transport_mode || 'cab'}
           pace={formData?.pace || 'balanced'}
           budgetLimit={formData?.budget_inr || currentPlan.expense_breakdown?.budget_limit_inr || undefined}
           onApplyUpdate={handleApplyRebalancedPlan}

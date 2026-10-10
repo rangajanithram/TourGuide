@@ -9,15 +9,24 @@ from tripweave.models import TripPlan, TripRequest, Place, VerificationReport
 from tripweave.distance import calculate_distance_km, get_travel_metrics
 
 def _time_str_to_minutes(time_str: str) -> int:
-    """Parses 'H:MM AM/PM' string into minutes from 8:00 AM."""
+    """Parses 'H:MM AM/PM' or 'HH:MM' string (including '(+N day)' suffix) into minutes from 8:00 AM."""
     try:
-        t = datetime.strptime(time_str.strip(), "%I:%M %p")
-        # Minutes from midnight
-        total_mins = t.hour * 60 + t.minute
-        # Minutes from 8:00 AM (480 mins)
-        return total_mins - 480
-    except Exception:
-        return 0
+        raw = time_str.strip()
+        day_offset = 0
+        if "(+" in raw and "day)" in raw:
+            prefix, suffix = raw.split("(+", 1)
+            raw = prefix.strip()
+            day_offset = int(suffix.split("day")[0].strip())
+        for fmt in ("%I:%M %p", "%H:%M"):
+            try:
+                t = datetime.strptime(raw.upper(), fmt)
+                total_mins = day_offset * 1440 + t.hour * 60 + t.minute
+                return total_mins - 480
+            except ValueError:
+                continue
+        raise ValueError("Invalid activity time")
+    except (ValueError, AttributeError, TypeError) as error:
+        raise ValueError("Invalid activity time") from error
 
 class ItineraryVerifier:
     """
@@ -38,16 +47,22 @@ class ItineraryVerifier:
 
     @classmethod
     def verify(
-        cls, 
-        plan: TripPlan, 
-        request: TripRequest, 
-        places_db: List[Place]
+        cls,
+        plan: TripPlan,
+        request: TripRequest,
+        places_db: List[Place],
+        strict_route_reconciliation: bool = True,
+        live_position: Optional[Tuple[float, float]] = None,
+        live_day: Optional[int] = None,
     ) -> VerificationReport:
         checks_passed = []
         warnings = []
         errors = []
-        
-        place_lookup: Dict[str, Place] = {p.name: p for p in places_db}
+
+        place_lookup: Dict[str, Place] = {}
+        for p in places_db:
+            place_lookup[p.name.lower()] = p
+            place_lookup[p.place_id.lower()] = p
         total_transit_km = 0.0
         total_transit_mins = 0
         total_activity_time_mins = 0
@@ -63,7 +78,7 @@ class ItineraryVerifier:
         mode = plan.transport_mode.value if hasattr(plan.transport_mode, "value") else str(plan.transport_mode)
 
         # 0. Minimum Activity Density Check
-        total_activities_count = sum(len(d.activities) for d in plan.days)
+        total_activities_count = sum(a.place_type not in ("restaurant", "rest_break") for d in plan.days for a in d.activities)
         if total_activities_count == 0:
             errors.append("Empty Itinerary: No sightseeing activities could be scheduled within constraints.")
         else:
@@ -77,20 +92,63 @@ class ItineraryVerifier:
             day_activities_cost = 0
 
             # Day-of-week validation
-            day_name = day.day_of_week.lower() if day.day_of_week else None
+            try:
+                day_name = datetime.strptime(day.date, "%Y-%m-%d").strftime("%A").lower() if day.date else (day.day_of_week.lower() if day.day_of_week else None)
+            except (ValueError, TypeError):
+                errors.append(f"Invalid calendar date on Day {day.day_number}.")
+                day_name = None
 
             for i, act in enumerate(day.activities):
-                place = place_lookup.get(act.place_name)
-                start_min = _time_str_to_minutes(act.start_time)
-                end_min = _time_str_to_minutes(act.end_time)
+                try:
+                    start_min = _time_str_to_minutes(act.start_time)
+                    end_min = _time_str_to_minutes(act.end_time)
+                except ValueError:
+                    errors.append(f"Invalid Time Window: Day {day.day_number} stop '{act.place_name}' has malformed times.")
+                    continue
                 duration = end_min - start_min
+                if duration <= 0:
+                    errors.append(
+                        f"Invalid Time Window: '{act.place_name}' on Day {day.day_number} has non-positive duration ({act.start_time} - {act.end_time})."
+                    )
+                if i > 0 and start_min < prev_end_minute:
+                    errors.append(
+                        f"Schedule Overlap: Day {day.day_number} stop '{act.place_name}' starts at {act.start_time} before previous stop ends."
+                    )
                 total_activity_time_mins += max(0, duration)
 
                 # Accounting check
                 day_activities_cost += act.estimated_cost_inr
 
+                if act.place_type == "rest_break":
+                    leg_km = calculate_distance_km(prev_lat, prev_lng, act.lat, act.lng)
+                    if leg_km < 0.01:
+                        min_transit_mins, leg_cost = 0, 0
+                    else:
+                        min_transit_mins, leg_cost = get_travel_metrics(
+                            prev_lat, prev_lng, act.lat, act.lng,
+                            mode=mode, people_count=request.people_count
+                        )
+                    total_transit_km += leg_km
+                    total_transit_mins += min_transit_mins
+                    total_computed_transport_cost += leg_cost
+                    if start_min >= 960 or end_min >= 960:
+                        errors.append(
+                            f"Day Window Overflow: Day {day.day_number} rest break extends beyond calendar day ({act.start_time} - {act.end_time})."
+                        )
+                    prev_lat = act.lat
+                    prev_lng = act.lng
+                    prev_end_minute = end_min
+                    continue
+
+                place = place_lookup.get(act.place_name.lower()) or (place_lookup.get(act.place_id.lower()) if act.place_id else None)
                 if not place:
-                    warnings.append(f"Day {day.day_number}: Place '{act.place_name}' not found in database records.")
+                    errors.append(f"Day {day.day_number}: Place '{act.place_name}' not found in database records.")
+                    if act.place_id:
+                        visited_places.add(act.place_id.lower())
+                    visited_places.add(act.place_name.lower())
+                    prev_lat = act.lat
+                    prev_lng = act.lng
+                    prev_end_minute = end_min
                     continue
 
                 # Dining vs Sightseeing Cost Categorization
@@ -137,13 +195,21 @@ class ItineraryVerifier:
 
                 # Check 3: Transit Physics & Speed Feasibility
                 leg_km = calculate_distance_km(prev_lat, prev_lng, act.lat, act.lng)
-                min_transit_mins, leg_cost = get_travel_metrics(
-                    prev_lat, prev_lng, act.lat, act.lng, 
-                    mode=mode, people_count=request.people_count
-                )
+                if not strict_route_reconciliation and leg_km < 0.01:
+                    min_transit_mins, leg_cost = 0, 0
+                else:
+                    min_transit_mins, leg_cost = get_travel_metrics(
+                        prev_lat, prev_lng, act.lat, act.lng,
+                        mode=mode, people_count=request.people_count
+                    )
                 total_transit_km += leg_km
                 total_transit_mins += min_transit_mins
                 total_computed_transport_cost += leg_cost
+
+                # Live GPS affects only the first future leg's timing; never serialize it.
+                # Costs remain the full itinerary estimate at its retained coarse locations.
+                if live_position is not None and day.day_number == live_day and i > 0 and day.activities[i - 1].place_type == "rest_break":
+                    min_transit_mins = get_travel_metrics(*live_position, act.lat, act.lng, mode=mode, people_count=request.people_count)[0]
 
                 if i == 0:
                     # First leg: departure from hotel
@@ -155,11 +221,11 @@ class ItineraryVerifier:
                 else:
                     # Subsequent legs: elapsed time between previous departure and this arrival
                     elapsed_transit = start_min - prev_end_minute
-                    if elapsed_transit < (min_transit_mins - 5): # Allow 5m buffer
-                        warnings.append(
+                    if elapsed_transit < min_transit_mins:
+                        errors.append(
                             f"Tight Transit: Day {day.day_number} leg to '{act.place_name}' allocates {elapsed_transit}m vs estimated {min_transit_mins}m."
                         )
-                    
+
                     if elapsed_transit > 0:
                         implied_speed = (leg_km / (elapsed_transit / 60.0))
                         if implied_speed > 80.0:
@@ -174,10 +240,13 @@ class ItineraryVerifier:
             # Return commute to hotel at end of day
             if day.activities and hotel_lat != 0.0:
                 ret_km = calculate_distance_km(prev_lat, prev_lng, hotel_lat, hotel_lng)
-                ret_mins, ret_cost = get_travel_metrics(
-                    prev_lat, prev_lng, hotel_lat, hotel_lng,
-                    mode=mode, people_count=request.people_count
-                )
+                if not strict_route_reconciliation and ret_km < 0.01:
+                    ret_mins, ret_cost = 0, 0
+                else:
+                    ret_mins, ret_cost = get_travel_metrics(
+                        prev_lat, prev_lng, hotel_lat, hotel_lng,
+                        mode=mode, people_count=request.people_count
+                    )
                 total_transit_km += ret_km
                 total_transit_mins += ret_mins
                 total_computed_transport_cost += ret_cost
@@ -196,42 +265,53 @@ class ItineraryVerifier:
 
             # Check Day Cost accounting
             if day.day_cost_inr != day_activities_cost:
-                warnings.append(
+                errors.append(
                     f"Day {day.day_number} cost summary mismatch: reported ₹{day.day_cost_inr} vs sum ₹{day_activities_cost}."
                 )
             total_computed_activities_cost += day_activities_cost
 
+        # 1b. Pinned / Locked Stop Retention Check
+        if request.locked_activities:
+            for pin in request.locked_activities:
+                pin_clean = pin.strip().lower()
+                if pin_clean and pin_clean not in visited_places:
+                    errors.append(
+                        f"Pinned Stop Violation: Mandatory pinned stop '{pin}' is missing from the itinerary."
+                    )
+
         # 2. Budget & Accounting Consistency Audit
         hotel_cost = plan.hotel_summary.total_cost_inr if plan.hotel_summary else 0
-        computed_grand_total = total_computed_activities_cost + total_computed_transport_cost + hotel_cost
+        effective_transport_cost = total_computed_transport_cost if strict_route_reconciliation else plan.estimated_transport_cost_inr
+        computed_grand_total = total_computed_activities_cost + effective_transport_cost + hotel_cost
 
         # Reconcile transport cost
-        if abs(total_computed_transport_cost - plan.estimated_transport_cost_inr) > 25:
-            errors.append(
-                f"Transport Cost Accounting Mismatch: recalculated route transit ₹{total_computed_transport_cost} does not match reported plan transit ₹{plan.estimated_transport_cost_inr}."
-            )
-        else:
-            checks_passed.append("Transport Cost Reconciled: Route legs match estimated transport cost.")
+        if strict_route_reconciliation:
+            if abs(total_computed_transport_cost - plan.estimated_transport_cost_inr) > 25:
+                errors.append(
+                    f"Transport Cost Accounting Mismatch: recalculated route transit ₹{total_computed_transport_cost} does not match reported plan transit ₹{plan.estimated_transport_cost_inr}."
+                )
+            else:
+                checks_passed.append("Transport Cost Reconciled: Route legs match estimated transport cost.")
 
         # Reconcile grand total
         if abs(computed_grand_total - plan.total_cost_inr) > 25:
             errors.append(
-                f"Grand Total Accounting Mismatch: recalculated total ₹{computed_grand_total} (activities: ₹{total_computed_activities_cost}, transit: ₹{total_computed_transport_cost}, lodging: ₹{hotel_cost}) does not match reported plan total ₹{plan.total_cost_inr}."
+                f"Grand Total Accounting Mismatch: recalculated total ₹{computed_grand_total} (activities: ₹{total_computed_activities_cost}, transit: ₹{effective_transport_cost}, lodging: ₹{hotel_cost}) does not match reported plan total ₹{plan.total_cost_inr}."
             )
         else:
             checks_passed.append("Grand Total Reconciled: Sum of activities, transit, and lodging matches total cost.")
 
         if plan.total_cost_inr > request.budget_inr or computed_grand_total > request.budget_inr:
             errors.append(
-                f"Budget Violation: Plan total ₹{max(plan.total_cost_inr, computed_grand_total)} exceeds requested budget ₹{request.budget_inr}."
+                f"Budget Violation: Plan total ₹{max(plan.total_cost_inr, computed_grand_total)} exceeds requested on-ground budget ₹{request.budget_inr}."
             )
         else:
-            checks_passed.append(f"Budget Verified: ₹{plan.total_cost_inr} is within budget ₹{request.budget_inr}.")
+            checks_passed.append(f"Budget Verified: ₹{plan.total_cost_inr} is within on-ground budget ₹{request.budget_inr}.")
 
         # Enforce transport cap strictly as a hard error if exceeded
         if request.transport_pref and request.transport_pref.max_budget_inr:
             reported_transport = plan.estimated_transport_cost_inr
-            actual_transport = total_computed_transport_cost
+            actual_transport = effective_transport_cost
             if reported_transport > request.transport_pref.max_budget_inr or actual_transport > request.transport_pref.max_budget_inr:
                 errors.append(
                     f"Transport Cap Violation: Estimated transport ₹{max(reported_transport, actual_transport)} exceeds requested cap of ₹{request.transport_pref.max_budget_inr}."
@@ -242,9 +322,9 @@ class ItineraryVerifier:
                 )
 
         if not errors:
-            checks_passed.append("Opening Hours & Closures: 100% compliant with operating windows.")
+            checks_passed.append("Opening Hours & Closures: 100% compliant with curated operating windows.")
             checks_passed.append("Transit Physics: Routes physically feasible with realistic traffic speeds.")
-            checks_passed.append("Accounting Integrity: Activity, transit, and lodging costs sum perfectly.")
+            checks_passed.append("Accounting Integrity: Activity, transit, and lodging costs sum accurately.")
             if dependency_checks_passed:
                 checks_passed.append("Activity Dependencies: All prerequisite activity chains respected.")
 
@@ -258,7 +338,7 @@ class ItineraryVerifier:
             "total_transit_km": f"{total_transit_km:.1f} km",
             "total_transit_time": f"{total_transit_mins} mins",
             "total_sightseeing_time": f"{total_activity_time_mins} mins",
-            "budget_utilization": f"{(plan.total_cost_inr / request.budget_inr * 100):.1f}%",
+            "budget_utilization": f"{(plan.total_cost_inr / max(1, request.budget_inr) * 100):.1f}%",
             "total_attractions_spend": f"₹{total_computed_attractions_cost}",
             "total_dining_spend": f"₹{total_computed_dining_cost}",
             "data_provenance": "Curated Prototype Seed Dataset"

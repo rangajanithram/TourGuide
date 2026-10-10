@@ -19,7 +19,7 @@ from fastapi import HTTPException
 sys.stdout.reconfigure(encoding='utf-8')
 from tripweave.main import generate_itinerary, generate_variants
 from tripweave.models import (
-    TripRequest, HotelPreference, TransportPreference, 
+    TripRequest, HotelPreference, TransportPreference,
     TransportMode, PacePreference, PlanVariantType, GroupProfile, Place
 )
 from tripweave.distance import calculate_distance_km, get_travel_metrics, compute_detour_cost_rupees, _cached_haversine
@@ -35,7 +35,7 @@ from tripweave.clustering import GeoClusterer
 
 def run_tests():
     print("🧪 Running TripWeave Master Verification Test Suite...\n")
-    
+
     # Test 1: Great-Circle Haversine Distance Accuracy
     print("1️⃣ Testing Great-Circle Haversine Distance...")
     # Distance between Charminar (17.3616, 78.4747) and Golconda Fort (17.3833, 78.4011)
@@ -155,7 +155,7 @@ def run_tests():
     hyd_name, hyd_lat, hyd_lng = LocationResolver.resolve_origin("hyderabad", start_location="Airport")
     del_name, del_lat, del_lng = LocationResolver.resolve_origin("delhi", start_location="Airport")
     jai_name, jai_lat, jai_lng = LocationResolver.resolve_origin("jaipur", start_location="Airport")
-    
+
     assert 17.20 <= hyd_lat <= 17.28, f"Hyderabad Airport lat wrong: {hyd_lat}"
     assert 28.50 <= del_lat <= 28.60, f"Delhi Airport lat wrong: {del_lat}"
     assert 26.80 <= jai_lat <= 26.86, f"Jaipur Airport lat wrong: {jai_lat}"
@@ -286,8 +286,8 @@ def run_tests():
     assert "Transit Physics: Routes physically feasible with realistic traffic speeds." in cap_plan.verification_report.checks_passed
     print(f"   ✅ Full Day Schedule Audited: Transit {ver_metrics['total_transit_km']} across daily return commutes.")
 
-    # Test 17: Variants Endpoint Preserves User Transport Cap
-    print("\n1️⃣7️⃣ Testing Variant Generation Preserves User Transport Cap...")
+    # Test 17: Variants Endpoint Preserves User Transport Cap & Deduplicates Identical Tiers
+    print("\n1️⃣7️⃣ Testing Variant Generation Preserves User Transport Cap & Deduplicates Identical Tiers...")
     multi_cap_req = TripRequest(
         destination="Hyderabad",
         days=1,
@@ -297,10 +297,14 @@ def run_tests():
         transport_pref=TransportPreference(mode=TransportMode.CAB, max_budget_inr=500)
     )
     multi_cap_plan = generate_variants(multi_cap_req)
+    assert "budget" in multi_cap_plan.variants and "balanced" in multi_cap_plan.variants
     for v_name, v_plan in multi_cap_plan.variants.items():
         assert v_plan.estimated_transport_cost_inr <= 500, f"Variant '{v_name}' transport ₹{v_plan.estimated_transport_cost_inr} exceeded cap ₹500!"
         assert v_plan.verification_report.is_valid is True
-    print(f"   ✅ All 3 Variants Respected User Transport Cap: Budget (₹{multi_cap_plan.variants['budget'].estimated_transport_cost_inr}), Balanced (₹{multi_cap_plan.variants['balanced'].estimated_transport_cost_inr}), Comfort (₹{multi_cap_plan.variants['comfort'].estimated_transport_cost_inr})")
+    # On a 0-night 1-day trip with a ₹500 cab cap, comfort produces the same schedule as balanced and must be explained in unavailable_variants
+    if "comfort" not in multi_cap_plan.variants:
+        assert "comfort" in multi_cap_plan.unavailable_variants
+    print(f"   ✅ Distinct Feasible Variants Respected User Transport Cap: {list(multi_cap_plan.variants.keys())} (unavailable_variants={list(multi_cap_plan.unavailable_variants.keys())})")
 
     # Test 18: City Center Origin Resolution
     print("\n1️⃣8️⃣ Testing City Center Origin Hub Resolution...")
@@ -309,11 +313,28 @@ def run_tests():
     assert 17.38 <= c_lat <= 17.40 and 78.47 <= c_lng <= 78.49
     print(f"   ✅ City Center Origin Verified: {c_name} at ({c_lat:.4f}, {c_lng:.4f})")
 
-    # Test 19: Weather Integration (Live Open-Meteo & Climatological Fallback)
+    # Test 19: Weather Integration (Live Open-Meteo Parser & Climatological Fallback)
     print("\n1️⃣9️⃣ Testing Weather Provider Integration & Live vs Fallback Distinction...")
-    # Case A: Live Forecast within 16-day horizon (e.g. 2 days from today)
+    # Case A: Live Forecast within 16-day horizon (deterministic mock of Open-Meteo payload)
+    from unittest.mock import patch, MagicMock
+    import json as _json
     near_start = date.today() + timedelta(days=2)
-    near_forecasts = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=near_start, days=2)
+    near_day2 = near_start + timedelta(days=1)
+    mock_payload = _json.dumps({
+        "daily": {
+            "time": [near_start.isoformat(), near_day2.isoformat()],
+            "weather_code": [0, 61],
+            "temperature_2m_max": [32.4, 28.5],
+            "precipitation_probability_max": [10, 75],
+        }
+    }).encode("utf-8")
+    mock_resp = MagicMock()
+    mock_resp.status = 200
+    mock_resp.read.return_value = mock_payload
+    mock_resp.__enter__.return_value = mock_resp
+    WeatherProvider._cache.clear()
+    with patch("urllib.request.urlopen", return_value=mock_resp):
+        near_forecasts = WeatherProvider.get_daily_forecasts(17.3850, 78.4867, start_date=near_start, days=2)
     near_key = near_start.isoformat()
     assert near_key in near_forecasts
     w_near = near_forecasts[near_key]
@@ -795,7 +816,7 @@ def run_tests():
     print("\n4️⃣1️⃣ Testing Interactive Itinerary Customizer & Edit Consequences Engine...")
     from tripweave.editor import ItineraryEditor
     from tripweave.models import EditConsequenceRequest, EditActionType, DayPlan, ScheduledActivity
-    
+
     # 1. Fetch candidate alternatives
     candidates = ItineraryEditor.get_candidate_alternatives("hyderabad", exclude_ids=["charminar"])
     assert len(candidates) > 0, "Candidate places must be returned for destination"
@@ -881,11 +902,56 @@ def run_tests():
     )
     sunset_resp = ItineraryEditor.preview_edit(sunset_req)
     assert sunset_resp.action == EditActionType.MOVE_TO_SUNSET
-    start_h = int(sunset_resp.suggested_updated_day.activities[0].start_time.split(":")[0])
-    assert start_h >= 16 or sunset_resp.feasibility_notes, "Sunset should schedule for late afternoon/golden hour"
-    print(f"   ✅ MOVE_TO_SUNSET Consequence Verified: Golden hour window scheduled at {sunset_resp.suggested_updated_day.activities[0].start_time} - {sunset_resp.suggested_updated_day.activities[0].end_time}")
+    from tripweave.editor import _parse_time_str
+    moved = next(a for a in sunset_resp.suggested_updated_day.activities if a.place_id == day1.activities[0].place_id)
+    gh, sunset = get_golden_hour_window(moved.lat, moved.lng, date.fromisoformat(day1.date))
+    actual = _parse_time_str(moved.start_time)
+    assert actual.hour * 60 + actual.minute == gh + 480, "Target must start at actual golden hour"
+    assert sunset_resp.is_feasible == sunset_resp.updated_plan.verification_report.is_valid
+    print(f"   ✅ MOVE_TO_SUNSET target checked against astronomical window: {moved.start_time}")
 
-    print("\n🎉 ALL 41 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
+    # 4️⃣2️⃣ Testing Pinned Stop Edit Protection, Independent Edit Verification & Process-Local Guardrails
+    print("\n4️⃣2️⃣ Testing Pinned Stop Edit Protection, Independent Edit Verification & Process-Local Guardrails...")
+    assert rem_resp.updated_plan is not None and rem_resp.updated_plan.verification_report is not None
+    assert swap_resp.updated_plan is not None and swap_resp.updated_plan.verification_report is not None
+    # Attempt to REMOVE a pinned activity (using pin_resp.updated_plan where activity 0 is locked)
+    pinned_remove_resp = ItineraryEditor.preview_edit(EditConsequenceRequest(
+        destination="hyderabad",
+        plan=pin_resp.updated_plan,
+        day_number=1,
+        activity_index=0,
+        action=EditActionType.REMOVE,
+        people_count=2,
+        transport_mode="auto",
+    ))
+    assert pinned_remove_resp.is_feasible is False, "Removing a pinned stop must be flagged infeasible until unpinned"
+    assert any("pinned" in note.lower() for note in pinned_remove_resp.feasibility_notes)
+    print("   ✅ Pinned Stop Protection & Independent Edit Verification Verified")
+
+    from tripweave.main import _enforce_rate_limit, _solver_slot, _USER_REQUEST_HISTORY
+    from tripweave.auth import UserProfile
+    test_user = UserProfile(
+        id="00000000-0000-4000-8000-000000000099",
+        email="ratelimit@example.com",
+        name="Rate Limit Tester",
+        auth_provider="email",
+        created_at="2026-10-10T00:00:00Z",
+    )
+    _USER_REQUEST_HISTORY.clear()
+    _enforce_rate_limit(test_user, bucket="test-bucket", limit=2, window_sec=60.0)
+    _enforce_rate_limit(test_user, bucket="test-bucket", limit=2, window_sec=60.0)
+    caught_429 = False
+    try:
+        _enforce_rate_limit(test_user, bucket="test-bucket", limit=2, window_sec=60.0)
+    except HTTPException as e:
+        assert e.status_code == 429
+        assert "Retry-After" in (e.headers or {})
+        caught_429 = True
+    assert caught_429, "Expected HTTP 429 when per-user rate limit is exceeded"
+    _USER_REQUEST_HISTORY.clear()
+    print("   ✅ Process-Local Per-User Rate Limiter (HTTP 429 + Retry-After) Verified")
+
+    print("\n🎉 ALL 42 COMPREHENSIVE VERIFICATION & ENGINE TESTS PASSED PERFECTLY!")
 
 if __name__ == "__main__":
     run_tests()

@@ -1,5 +1,6 @@
 'use client';
 import { plannerFetch } from '@/lib/planner-fetch';
+import { apiBaseUrl } from '@/lib/planner-network';
 
 import React, { useState, useEffect } from 'react';
 import {
@@ -20,7 +21,9 @@ interface EditConsequenceModalProps {
   activityIndex: number;
   initialAction: EditActionType;
   peopleCount: number;
-  onApplyUpdate: (updatedDay: DayPlan, newPlan?: TripPlan) => void;
+  pace?: 'relaxed' | 'balanced' | 'intensive';
+  budgetLimitInr?: number | null;
+  onApplyUpdate: (updatedDay: DayPlan, newPlan?: TripPlan, summaryReason?: string) => void;
 }
 
 export default function EditConsequenceModal({
@@ -32,6 +35,8 @@ export default function EditConsequenceModal({
   activityIndex,
   initialAction,
   peopleCount,
+  pace = 'balanced',
+  budgetLimitInr,
   onApplyUpdate
 }: EditConsequenceModalProps) {
   const [action, setAction] = useState<EditActionType>(initialAction);
@@ -70,8 +75,7 @@ export default function EditConsequenceModal({
       });
     });
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    plannerFetch(`${apiUrl}/api/itinerary/candidates?destination=${encodeURIComponent(destination)}&exclude_ids=${encodeURIComponent(scheduledPlaceIds.join(','))}`, { signal: controller.signal })
+    Promise.resolve().then(() => plannerFetch(`${apiBaseUrl()}/api/itinerary/candidates?destination=${encodeURIComponent(destination)}&exclude_ids=${encodeURIComponent(scheduledPlaceIds.join(','))}`, { signal: controller.signal }))
       .then(res => {
         if (!res.ok) throw new Error('Failed to load candidate alternatives');
         return res.json();
@@ -83,9 +87,9 @@ export default function EditConsequenceModal({
           setSelectedPlaceId(data[0].place_id);
         }
       })
-      .catch(() => {
+      .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        if (!controller.signal.aborted) setErrorMsg('Unable to load candidate attractions.');
+        setErrorMsg(error instanceof Error ? error.message : 'Unable to load candidate attractions.');
       })
       .finally(() => {
         if (!controller.signal.aborted) setIsLoadingCandidates(false);
@@ -103,8 +107,7 @@ export default function EditConsequenceModal({
     setIsLoadingPreview(true);
     setErrorMsg(null);
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-    plannerFetch(`${apiUrl}/api/itinerary/preview-edit`, {
+    Promise.resolve().then(() => plannerFetch(`${apiBaseUrl()}/api/itinerary/preview-edit`, {
       signal: controller.signal,
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -116,9 +119,11 @@ export default function EditConsequenceModal({
         action,
         replacement_place_id: action === 'swap' ? selectedPlaceId : undefined,
         people_count: peopleCount,
-        transport_mode: plan.transport_mode
+          pace,
+        transport_mode: plan.transport_mode,
+        budget_limit_inr: budgetLimitInr ?? plan.expense_breakdown?.budget_limit_inr ?? null
       })
-    })
+    }))
       .then(res => {
         if (!res.ok) return res.json().then(e => { throw new Error(e.detail || 'Failed preview'); });
         return res.json();
@@ -134,13 +139,17 @@ export default function EditConsequenceModal({
         if (!controller.signal.aborted) setIsLoadingPreview(false);
       });
     return () => controller.abort();
-  }, [isOpen, action, selectedPlaceId, destination, plan, dayNumber, activityIndex, peopleCount, targetActivity]);
+  }, [isOpen, action, selectedPlaceId, destination, plan, dayNumber, activityIndex, peopleCount, pace, budgetLimitInr, targetActivity]);
 
   if (!isOpen || !targetActivity) return null;
 
   const handleApply = () => {
-    if (preview?.suggested_updated_day) {
-      onApplyUpdate(preview.suggested_updated_day);
+    if (preview?.is_feasible && preview?.suggested_updated_day) {
+      onApplyUpdate(
+        preview.suggested_updated_day,
+        preview.updated_plan || undefined,
+        preview.impact_summary
+      );
       onClose();
     }
   };
@@ -362,22 +371,27 @@ export default function EditConsequenceModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="p-4 border-t border-[#d6dfd0] bg-[#eef1e5] flex items-center justify-end space-x-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#fffdf5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#425d4c] text-xs font-semibold transition-all"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={!preview?.suggested_updated_day}
-            onClick={handleApply}
-            className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
-          >
-            Apply Changes
-          </button>
+        <div className="p-4 border-t border-[#d6dfd0] bg-[#eef1e5] flex items-center justify-between gap-2">
+          <span className="text-[11px] text-[#526653]">
+            Preview only — no version is saved until you apply and save revision.
+          </span>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl bg-[#fffdf5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#425d4c] text-xs font-semibold transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={!preview?.suggested_updated_day || !preview.is_feasible}
+              onClick={handleApply}
+              className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
+            >
+              {preview && !preview.is_feasible ? 'Constraint Conflict' : 'Apply Changes'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

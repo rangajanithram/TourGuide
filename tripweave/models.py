@@ -43,20 +43,25 @@ class TransportPreference(BaseModel):
 
 class TripRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    origin_city: Optional[str] = Field(None, description="Optional departure city for inter-city travel recommendations (e.g. 'Bengaluru', 'Mumbai', 'Delhi')")
-    destination: str = Field(..., min_length=2, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
+    origin_city: Optional[str] = Field(None, max_length=80, description="Optional departure city for inter-city travel recommendations (e.g. 'Bengaluru', 'Mumbai', 'Delhi')")
+    destination: str = Field(..., min_length=2, max_length=80, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
     start_date: Optional[date] = Field(None, description="Trip start date (YYYY-MM-DD)")
     end_date: Optional[date] = Field(None, description="Trip end date (YYYY-MM-DD)")
     days: Optional[int] = Field(None, gt=0, le=14, description="Trip duration in days (auto-computed if dates provided)")
-    budget_inr: int = Field(..., gt=0, description="Total budget in INR")
+    budget_inr: int = Field(
+        ...,
+        gt=0,
+        le=5_000_000,
+        description="Total on-ground destination budget in INR for the entire group (covers lodging, local city transit, attraction entry fees, and scheduled itinerary dining; excludes intercity travel, lodging taxes/GST, and unscheduled personal expenses)"
+    )
     people_count: int = Field(..., gt=0, le=20, description="Number of travelers (1 to 20)")
-    interests: List[str] = Field(default_factory=list, description="User tags/interests (e.g. ['history', 'food'])")
+    interests: List[str] = Field(default_factory=list, max_length=20, description="User tags/interests (e.g. ['history', 'food'])")
     pace: PacePreference = Field(default=PacePreference.BALANCED, description="Trip intensity/pace")
-    start_location: Optional[str] = Field(None, description="Optional starting hub for day trips (e.g. 'Secunderabad Railway Station')")
-    origin_type: Optional[str] = Field("hotel", description="Trip starting origin type: 'hotel', 'station', 'airport', 'custom'")
+    start_location: Optional[str] = Field(None, max_length=160, description="Optional starting hub for day trips (e.g. 'Secunderabad Railway Station')")
+    origin_type: Optional[str] = Field("hotel", max_length=40, description="Trip starting origin type: 'hotel', 'station', 'airport', 'custom'")
     transport_mode: Optional[TransportMode] = Field(None, description="Primary transport mode shorthand")
     group_profile: GroupProfile = Field(default=GroupProfile.DEFAULT, description="Traveler group profile for calibrated pacing & fatigue")
-    locked_activities: List[str] = Field(default_factory=list, description="User-pinned activities that must be included")
+    locked_activities: List[str] = Field(default_factory=list, max_length=15, description="User-pinned activities that must be included")
     hotel_pref: Optional[HotelPreference] = None
     transport_pref: Optional[TransportPreference] = None
 
@@ -176,17 +181,17 @@ class Place(BaseModel):
 # --- OUTPUT ITINERARY (What the engine produces) ---
 
 class HotelStaySummary(BaseModel):
-    hotel_id: str = Field(default="", description="Unique ID of the hotel or day-trip depot")
-    hotel_name: str
-    lat: float = Field(default=0.0, description="Hotel latitude for map pin")
-    lng: float = Field(default=0.0, description="Hotel longitude for map pin")
-    price_per_night_per_room: int
-    rooms_needed: int
-    nights: int
-    people_accommodated: int
-    total_cost_inr: int
-    provenance: str = Field(..., description="Clear provenance note of the rate")
-    why_this_hotel: Optional[str] = Field(None, description="Decision trace explaining why this hotel was selected")
+    hotel_id: str = Field(default="", max_length=120, description="Unique ID of the hotel or day-trip depot")
+    hotel_name: str = Field(..., min_length=1, max_length=200)
+    lat: float = Field(default=0.0, ge=-90.0, le=90.0, description="Hotel latitude for map pin")
+    lng: float = Field(default=0.0, ge=-180.0, le=180.0, description="Hotel longitude for map pin")
+    price_per_night_per_room: int = Field(..., ge=0, le=1_000_000)
+    rooms_needed: int = Field(..., ge=0, le=50)
+    nights: int = Field(..., ge=0, le=14)
+    people_accommodated: int = Field(..., ge=1, le=50)
+    total_cost_inr: int = Field(..., ge=0, le=5_000_000)
+    provenance: str = Field(..., max_length=500, description="Clear provenance note of the rate")
+    why_this_hotel: Optional[str] = Field(None, max_length=1000, description="Decision trace explaining why this hotel was selected")
 
 class WeatherSummary(BaseModel):
     condition: str = Field(default="Clear", description="Dominant weather condition: Clear, Partly Cloudy, Rain, etc.")
@@ -210,52 +215,52 @@ class DecisionTrace(BaseModel):
     excluded_places: List[ExclusionReason] = Field(default_factory=list, description="Why not X: Reasons why candidate places were excluded")
 
 class ExpenseBreakdown(BaseModel):
-    lodging_inr: int = 0
-    transit_inr: int = 0
-    activities_inr: int = 0
-    dining_inr: int = 0
-    direct_subtotal_inr: int = 0
-    unallocated_buffer_inr: int = 0
-    suggested_meals_inr: int = 0
-    additional_meals_inr: int = 0
-    budget_limit_inr: int = 0
+    lodging_inr: int = Field(default=0, ge=0, le=5_000_000)
+    transit_inr: int = Field(default=0, ge=0, le=5_000_000)
+    activities_inr: int = Field(default=0, ge=0, le=5_000_000)
+    dining_inr: int = Field(default=0, ge=0, le=5_000_000)
+    direct_subtotal_inr: int = Field(default=0, ge=0, le=10_000_000)
+    unallocated_buffer_inr: int = Field(default=0, ge=0, le=10_000_000)
+    suggested_meals_inr: int = Field(default=0, ge=0, le=5_000_000)
+    additional_meals_inr: int = Field(default=0, ge=0, le=5_000_000)
+    budget_limit_inr: int = Field(default=0, ge=0, le=10_000_000)
     meal_buffer_status: str = Field(default="Sufficient", description="Status comparing buffer against estimated meal needs")
 
     # Backwards-compatibility aliases
-    buffer_inr: int = 0
-    estimated_meals_inr: int = 0
-    total_inr: int = 0
-    per_person_inr: int = 0
+    buffer_inr: int = Field(default=0, ge=0, le=10_000_000)
+    estimated_meals_inr: int = Field(default=0, ge=0, le=5_000_000)
+    total_inr: int = Field(default=0, ge=0, le=10_000_000)
+    per_person_inr: int = Field(default=0, ge=0, le=5_000_000)
 
 class ScheduledActivity(BaseModel):
-    place_id: Optional[str] = None
-    place_name: str
-    place_type: str = Field(default="attraction", description="'attraction' or 'restaurant'")
-    lat: float = Field(default=0.0, description="Activity latitude for map pin")
-    lng: float = Field(default=0.0, description="Activity longitude for map pin")
-    start_time: str
-    end_time: str
-    estimated_cost_inr: int
+    place_id: Optional[str] = Field(default=None, max_length=120)
+    place_name: str = Field(..., min_length=1, max_length=200)
+    place_type: str = Field(default="attraction", max_length=40, description="'attraction' or 'restaurant'")
+    lat: float = Field(default=0.0, ge=-90.0, le=90.0, description="Activity latitude for map pin")
+    lng: float = Field(default=0.0, ge=-180.0, le=180.0, description="Activity longitude for map pin")
+    start_time: str = Field(..., min_length=3, max_length=32)
+    end_time: str = Field(..., min_length=3, max_length=32)
+    estimated_cost_inr: int = Field(..., ge=0, le=5_000_000)
     is_locked: bool = Field(default=False, description="True if pinned/locked by user")
-    experience_tag: Optional[str] = None
+    experience_tag: Optional[str] = Field(default=None, max_length=160)
     recommended_viewpoint: Optional[ViewpointRecommendation] = None
-    verification_status: Optional[str] = Field(default="curated_seed", description="Data provenance status")
-    last_verified_date: Optional[str] = Field(default="2026-09-01", description="Last date ticket rates and hours were audited")
-    source_reference: Optional[str] = Field(default="Curated City Seed Dataset", description="Source of opening hours and fees")
+    verification_status: Optional[str] = Field(default="curated_seed", max_length=60, description="Data provenance status")
+    last_verified_date: Optional[str] = Field(default="2026-09-01", max_length=32, description="Last date ticket rates and hours were audited")
+    source_reference: Optional[str] = Field(default="Curated City Seed Dataset", max_length=280, description="Source of opening hours and fees")
     crowd_forecast: Optional[CrowdForecast] = Field(default=None, description="Heuristic crowd forecast for this scheduled time window")
-    depends_on: List[str] = Field(default_factory=list, description="Prerequisite activities that must precede this stop")
+    depends_on: List[str] = Field(default_factory=list, max_length=10, description="Prerequisite activities that must precede this stop")
     detour_cost_inr: Optional[float] = Field(default=None, description="Detour cost in INR for dining insertion")
 
 
 class DayPlan(BaseModel):
-    day_number: int
-    date: Optional[str] = None           # e.g. "2026-10-16"
-    day_of_week: Optional[str] = None    # e.g. "Friday"
-    cluster_name: Optional[str] = None   # e.g. "Historic Heritage Hub"
-    activities: List[ScheduledActivity]
-    day_cost_inr: int
-    fatigue_score: Optional[int] = Field(None, description="Physical exertion index (0-100)")
-    fatigue_level: Optional[str] = Field(None, description="Pacing description e.g. Gentle Pace, Moderate, High Exertion")
+    day_number: int = Field(..., ge=1, le=14)
+    date: Optional[str] = Field(default=None, max_length=32)           # e.g. "2026-10-16"
+    day_of_week: Optional[str] = Field(default=None, max_length=32)    # e.g. "Friday"
+    cluster_name: Optional[str] = Field(default=None, max_length=160)  # e.g. "Historic Heritage Hub"
+    activities: List[ScheduledActivity] = Field(..., max_length=25)
+    day_cost_inr: int = Field(..., ge=0, le=5_000_000)
+    fatigue_score: Optional[int] = Field(None, ge=0, le=100, description="Physical exertion index (0-100)")
+    fatigue_level: Optional[str] = Field(None, max_length=80, description="Pacing description e.g. Gentle Pace, Moderate, High Exertion")
     weather: Optional[WeatherSummary] = Field(None, description="Day weather forecast and advisory")
 
 class VerificationReport(BaseModel):
@@ -267,31 +272,37 @@ class VerificationReport(BaseModel):
     metrics: Dict[str, str] = Field(default_factory=dict, description="Operational physics metrics")
 
 class TripPlan(BaseModel):
-    plan_name: str
+    plan_name: str = Field(..., min_length=1, max_length=200)
     variant_type: PlanVariantType = PlanVariantType.BALANCED
     hotel_summary: Optional[HotelStaySummary] = None
-    estimated_transport_cost_inr: int = 0
-    transport_budget_limit_inr: Optional[int] = Field(None, ge=1)
+    estimated_transport_cost_inr: int = Field(default=0, ge=0, le=5_000_000)
+    transport_budget_limit_inr: Optional[int] = Field(None, ge=1, le=5_000_000)
     transport_mode: TransportMode
-    transport_budget_status: str = Field(default="Within budget", description="Status of transport spend relative to user cap")
-    days: List[DayPlan]
-    total_cost_inr: int
+    transport_budget_status: str = Field(default="Within budget", max_length=160, description="Status of transport spend relative to user cap")
+    days: List[DayPlan] = Field(..., min_length=1, max_length=14)
+    total_cost_inr: int = Field(..., ge=0, le=10_000_000)
     verification_report: Optional[VerificationReport] = Field(default=None, description="Independent verification and physics audit")
     fatigue_report: Optional[Dict[str, Any]] = Field(default=None, description="Physical exertion and pace report")
     decision_trace: Optional[DecisionTrace] = Field(default=None, description="Why this hotel and why not X explainability trace")
     expense_breakdown: Optional[ExpenseBreakdown] = Field(default=None, description="Category-wise budget breakdown and simulator")
     intercity_transport: Optional[InterCityTransportSummary] = Field(default=None, description="Curated inter-city transit options & depot-to-hotel last mile connection")
     disclaimer: str = Field(
-        default="Estimated local subtotal. Excludes intercity transit, lodging taxes/GST, and unmodeled expenses.",
+        default="Estimated local on-ground subtotal (lodging, local transit, attraction tickets, and scheduled dining). Excludes intercity travel, lodging taxes/GST, and unscheduled personal expenses.",
+        max_length=500,
         description="Cost transparency disclaimer"
     )
 
 class MultiVariantTripPlan(BaseModel):
+    schema_version: int = Field(default=1, ge=1, le=10, description="Snapshot schema version for saved-trip compatibility")
     destination: str
     origin_city: Optional[str] = None
     travel_dates: str
     synthesis_stages: List[Dict[str, Any]] = Field(default_factory=list, description="Telemetry describing the 10 executed blueprint optimization stages")
-    variants: Dict[str, TripPlan] = Field(..., description="The 3 diverse plan variants: budget, balanced, comfort")
+    variants: Dict[str, TripPlan] = Field(..., description="Genuinely distinct feasible plan variants (1 to 3 of: budget, balanced, comfort)")
+    unavailable_variants: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Explanations for any variant tiers that were infeasible or identical under the user's constraints"
+    )
 
 # --- INTERACTIVE ITINERARY CUSTOMIZER & EDIT CONSEQUENCE MODELS ---
 
@@ -303,14 +314,16 @@ class EditActionType(str, Enum):
 
 class EditConsequenceRequest(BaseModel):
     model_config = ConfigDict(extra="ignore")
-    destination: str
+    destination: str = Field(..., min_length=2, max_length=80)
     plan: TripPlan
-    day_number: int
-    activity_index: int
+    day_number: int = Field(..., ge=1, le=14)
+    activity_index: int = Field(..., ge=0, le=25)
     action: EditActionType
-    replacement_place_id: Optional[str] = None
-    people_count: int = Field(default=1, gt=0)
+    replacement_place_id: Optional[str] = Field(default=None, max_length=120)
+    people_count: int = Field(default=1, gt=0, le=20)
     transport_mode: TransportMode = Field(default=TransportMode.CAB)
+    pace: PacePreference = Field(default=PacePreference.BALANCED)
+    budget_limit_inr: Optional[int] = Field(default=None, gt=0, le=5_000_000)
 
 class EditConsequenceResponse(BaseModel):
     is_feasible: bool
@@ -324,6 +337,7 @@ class EditConsequenceResponse(BaseModel):
     feasibility_notes: List[str] = Field(default_factory=list)
     impact_summary: str
     suggested_updated_day: Optional[DayPlan] = None
+    updated_plan: Optional[TripPlan] = None
 
 # --- LIVE IN-TRIP REBALANCER ("I'M TIRED" MODE) MODELS ---
 

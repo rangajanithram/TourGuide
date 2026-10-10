@@ -282,7 +282,11 @@ class TripOptimizer:
 
             budget_callback_index = routing.RegisterTransitCallback(step_cost_callback)
             hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
-            available_budget = max(500, self.max_total_budget - hotel_total)
+            available_budget = self.max_total_budget - hotel_total
+            if available_budget <= 0:
+                raise InfeasibleItineraryError(
+                    f"No on-ground budget remains for local transit and sightseeing after lodging (₹{hotel_total} of ₹{self.max_total_budget})."
+                )
 
             routing.AddDimension(
                 budget_callback_index,

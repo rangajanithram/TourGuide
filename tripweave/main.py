@@ -1,9 +1,14 @@
 import os
 import time
 import logging
-from typing import List, Optional, Dict
+import threading
+from urllib.parse import urlparse
+from collections import deque
+from contextlib import contextmanager
+from typing import List, Optional, Dict, Deque, Tuple
 from fastapi import FastAPI, HTTPException, status, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 logger = logging.getLogger("tripweave")
 
@@ -23,6 +28,78 @@ from tripweave.transport import get_transport_provider
 from tripweave.editor import ItineraryEditor
 from tripweave.auth import get_current_user, UserProfile
 
+# ---------------------------------------------------------------------------
+# Process-Local Production Protection Guardrails
+# Note: These rate-limit and concurrency controls are process-local per worker
+# instance. Multi-instance deployments require shared edge/Redis enforcement.
+# ---------------------------------------------------------------------------
+MAX_REQUEST_BYTES = 262_144  # 256 KB payload bound for itinerary/customizer endpoints
+_RATE_LIMIT_LOCK = threading.Lock()
+_USER_REQUEST_HISTORY: Dict[Tuple[str, str], Deque[float]] = {}
+_SOLVER_SEMAPHORE = threading.BoundedSemaphore(settings.solver_concurrency)
+
+
+def _enforce_rate_limit(
+    current_user: object,
+    bucket: str,
+    limit: int = 20,
+    window_sec: float = 60.0,
+) -> None:
+    """Process-local sliding-window rate limiter keyed by verified user id and endpoint bucket."""
+    if not isinstance(current_user, UserProfile):
+        return
+    now = time.monotonic()
+    key = (current_user.id, bucket)
+    with _RATE_LIMIT_LOCK:
+        dq = _USER_REQUEST_HISTORY.get(key)
+        if dq is None:
+            dq = deque()
+            _USER_REQUEST_HISTORY[key] = dq
+        while dq and (now - dq[0]) >= window_sec:
+            dq.popleft()
+        if len(dq) >= limit:
+            retry_after = max(1, int(round(window_sec - (now - dq[0]))))
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=(
+                    f"Rate limit exceeded for {bucket} ({limit} requests per {int(window_sec)}s per user; "
+                    f"process-local guardrail). Please retry in {retry_after}s."
+                ),
+                headers={"Retry-After": str(retry_after)},
+            )
+        dq.append(now)
+
+
+@contextmanager
+def _solver_slot(timeout_sec: float = settings.solver_queue_timeout_seconds):
+    """Bounds concurrent OR-Tools / edit solver executions within a single process."""
+    acquired = _SOLVER_SEMAPHORE.acquire(timeout=timeout_sec)
+    if not acquired:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Optimization engine is currently at capacity (process-local concurrency guardrail). Please retry shortly.",
+            headers={"Retry-After": "5"},
+        )
+    try:
+        yield
+    finally:
+        _SOLVER_SEMAPHORE.release()
+
+
+def _variant_signature(plan: TripPlan) -> tuple:
+    """Computes a structural fingerprint of a TripPlan to detect duplicate variants."""
+    hotel_id = plan.hotel_summary.hotel_id if plan.hotel_summary else ""
+    mode = plan.transport_mode.value if hasattr(plan.transport_mode, "value") else str(plan.transport_mode)
+    schedule_sig = tuple(
+        (
+            d.day_number,
+            tuple((a.place_id or a.place_name, a.start_time, a.end_time) for a in d.activities),
+        )
+        for d in plan.days
+    )
+    return (hotel_id, mode, plan.total_cost_inr, schedule_sig)
+
+
 # 1. Initialize FastAPI Application
 app = FastAPI(
     title="TripWeave Optimization Engine API",
@@ -41,6 +118,34 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def request_protection_middleware(request: Request, call_next):
+    """Enforces request payload bounds and private no-store cache headers on user-specific API routes."""
+    content_length = request.headers.get("content-length")
+    if content_length:
+        try:
+            if int(content_length) > MAX_REQUEST_BYTES:
+                return JSONResponse(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    content={"detail": f"Request payload exceeds the {MAX_REQUEST_BYTES // 1024} KB maximum size limit."},
+                )
+        except ValueError:
+            pass
+
+    if request.method in ("POST", "PUT", "PATCH"):
+        body = await request.body()
+        if len(body) > MAX_REQUEST_BYTES:
+            return JSONResponse(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                content={"detail": f"Request payload exceeds the {MAX_REQUEST_BYTES // 1024} KB maximum size limit."},
+            )
+
+    response = await call_next(request)
+    if request.url.path.startswith("/api/itinerary") or request.url.path.startswith("/api/auth"):
+        response.headers["Cache-Control"] = "private, no-store"
+    return response
+
+
 @app.get("/health", tags=["Health"])
 @app.get("/", tags=["Health"])
 def health_check():
@@ -52,6 +157,43 @@ def health_check():
     }
 
 
+@app.get("/ready", tags=["Health"])
+def readiness_check():
+    """Local configuration/catalog readiness, not proof that external services are reachable.
+
+    No solver runs, network calls, credentials or filesystem paths are exposed.
+    Liveness remains independent so a configuration failure cannot cause restart loops.
+    """
+    project = urlparse(settings.supabase_url or "")
+    local = settings.environment != "production" and project.hostname in {"localhost", "127.0.0.1"}
+    auth_configured = bool(
+        settings.supabase_publishable_key and project.hostname
+        and "your-project" not in project.hostname
+        and (project.scheme == "https" or local)
+    )
+    catalog_ready = True
+    try:
+        provider = get_places_provider()
+        cities = provider.get_supported_cities()
+        catalog_ready = bool(cities)
+        for city in cities:
+            places = provider.get_places(city)
+            ids = [place.place_id for place in places]
+            if (len(ids) != len(set(ids)) or not any(place.place_type == "hotel" for place in places)
+                    or not any(place.place_type not in {"hotel", "restaurant", "rest_break"} for place in places)):
+                catalog_ready = False
+    except Exception:
+        logger.exception("Catalog readiness check failed")
+        catalog_ready = False
+    ready = auth_configured and catalog_ready
+    return JSONResponse(status_code=200 if ready else 503, content={
+        "status": "ready" if ready else "not_ready",
+        "checks": {"auth_configuration": auth_configured, "catalog": catalog_ready},
+        "data_source": "curated_catalog",
+        "external_services_verified": False,
+    }, headers={"Cache-Control": "no-store", **({} if ready else {"Retry-After": "5"})})
+
+
 def get_database_places(destination: str = "hyderabad") -> List[Place]:
     """Loads curated places via the PlacesDataProvider abstraction."""
     provider = get_places_provider()
@@ -59,8 +201,10 @@ def get_database_places(destination: str = "hyderabad") -> List[Place]:
         return provider.get_places(destination)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    except (FileNotFoundError, OSError) as e:
+        logger.exception("Catalog unavailable")
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Destination data is temporarily unavailable. Please try again later.") from e
 
 def _build_single_plan(
     request: TripRequest,
@@ -119,7 +263,6 @@ def _build_single_plan(
             viable_candidates.append(place)
     viable_candidates.append(selected_hotel_place)
     valid_places = viable_candidates
-    transport_reserve = est_transport_budget
     timings[2] = round(max(0.01, (time.perf_counter() - t_stage2) * 1000), 2)
 
     # Stage 3: DBSCAN Geo-Clustering
@@ -297,114 +440,189 @@ def generate_itinerary(request: TripRequest, current_user: UserProfile = Depends
     Generates a single optimal itinerary based on user constraints.
     Enforces opening hours, day-of-week closures, golden hour, and budget limits.
     """
-    return _build_single_plan(request, variant=PlanVariantType.BALANCED)
+    _enforce_rate_limit(current_user, bucket="generate", limit=15, window_sec=60.0)
+    with _solver_slot():
+        return _build_single_plan(request, variant=PlanVariantType.BALANCED)
 
 @app.post("/api/itinerary/generate-variants", response_model=MultiVariantTripPlan, tags=["Itinerary Generation"])
 def generate_variants(request: TripRequest, current_user: UserProfile = Depends(get_current_user)):
     """
-    Blueprint Stage 9: Generates 3 Diverse Plan Variants:
+    Blueprint Stage 9: Generates up to 3 genuinely distinct feasible plan variants:
     1. Budget / Relaxed: Slower pace (2 places/day), lower expense.
     2. Balanced: Optimal trade-off with iconic golden-hour highlights.
     3. Comfort: Intensive pace (4 places/day) with cab transit.
+    Never copies Balanced as a fake Budget/Comfort variant when constraints are tight.
     """
-    user_transport_cap = request.transport_pref.max_budget_inr if request.transport_pref else None
+    _enforce_rate_limit(current_user, bucket="generate-variants", limit=12, window_sec=60.0)
+    with _solver_slot():
+        user_transport_cap = request.transport_pref.max_budget_inr if request.transport_pref else None
+        unavailable_variants: Dict[str, str] = {}
+        stage_timings: Dict[int, float] = {}
+        shared_weather: Dict[str, WeatherSummary] = {}
 
-    # Step A: Build balanced plan first (primary user baseline) and capture actual stage timings
-    plan_balanced, stage_timings = _build_single_plan(
-        request,
-        variant=PlanVariantType.BALANCED,
-        return_timings=True
-    )
+        # Step A: Attempt Balanced variant first (primary user baseline)
+        plan_balanced: Optional[TripPlan] = None
+        try:
+            plan_balanced, stage_timings = _build_single_plan(
+                request,
+                variant=PlanVariantType.BALANCED,
+                return_timings=True
+            )
+            for day in plan_balanced.days:
+                if day.date and day.weather:
+                    shared_weather[day.date] = day.weather
+        except HTTPException as e:
+            if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
+                raise
+            unavailable_variants["balanced"] = str(e.detail)
 
-    # Extract weather from balanced plan to share across all variants (avoids 3x redundant network calls)
-    shared_weather: Dict[str, WeatherSummary] = {}
-    for day in plan_balanced.days:
-        if day.date and day.weather:
-            shared_weather[day.date] = day.weather
+        # Step B: Attempt Budget variant (Relaxed pace, Auto transit, budget-conscious stay)
+        t_stage9_start = time.perf_counter()
+        plan_budget: Optional[TripPlan] = None
+        budget_req = request.model_copy(deep=True)
+        budget_req.pace = PacePreference.RELAXED
+        budget_req.transport_pref = TransportPreference(mode=TransportMode.AUTO, max_budget_inr=user_transport_cap)
+        if not budget_req.hotel_pref:
+            budget_req.hotel_pref = HotelPreference(max_price_per_night_inr=1800)
+        try:
+            if plan_balanced is None:
+                plan_budget, stage_timings = _build_single_plan(
+                    budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather or None, return_timings=True
+                )
+            else:
+                plan_budget = _build_single_plan(
+                    budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather or None
+                )
+        except HTTPException as e:
+            if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
+                raise
+            if "hotel" in str(e.detail).lower() and budget_req.hotel_pref != request.hotel_pref:
+                budget_req.hotel_pref = request.hotel_pref
+                try:
+                    if plan_balanced is None and not stage_timings:
+                        plan_budget, stage_timings = _build_single_plan(
+                            budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather or None, return_timings=True
+                        )
+                    else:
+                        plan_budget = _build_single_plan(
+                            budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather or None
+                        )
+                except HTTPException as e_retry:
+                    if e_retry.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
+                        raise
+                    unavailable_variants["budget"] = str(e_retry.detail)
+            else:
+                unavailable_variants["budget"] = str(e.detail)
 
-    # Step B: Build budget variant (Relaxed pace, Auto transit, smart budget stay)
-    t_stage9_start = time.perf_counter()
-    budget_req = request.model_copy(deep=True)
-    budget_req.pace = PacePreference.RELAXED
-    budget_req.transport_pref = TransportPreference(mode=TransportMode.AUTO, max_budget_inr=user_transport_cap)
-    if not budget_req.hotel_pref:
-        budget_req.hotel_pref = HotelPreference(max_price_per_night_inr=1800)
-    try:
-        plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather)
-    except HTTPException as e:
-        # Re-raise internal server errors (500) or bad requests (400) immediately
-        if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-            raise
-        if "hotel" in e.detail.lower() and budget_req.hotel_pref != request.hotel_pref:
-            budget_req.hotel_pref = request.hotel_pref
-            try:
-                plan_budget = _build_single_plan(budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather)
-            except HTTPException as e_retry:
-                if e_retry.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-                    raise
-                plan_budget = plan_balanced.model_copy(deep=True)
-                plan_budget.variant_type = PlanVariantType.BUDGET
-                plan_budget.plan_name = "TripWeave Itinerary (Budget Variant - Balanced Fallback)"
-        else:
-            plan_budget = plan_balanced.model_copy(deep=True)
-            plan_budget.variant_type = PlanVariantType.BUDGET
-            plan_budget.plan_name = "TripWeave Itinerary (Budget Variant - Balanced Fallback)"
+        if plan_budget is not None and not shared_weather:
+            for day in plan_budget.days:
+                if day.date and day.weather:
+                    shared_weather[day.date] = day.weather
 
-    # Step C: Build comfort variant (Intensive pace, Cab transit, upgraded boutique lodging)
-    comfort_req = request.model_copy(deep=True)
-    comfort_req.pace = PacePreference.INTENSIVE
-    comfort_req.transport_pref = TransportPreference(mode=TransportMode.CAB, max_budget_inr=user_transport_cap)
-    if not comfort_req.hotel_pref:
-        comfort_req.hotel_pref = HotelPreference(min_price_per_night_inr=2200)
-    try:
-        plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather)
-    except HTTPException as e:
-        # Re-raise internal server errors (500) or bad requests (400) immediately
-        if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-            raise
-        if "hotel" in e.detail.lower() and comfort_req.hotel_pref != request.hotel_pref:
-            comfort_req.hotel_pref = request.hotel_pref
-            try:
-                plan_comfort = _build_single_plan(comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather)
-            except HTTPException as e_retry:
-                if e_retry.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-                    raise
-                plan_comfort = plan_balanced.model_copy(deep=True)
-                plan_comfort.variant_type = PlanVariantType.COMFORT
-                plan_comfort.plan_name = "TripWeave Itinerary (Comfort Variant - Balanced Fallback)"
-        else:
-            plan_comfort = plan_balanced.model_copy(deep=True)
-            plan_comfort.variant_type = PlanVariantType.COMFORT
-            plan_comfort.plan_name = "TripWeave Itinerary (Comfort Variant - Balanced Fallback)"
+        # Step C: Attempt Comfort variant (Intensive pace, Cab transit, upgraded boutique lodging)
+        plan_comfort: Optional[TripPlan] = None
+        comfort_req = request.model_copy(deep=True)
+        comfort_req.pace = PacePreference.INTENSIVE
+        comfort_req.transport_pref = TransportPreference(mode=TransportMode.CAB, max_budget_inr=user_transport_cap)
+        if not comfort_req.hotel_pref:
+            comfort_req.hotel_pref = HotelPreference(min_price_per_night_inr=2200)
+        try:
+            if plan_balanced is None and plan_budget is None and not stage_timings:
+                plan_comfort, stage_timings = _build_single_plan(
+                    comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather or None, return_timings=True
+                )
+            else:
+                plan_comfort = _build_single_plan(
+                    comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather or None
+                )
+        except HTTPException as e:
+            if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
+                raise
+            if "hotel" in str(e.detail).lower() and comfort_req.hotel_pref != request.hotel_pref:
+                comfort_req.hotel_pref = request.hotel_pref
+                try:
+                    if plan_balanced is None and plan_budget is None and not stage_timings:
+                        plan_comfort, stage_timings = _build_single_plan(
+                            comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather or None, return_timings=True
+                        )
+                    else:
+                        plan_comfort = _build_single_plan(
+                            comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather or None
+                        )
+                except HTTPException as e_retry:
+                    if e_retry.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
+                        raise
+                    unavailable_variants["comfort"] = str(e_retry.detail)
+            else:
+                unavailable_variants["comfort"] = str(e.detail)
 
-    stage_timings[9] = round((time.perf_counter() - t_stage9_start) * 1000, 2)
-    travel_dates_str = f"{request.start_date.isoformat()} to {request.end_date.isoformat()}" if request.start_date and request.end_date else f"{request.days} Days"
+        # Deduplicate variants so we never return identical schedules disguised as different tiers
+        # Evaluate 'balanced' first so the primary baseline is retained when a secondary tier is identical.
+        seen_signatures: Dict[tuple, str] = {}
+        accepted_by_key: Dict[str, TripPlan] = {}
+        for v_key, candidate_plan in (
+            ("balanced", plan_balanced),
+            ("budget", plan_budget),
+            ("comfort", plan_comfort),
+        ):
+            if candidate_plan is None:
+                continue
+            sig = _variant_signature(candidate_plan)
+            if sig in seen_signatures:
+                existing_key = seen_signatures[sig]
+                unavailable_variants[v_key] = (
+                    f"Produced the same schedule, hotel, transport mode, and cost as the '{existing_key.capitalize()}' "
+                    f"variant under your current constraints, so duplicate output was omitted."
+                )
+            else:
+                seen_signatures[sig] = v_key
+                accepted_by_key[v_key] = candidate_plan
 
-    # Stage Telemetry with 100% genuine measured stage timings
-    stages = [
-        {"stage": 1, "name": "Candidate Generation", "status": "completed", "detail": f"Audited seed attractions & dining for {request.destination.capitalize()}", "duration_ms": stage_timings.get(1, 0.0)},
-        {"stage": 2, "name": "Hard Feasibility Filter", "status": "completed", "detail": "Enforced weekly closures, group constraints & entry limits", "duration_ms": stage_timings.get(2, 0.0)},
-        {"stage": 3, "name": "DBSCAN Geo-Clustering", "status": "completed", "detail": "Spatial neighborhood clustering into distinct daily zones", "duration_ms": stage_timings.get(3, 0.0)},
-        {"stage": 4, "name": "Workload Balancing", "status": "completed", "detail": f"Distributed attractions across {request.days} trip days", "duration_ms": stage_timings.get(4, 0.0)},
-        {"stage": 5, "name": "Hotel Scoring", "status": "completed", "detail": "TotalDailyTravelCost minimization from attraction centers", "duration_ms": stage_timings.get(5, 0.0)},
-        {"stage": 6, "name": "OR-Tools VRP Scheduling", "status": "completed", "detail": "Time-window routing with solar sunset & dining detours", "duration_ms": stage_timings.get(6, 0.0)},
-        {"stage": 7, "name": "Fatigue & Pace Engine", "status": "completed", "detail": f"Calibrated physical exertion for '{request.group_profile.value}' profile", "duration_ms": stage_timings.get(7, 0.0)},
-        {"stage": 8, "name": "Physics & Feasibility Audit", "status": "completed", "detail": "Audited traffic speeds, return commutes & zero-activity blocks", "duration_ms": stage_timings.get(8, 0.0)},
-        {"stage": 9, "name": "Multi-Variant Diversification", "status": "completed", "detail": "Synthesized 3 distinct variants: Budget, Balanced, and Comfort", "duration_ms": stage_timings.get(9, 0.0)},
-        {"stage": 10, "name": "Explainability Trace", "status": "completed", "detail": "Generated Why this hotel & Why not X candidate omission audit", "duration_ms": stage_timings.get(10, 0.0)}
-    ]
-
-    return MultiVariantTripPlan(
-        destination=request.destination.capitalize(),
-        origin_city=request.origin_city.capitalize() if request.origin_city else None,
-        travel_dates=travel_dates_str,
-        synthesis_stages=stages,
-        variants={
-            "budget": plan_budget,
-            "balanced": plan_balanced,
-            "comfort": plan_comfort
+        ordered_variants: Dict[str, TripPlan] = {
+            k: accepted_by_key[k]
+            for k in ("budget", "balanced", "comfort")
+            if k in accepted_by_key
         }
-    )
+
+        if not ordered_variants:
+            primary_reason = (
+                unavailable_variants.get("balanced")
+                or unavailable_variants.get("budget")
+                or unavailable_variants.get("comfort")
+                or "No feasible itinerary variants could be generated for the given constraints."
+            )
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=primary_reason,
+            )
+
+        stage_timings[9] = round((time.perf_counter() - t_stage9_start) * 1000, 2)
+        travel_dates_str = f"{request.start_date.isoformat()} to {request.end_date.isoformat()}" if request.start_date and request.end_date else f"{request.days} Days"
+        variant_names_str = ", ".join(k.capitalize() for k in ordered_variants.keys())
+
+        # Stage Telemetry with 100% genuine measured stage timings
+        stages = [
+            {"stage": 1, "name": "Candidate Generation", "status": "completed", "detail": f"Audited seed attractions & dining for {request.destination.capitalize()}", "duration_ms": stage_timings.get(1, 0.0)},
+            {"stage": 2, "name": "Hard Feasibility Filter", "status": "completed", "detail": "Enforced weekly closures, group constraints & entry limits", "duration_ms": stage_timings.get(2, 0.0)},
+            {"stage": 3, "name": "DBSCAN Geo-Clustering", "status": "completed", "detail": "Spatial neighborhood clustering into distinct daily zones", "duration_ms": stage_timings.get(3, 0.0)},
+            {"stage": 4, "name": "Workload Balancing", "status": "completed", "detail": f"Distributed attractions across {request.days} trip days", "duration_ms": stage_timings.get(4, 0.0)},
+            {"stage": 5, "name": "Hotel Scoring", "status": "completed", "detail": "TotalDailyTravelCost minimization from attraction centers", "duration_ms": stage_timings.get(5, 0.0)},
+            {"stage": 6, "name": "OR-Tools VRP Scheduling", "status": "completed", "detail": "Time-window routing with solar sunset & dining detours", "duration_ms": stage_timings.get(6, 0.0)},
+            {"stage": 7, "name": "Fatigue & Pace Engine", "status": "completed", "detail": f"Calibrated physical exertion for '{request.group_profile.value}' profile", "duration_ms": stage_timings.get(7, 0.0)},
+            {"stage": 8, "name": "Physics & Feasibility Audit", "status": "completed", "detail": "Audited traffic speeds, return commutes & zero-activity blocks", "duration_ms": stage_timings.get(8, 0.0)},
+            {"stage": 9, "name": "Multi-Variant Diversification", "status": "completed", "detail": f"Synthesized {len(ordered_variants)} distinct feasible variant(s): {variant_names_str}", "duration_ms": stage_timings.get(9, 0.0)},
+            {"stage": 10, "name": "Explainability Trace", "status": "completed", "detail": "Generated Why this hotel & Why not X candidate omission audit", "duration_ms": stage_timings.get(10, 0.0)}
+        ]
+
+        return MultiVariantTripPlan(
+            schema_version=1,
+            destination=request.destination.capitalize(),
+            origin_city=request.origin_city.capitalize() if request.origin_city else None,
+            travel_dates=travel_dates_str,
+            synthesis_stages=stages,
+            variants=ordered_variants,
+            unavailable_variants=unavailable_variants,
+        )
 
 @app.post("/api/itinerary/preview-edit", response_model=EditConsequenceResponse, tags=["Interactive Customizer"])
 def preview_itinerary_edit(request: EditConsequenceRequest, current_user: UserProfile = Depends(get_current_user)):
@@ -412,19 +630,22 @@ def preview_itinerary_edit(request: EditConsequenceRequest, current_user: UserPr
     Blueprint Section 12: Simulates the real-world physical and cost consequences
     of swapping, dropping, pinning, or rescheduling an activity to sunset.
     """
-    try:
-        return ItineraryEditor.preview_edit(request)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error previewing edit: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    _enforce_rate_limit(current_user, bucket="preview-edit", limit=30, window_sec=60.0)
+    with _solver_slot():
+        try:
+            return ItineraryEditor.preview_edit(request)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error previewing edit: {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @app.get("/api/itinerary/candidates", response_model=List[Place], tags=["Interactive Customizer"])
 def get_candidates_for_swap(destination: str, exclude_ids: Optional[str] = None, current_user: UserProfile = Depends(get_current_user)):
     """
     Returns alternative candidate attractions for swapping, omitting already scheduled venues.
     """
+    _enforce_rate_limit(current_user, bucket="candidates", limit=60, window_sec=60.0)
     exclude_list = [x.strip() for x in exclude_ids.split(",")] if exclude_ids else []
     try:
         return ItineraryEditor.get_candidate_alternatives(destination, exclude_list)
@@ -438,13 +659,15 @@ def rebalance_tired_day(request: RebalanceTiredRequest, current_user: UserProfil
     The client supplies trip progress; this endpoint does not track a live trip
     state or perform a full OR-Tools re-optimization.
     """
-    try:
-        return ItineraryEditor.rebalance_tired_day(request)
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error rebalancing tired day: {e}", exc_info=True)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+    _enforce_rate_limit(current_user, bucket="rebalance-day", limit=20, window_sec=60.0)
+    with _solver_slot():
+        try:
+            return ItineraryEditor.rebalance_tired_day(request)
+        except ValueError as e:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        except Exception as e:
+            logger.error(f"Error rebalancing tired day: {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 # ---------------------------------------------------------------------------
@@ -452,7 +675,7 @@ def rebalance_tired_day(request: RebalanceTiredRequest, current_user: UserProfil
 # ---------------------------------------------------------------------------
 @app.get("/api/auth/me", response_model=UserProfile, tags=["Authentication"])
 def api_get_me(current_user: UserProfile = Depends(get_current_user)):
-    """Trusted identity from Supabase; planning endpoints remain stateless guest tools."""
+    """Trusted identity from Supabase; planning endpoints require verified users."""
     return current_user
 
 

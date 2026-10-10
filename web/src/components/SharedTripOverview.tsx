@@ -112,10 +112,10 @@ export default function SharedTripOverview({
           <div className="flex items-center space-x-2 flex-wrap gap-y-1">
             <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-[#89532d] bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider">
               <HeartHandshake className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Shared Group Itinerary</span>
+              <span>Parameter-Generated Trip View</span>
             </span>
             <span className="text-[11px] text-[#526653]">
-              Curated by Trip Organizer / Room Head
+              Generated from URL parameters • Save to your account to keep a permanent snapshot
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#243e33] tracking-tight flex items-center space-x-2 flex-wrap">
@@ -162,17 +162,17 @@ export default function SharedTripOverview({
             type="button"
             onClick={handleCopyLink}
             className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#89532d] border border-amber-500/30 text-xs font-bold transition-all active:scale-95 shadow-sm"
-            title="Copy shared trip link to send to other group members"
+            title="Copy URL parameters to re-run the planner with these settings (does not share a saved snapshot)"
           >
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-emerald-700" />
-                <span className="text-emerald-800">Link Copied!</span>
+                <span className="text-emerald-800">Parameters Copied!</span>
               </>
             ) : (
               <>
                 <Share2 className="w-4 h-4 text-[#89532d]" />
-                <span>Share with Group</span>
+                <span>Copy Parameter Link</span>
               </>
             )}
           </button>
@@ -227,13 +227,13 @@ export default function SharedTripOverview({
         <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
           <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
             <IndianRupee className="w-3 h-3 text-[#89532d]" />
-            <span>Target Budget</span>
+            <span>Local On-Ground Cap</span>
           </span>
           <span className="text-sm font-extrabold text-[#89532d] block mt-0.5">
             ₹{budget.toLocaleString('en-IN')}
           </span>
           <span className="text-[10px] text-[#526653] block mt-0.5 truncate">
-            ₹{Math.round(budget / people).toLocaleString('en-IN')} / person
+            ₹{Math.round(budget / people).toLocaleString('en-IN')} / person (excl. intercity)
           </span>
         </div>
 

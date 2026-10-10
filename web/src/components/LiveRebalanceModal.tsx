@@ -1,5 +1,6 @@
 'use client';
 import { plannerFetch } from '@/lib/planner-fetch';
+import { apiBaseUrl } from '@/lib/planner-network';
 
 import React, { useState, useEffect } from 'react';
 import { X, Zap, Coffee, Bed, Footprints, Sparkles, AlertCircle, MapPin } from 'lucide-react';
@@ -109,7 +110,7 @@ export default function LiveRebalanceModal({
 
     const loadPreview = async () => {
       try {
-        const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+        const apiBase = apiBaseUrl();
         const res = await plannerFetch(`${apiBase}/api/itinerary/rebalance-day`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

@@ -28,6 +28,8 @@ def get_travel_metrics(lat1: float, lng1: float, lat2: float, lng2: float, mode:
     Applies urban road curvature factor (1.25x for road vehicles) and standard metro/auto fares.
     """
     straight_km = calculate_distance_km(lat1, lng1, lat2, lng2)
+    if straight_km < 0.01:
+        return 0, 0
     party_size = max(1, people_count)
     # Urban road factor (city street layout is not straight-line)
     road_km = straight_km * 1.25 if mode in ("cab", "auto", "walk") else straight_km

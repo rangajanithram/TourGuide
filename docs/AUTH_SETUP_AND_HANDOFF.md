@@ -1,31 +1,40 @@
 # Updated website flow — October 10, 2026
 
-## Entry and access
+## Entry, access, and saved trips (Stage 2 milestone)
 
 - Root URL opens `/guide`. Legacy trip query links route through the protected planner.
-- Guide is public. Signed-out visitors see Log in / Sign up. Open planner sends them to login; direct planner URLs also require verification on the server.
-- Email login, Google callback and email verification return to `/guide`. Verified members see My profile and can open the planner.
+- Guide is public. Signed-out visitors see Log in / Sign up. Open planner sends them to login; direct `/planner`, `/trips`, and `/account` URLs also require verification on the server.
+- Email login, Google callback and email verification return to `/guide`. Verified members see **Create trip**, **My trips**, and **My profile** in navigation.
 - Guest planner links are removed. Logout clears provider sessions and returns to the public guide.
-- FastAPI generation, variant generation, candidates, edit previews and live rebalance require a verified bearer token. Frontend sends the Supabase session token; backend verifies it independently.
+- FastAPI generation, variant generation, candidates, edit previews and live rebalance require a verified bearer token, enforce a 256 KB request size cap (HTTP 413), per-user process-local rate limits (HTTP 429 + `Retry-After`), and bounded solver concurrency (HTTP 503 + `Retry-After`).
+- **Saved Trips & Version History (`/trips` and `/planner?tripId=<uuid>`)**:
+  - Verified users can click **Save trip** on any generated itinerary to persist the validated request, selected variant, multi-variant snapshot (`schema_version = 1`), and provenance into `public.saved_trips` and initial `public.plan_versions` (`v1`) atomically via `create_saved_trip_with_version`.
+  - Reopening a saved trip from `/trips` loads the stored snapshot directly **without regenerating** the itinerary.
+  - Previewing a stop edit (`preview-edit`) never creates a saved version. Applying an edit, toggling a pin, switching variants, or applying a live day rebalance (`rebalance-day`) stages a revision that the user can commit via **Save revision** (`commit_trip_version`), incrementing `current_version` with optimistic concurrency checking (`expected_version`).
+  - Users can open **View history** in `/planner` and click **Restore this version** (`restore_trip_version`), which creates a new version (`vN+1`) preserving the full audit history.
 
 ## Profile and design
 
-`/account` saves display name and pace, transport and group defaults to authenticated Supabase user metadata. These are preferences, never authorization claims. New trips use them; shared links preserve explicit choices. Profile lists verified email/providers, password recovery and global logout. No new database migration is needed for these preferences. Display metadata is not used for authorization.
+`/account` saves display name and pace, transport and group defaults to authenticated Supabase user metadata. These are preferences, never authorization claims. New trips use them; parameter links preserve explicit choices. Profile lists verified email/providers, password recovery, link to **My trips**, and global logout.
 
-Planner uses cream, forest and clay colors, clear primary actions, accessible info explanations, and optional expandable settings. Ordinary visits no longer send an unwanted default generation request. Generation has a Cancel action, a two-minute timeout and protection against stale responses replacing a newer trip. The login keeps its 3D world and slow form transition with lightweight botanical SVG decoration. Expense records remain local to the browser, not private cloud synchronization.
+Planner uses cream, forest and clay colors, clear primary actions (`Create trip`, `Save trip`, `Open saved trip`, `Save revision`, `View history`), accessible info explanations, and optional expandable settings. When tight constraints only allow 1 or 2 genuinely distinct feasible variants, only those distinct variants are returned and unavailable tiers are explained clearly. Local on-ground budgets are explicitly distinguished from additive intercity travel and taxes. Group expense split ledgers remain explicitly labeled as browser-local (`localStorage`), and URL parameter links are labeled as parameter links rather than private saved snapshots.
 
 ## Deployment requirements
 
-Redeploy **both Vercel and Render** from the changed code. In Render, set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from the same project used by Vercel. A publishable key is sufficient; do not use a service-role or secret key. Keep `NEXT_PUBLIC_API_URL` pointing to your Render service. Set `NEXT_PUBLIC_SITE_URL=https://tour-guide-e3es.vercel.app` and use that same origin as the Supabase Auth Site URL. Allow `/auth/callback` and `/auth/confirm` for this domain (and your intentional development origins). `NEXT_PUBLIC_API_URL` should be `https://tripweave-api-u6sy.onrender.com`.
+1. Apply both Supabase migrations in order in the Supabase SQL Editor (or via `supabase db push`):
+   - `supabase/migrations/20261009152206_auth_account_isolation.sql`
+   - `supabase/migrations/20261010183000_saved_trips_and_plan_versions.sql`
+2. Redeploy **both Vercel and Render** from the changed code. In Render, set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from the same project used by Vercel. A publishable key is sufficient; do not use a service-role or secret key. Keep `NEXT_PUBLIC_API_URL` pointing to your Render service. Set `NEXT_PUBLIC_SITE_URL=https://tour-guide-e3es.vercel.app` and use that same origin as the Supabase Auth Site URL. Allow `/auth/callback` and `/auth/confirm` for this domain (and your intentional development origins). `NEXT_PUBLIC_API_URL` should be `https://tripweave-api-u6sy.onrender.app` (or your active Render URL).
 
 ## Acceptance checklist after deployment
 
-1. Signed out: root opens guide; direct `/planner` and `/account` redirect to login. No guest buttons.
-2. Register, verify email: return to guide; open planner, generate and preview an edit.
-3. Repeat Google login: guide → planner.
-4. Save profile defaults, reopen ordinary planner: defaults match. Shared links keep their selected settings.
-5. Logout: direct planner access is blocked, and a request without a bearer token cannot generate a trip.
-6. Test phone and desktop layouts, keyboard/touch info icons, failed login and failed generation recovery.
+1. Signed out: root opens guide; direct `/planner`, `/trips`, and `/account` redirect to login. No guest buttons.
+2. Register, verify email: return to guide; open planner, generate an itinerary, and click **Save trip**.
+3. Open **My trips** (`/trips`): verify the saved trip appears, rename it, and click **Open trip** to confirm it loads the saved snapshot without calling `/api/itinerary/generate-variants`.
+4. Edit a stop (Swap, Drop, Pin, or Sunset) or run **I'm Tired / Rebalance**: verify previewing does not create a version, then apply the change and click **Save revision** (`v2`).
+5. Open **View history** and click **Restore this version** on `v1`: verify it creates `v3` (`Restored from v1`) while preserving `v1` and `v2`.
+6. Delete a trip from `/trips` and confirm both the trip and its `plan_versions` are removed.
+7. Logout: direct `/planner` and `/trips` access is blocked, and a request without a bearer token cannot generate a trip.
 
 Downloaded `client_secret_*.json` files are now ignored by Git. Do not commit OAuth client secrets.
 
@@ -208,7 +217,7 @@ Use dedicated test accounts to run the live acceptance journey:
 
 ## Verification status and remaining limits
 
-15 controlled JavaScript checks and 7 controlled Python checks pass. These are provider mocks and local cryptographic checks, not proof of live provider configuration.
+24 controlled JavaScript checks and 7 controlled Python auth checks pass (2026-10-10). These are provider mocks and local cryptographic checks, not proof of live provider configuration.
 
 | Area | Status |
 |---|---|
@@ -217,12 +226,15 @@ Use dedicated test accounts to run the live acceptance journey:
 | Per-request SSR client, cookie refresh, no-store responses, direct unconfigured protected access | Local checks performed |
 | Password form layout and signup switching; safe missing-config feedback | Local browser checks performed |
 | TypeScript, lint, optimized build | Passed locally |
-| Live email sending/verification/recovery | Pending project URL/key, email settings/templates and SMTP |
-| Live Google new/returning/matching-email flow | Pending Google provider credentials and test accounts |
-| RLS migration, cross-user database checks and advisors | Prepared; not applied or run against a live project |
+| Live email sending/verification/recovery | User reports deployed email verification working; latest changes still require production acceptance |
+| Live Google new/returning/matching-email flow | User reports deployed Google login working; latest changes still require production acceptance |
+| RLS migration, cross-user database checks and advisors | Stage 2 migration and RLS tests passed on isolated PostgreSQL 17; remote migration state and production RLS acceptance remain unverified |
 | CAPTCHA provider verification | Optional implementation; live widget/provider checks pending configuration |
 | Development dependency advisories | Seven high findings remain in development tooling through unpatched `braces`; `npm audit --omit=dev` reports zero production advisories. Follow upstream fixes. |
 
 No production-ready claim is made from mocked tests. Complete the live acceptance checks and resolve/review outstanding dependency findings before a public launch.
 
 Official references: [SSR clients](https://supabase.com/docs/guides/auth/server-side/creating-a-client), [Google](https://supabase.com/docs/guides/auth/social-login/auth-google), [email templates](https://supabase.com/docs/guides/auth/auth-email-templates), [password security](https://supabase.com/docs/guides/auth/password-security), [CAPTCHA](https://supabase.com/docs/guides/auth/auth-captcha), [rate limits](https://supabase.com/docs/guides/auth/rate-limits), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security).
+
+
+Current Stage 2 implementation and deployment sequence: see [STAGE_2_COMPLETION_AND_HANDOFF.md](STAGE_2_COMPLETION_AND_HANDOFF.md). The updated migration changes RPC signatures; apply SQL before deploying its frontend.
