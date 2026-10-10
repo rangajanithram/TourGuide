@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import ExperienceMetrics from './ExperienceMetrics';
 import JourneyLoading from '../JourneyLoading';
+import ThemedSelect from '../ThemedSelect';
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowRight, Check, Compass, MapPin, Minus, Moon, Pause, Play, Plus, RotateCcw, Sun, Ticket, TrainFront, Users, Wallet, Route, Coffee, Sparkles, CloudFog, CloudRain } from 'lucide-react';
 
@@ -96,7 +97,7 @@ export default function JourneyGuide() {
   }, []);
 
   useEffect(() => {
-    const notes = journey.current?.querySelectorAll<HTMLElement>('.cloud-note');
+    const notes = document.querySelectorAll<HTMLElement>('.journey-guide .cloud-note, .journey-guide .section-shell>*, .journey-guide .arrival-strip, .journey-guide .manual-panel article, .journey-guide .destination-card, .journey-guide .faq-list details');
     if (!notes || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const observer = new IntersectionObserver(entries => {
       entries.forEach(entry => {
@@ -106,8 +107,8 @@ export default function JourneyGuide() {
         }
       });
     }, { threshold: 0.08 });
-    notes.forEach(note => { note.classList.add('reveal-ready'); observer.observe(note); });
-    return () => { observer.disconnect(); notes.forEach(note => note.classList.remove('reveal-ready')); };
+    notes.forEach(note => { note.classList.add('scroll-reveal'); observer.observe(note); });
+    return () => { observer.disconnect(); notes.forEach(note => note.classList.remove('scroll-reveal')); };
   }, []);
 
   function openExample(city: string) {
@@ -215,14 +216,14 @@ export default function JourneyGuide() {
 
     <section className="manual-section section-shell" id="user-manual"><div className="section-heading"><div><div className="eyebrow">YOUR POCKET FIELD GUIDE</div><h2>A little know-how.<br /><em>A smoother getaway.</em></h2></div><p>From the first idea to the last shared bill. Here’s how to make yourself at home.</p></div>
       <div className="manual-tabs" role="tablist" aria-label="User guide topics">{manuals.map((item, i) => <button key={item.title} id={`manual-tab-${i}`} role="tab" aria-selected={manualTab === i} aria-controls="manual-panel" tabIndex={manualTab === i ? 0 : -1} onClick={() => setManualTab(i)} onKeyDown={event => { if (['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) { event.preventDefault(); const next = event.key === 'Home' ? 0 : event.key === 'End' ? manuals.length - 1 : (i + (event.key === 'ArrowRight' ? 1 : -1) + manuals.length) % manuals.length; setManualTab(next); document.getElementById(`manual-tab-${next}`)?.focus(); } }}><item.icon size={18} />{item.title}</button>)}</div>
-      <div className="manual-panel" id="manual-panel" role="tabpanel" aria-labelledby={`manual-tab-${manualTab}`} tabIndex={0}>{manuals[manualTab].steps.map(([title, text], i) => <article key={title}><span>0{i + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
+      <div className="manual-panel" id="manual-panel" key={manualTab} role="tabpanel" aria-labelledby={`manual-tab-${manualTab}`} tabIndex={0}>{manuals[manualTab].steps.map(([title, text], i) => <article key={title}><span>0{i + 1}</span><h3>{title}</h3><p>{text}</p></article>)}</div>
     </section>
 
     <section className="idea-section"><div className="section-shell"><div className="eyebrow">THE IDEA BEHIND THE JOURNEY</div><h2>Less tab-switching.<br /><em>More trip-making.</em></h2><p className="idea-intro">Trip planning gets complicated when every decision lives somewhere else. TripWeave’s proposal is simple: bring the important decisions together, and make the tradeoffs understandable.</p><div className="idea-cards">{[{ icon: Wallet, title: 'Know what fits.', text: 'Bring time and estimated spending into the same conversation, before the trip begins.' }, { icon: Users, title: 'Get on the same page.', text: 'Give the group a plan they can understand, share, and use as a starting point.' }, { icon: Sparkles, title: 'Keep discovering.', text: 'Make space for interests and new places without forgetting real-world constraints.' }].map(item => <article key={item.title}><item.icon size={25} strokeWidth={1.5} /><h3>{item.title}</h3><p>{item.text}</p></article>)}</div><p className="roadmap-note"><span>ON THE HORIZON</span> Shared live collaboration, richer provider data, and deeper trip adjustments are future directions—not promises of current availability.</p></div></section>
 
     <section className="faq-section section-shell" id="questions"><div><div className="eyebrow">BEFORE YOU SET OFF</div><h2>Good questions.<br /><em>Honest answers.</em></h2><p>A little clarity makes a better travel companion.</p></div><div className="faq-list">{faqs.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={17} /></summary><p>{answer}</p></details>)}</div></section>
 
-    <section className="boarding-section section-shell"><div className="boarding-pass"><div className="boarding-main"><div className="eyebrow"><Ticket size={17} /> YOUR NEXT CHAPTER</div><h2>Shall we <em>go somewhere?</em></h2><p>You bring the curiosity. Let’s start putting the trip together.</p><div className="boarding-form"><label htmlFor="journey-destination">WHERE TO?<select id="journey-destination" value={destination} onChange={event => setDestination(event.target.value)}>{stations.map(stop => <option key={stop.city}>{stop.city}</option>)}</select></label><button className="journey-button" onClick={() => openExample(destination)}>Start my trip <ArrowRight size={18} /></button></div></div><div className="boarding-stub"><Compass size={58} strokeWidth={1} /><span>ADMIT ONE<br /><strong>CURIOUS TRAVELER</strong></span><div className="ticket-barcode" /><small>THE GOOD PART STARTS HERE</small></div></div></section>
+    <section className="boarding-section section-shell"><div className="boarding-pass"><div className="boarding-main"><div className="eyebrow"><Ticket size={17} /> YOUR NEXT CHAPTER</div><h2>Shall we <em>go somewhere?</em></h2><p>You bring the curiosity. Let’s start putting the trip together.</p><div className="boarding-form"><div className="boarding-destination"><span>WHERE TO?</span><ThemedSelect id="journey-destination" label="Destination" value={destination} onChange={setDestination} options={stations.map(stop => ({ value: stop.city, label: stop.city }))} /></div><button className="journey-button" onClick={() => openExample(destination)}>Start my trip <ArrowRight size={18} /></button></div></div><div className="boarding-stub"><Compass size={58} strokeWidth={1} /><span>FOREST LINE · TW 001<br /><strong>CURIOUS TRAVELER</strong></span><div className="ticket-barcode" /><small>TRIPWEAVE · EXPLORER PASS<br />THE GOOD PART STARTS HERE</small></div></div></section>
     <footer className="journey-footer"><Link className="journey-brand" href="/guide"><Compass size={21} />TripWeave</Link><span>Made for the journey. And the people on it.</span><a href="#departure">Back to departure ↑</a></footer>
   </main>;
 }

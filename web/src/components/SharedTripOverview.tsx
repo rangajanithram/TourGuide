@@ -141,7 +141,7 @@ export default function SharedTripOverview({
             className={`inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 shadow-sm ${
               showEditor
                 ? 'bg-amber-500 text-black border-amber-400 font-bold'
-                : 'bg-[#eef1e5] text-gray-200 border-[#c6d2c0] hover:border-gray-500'
+                : 'bg-[#eef1e5] text-[#294333] border-[#c6d2c0] hover:border-gray-500'
             }`}
             title="Toggle the trip customization form to edit dates, budget, or destination"
           >
@@ -167,7 +167,7 @@ export default function SharedTripOverview({
             {copied ? (
               <>
                 <Check className="w-4 h-4 text-emerald-700" />
-                <span className="text-emerald-300">Link Copied!</span>
+                <span className="text-emerald-800">Link Copied!</span>
               </>
             ) : (
               <>

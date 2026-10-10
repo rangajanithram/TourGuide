@@ -352,7 +352,7 @@ export default function ItineraryView({
             <button
               type="button"
               onClick={handleUndo}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-gray-200 text-xs font-semibold transition-all active:scale-95 shadow-sm"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#294333] text-xs font-semibold transition-all active:scale-95 shadow-sm"
               title="Undo last customizer action"
             >
               <RotateCcw className="w-3.5 h-3.5 text-[#89532d]" />
@@ -400,7 +400,7 @@ export default function ItineraryView({
           <button
             type="button"
             onClick={handleExportIcs}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-gray-200 text-xs font-semibold transition-all shadow-sm active:scale-95"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-[#294333] text-xs font-semibold transition-all shadow-sm active:scale-95"
             title="Download standard .ics file for Google Calendar, Apple Calendar, or Outlook"
           >
             <Calendar className="w-3.5 h-3.5 text-[#89532d]" />
@@ -429,7 +429,7 @@ export default function ItineraryView({
           <button
             type="button"
             onClick={handleCopyText}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-gray-200 text-xs font-semibold transition-all shadow-sm active:scale-95"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-[#294333] text-xs font-semibold transition-all shadow-sm active:scale-95"
             title="Copy formatted text itinerary to clipboard"
           >
             {copiedText ? (
@@ -609,7 +609,7 @@ export default function ItineraryView({
             {/* Inbound & Return Destination Last-Mile Transfers */}
             <div className="space-y-2">
               {plan.intercity_transport.last_mile && (
-                <div className="flex items-start space-x-2.5 text-xs text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
+                <div className="flex items-start space-x-2.5 text-xs text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-emerald-700 block mb-0.5">Arrival Transfer (Inbound Terminal ➔ Hotel):</span>
@@ -700,17 +700,17 @@ export default function ItineraryView({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#d6dfd0] text-[10px] text-[#526653]">
                     <div>
                       <span className="text-[#596b57] block">On-Ground Subtotal</span>
-                      <span className="font-semibold text-gray-200">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
+                      <span className="font-semibold text-[#294333]">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
                       <span className="text-[9px] text-[#596b57] block">Sightseeing & Hotel</span>
                     </div>
                     <div>
                       <span className="text-[#596b57] block">Roundtrip Transit (x{party})</span>
-                      <span className="font-semibold text-gray-200">₹{roundtripTransitMin.toLocaleString('en-IN')} - ₹{roundtripTransitMax.toLocaleString('en-IN')}</span>
+                      <span className="font-semibold text-[#294333]">₹{roundtripTransitMin.toLocaleString('en-IN')} - ₹{roundtripTransitMax.toLocaleString('en-IN')}</span>
                       <span className="text-[9px] text-[#596b57] block">2-way {outbound.mode.toUpperCase()}</span>
                     </div>
                     <div>
                       <span className="text-[#596b57] block">Destination Transfers</span>
-                      <span className="font-semibold text-gray-200">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
+                      <span className="font-semibold text-[#294333]">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
                       <span className="text-[9px] text-[#596b57] block">Inbound (₹{outboundLastMileCost}) + Return ({returnLastMileCost === undefined ? 'unavailable' : `₹${returnLastMileCost}`})</span>
                     </div>
                     <div>
@@ -844,7 +844,7 @@ export default function ItineraryView({
           {/* Checks Passed Pills */}
           <div className="flex flex-wrap gap-1.5">
             {plan.verification_report.checks_passed.map((chk, idx) => (
-              <span key={idx} className="inline-flex items-center space-x-1 text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+              <span key={idx} className="inline-flex items-center space-x-1 text-[11px] text-emerald-800 bg-emerald-500/5 border border-emerald-500/20 px-2 py-0.5 rounded-md">
                 <CheckCircle2 className="w-3 h-3 text-emerald-700 shrink-0" />
                 <span>{chk}</span>
               </span>
@@ -894,7 +894,7 @@ export default function ItineraryView({
             </div>
             <div className="bg-[#eef1e5] border border-emerald-500/20 bg-emerald-500/5 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
               <span className="text-[10px] uppercase font-semibold text-emerald-700 block tracking-wider">Unallocated</span>
-              <span className="text-sm font-bold text-emerald-300 mt-0.5 block">₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}</span>
+              <span className="text-sm font-bold text-emerald-800 mt-0.5 block">₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}</span>
             </div>
           </div>
 
@@ -905,12 +905,12 @@ export default function ItineraryView({
               <span className="text-[#89532d] font-bold">₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')}</span>
               <span className="text-[#596b57]">•</span>
               <span className="text-[#526653]">Meals Guidance:</span>
-              <span className="text-gray-200">₹{(plan.expense_breakdown.suggested_meals_inr ?? plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}</span>
+              <span className="text-[#294333]">₹{(plan.expense_breakdown.suggested_meals_inr ?? plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}</span>
             </div>
             {plan.expense_breakdown.meal_buffer_status && (
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
                 plan.expense_breakdown.meal_buffer_status.toLowerCase().includes('sufficient')
-                  ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
+                  ? 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/30'
                   : 'bg-amber-500/10 text-[#89532d] border border-amber-500/30'
               }`}>
                 {plan.expense_breakdown.meal_buffer_status}
@@ -1009,7 +1009,7 @@ export default function ItineraryView({
                     {day.weather.precipitation_probability_pct > 30 ? (
                       <CloudRain className="w-3.5 h-3.5 text-sky-400" />
                     ) : day.weather.heat_advisory ? (
-                      <Flame className="w-3.5 h-3.5 text-rose-400" />
+                      <Flame className="w-3.5 h-3.5 text-rose-700" />
                     ) : (
                       <CloudSun className="w-3.5 h-3.5 text-[#89532d]" />
                     )}
@@ -1217,10 +1217,10 @@ export default function ItineraryView({
                             activityIndex: actIdx,
                             initialAction: 'remove'
                           })}
-                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#fffdf5] text-[#526653] border border-[#c6d2c0] hover:border-rose-500/40 hover:text-rose-400 transition-all"
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#fffdf5] text-[#526653] border border-[#c6d2c0] hover:border-rose-500/40 hover:text-rose-700 transition-all"
                           title="Drop stop from day schedule"
                         >
-                          <Trash2 className="w-3 h-3 text-rose-400" />
+                          <Trash2 className="w-3 h-3 text-rose-700" />
                           <span>Drop</span>
                         </button>
                       </div>
@@ -1283,7 +1283,7 @@ export default function ItineraryView({
                         <div className="flex items-center space-x-2 text-[11px] text-[#526653]">
                           <span>
                             Budgeted: ₹{act.estimated_cost_inr} •
-                            <span className={actSpend <= act.estimated_cost_inr ? 'text-emerald-700 ml-1' : 'text-rose-400 ml-1'}>
+                            <span className={actSpend <= act.estimated_cost_inr ? 'text-emerald-700 ml-1' : 'text-rose-700 ml-1'}>
                               {actSpend <= act.estimated_cost_inr ? '✓ Under' : `+₹${actSpend - act.estimated_cost_inr} over`}
                             </span>
                           </span>
@@ -1399,7 +1399,7 @@ export default function ItineraryView({
               </div>
               <p className="text-[11px] text-[#526653] mt-0.5">
                 Logged Spend: <span className="text-[#243e33] font-bold">₹{Math.max(totalActualSpent, totalLedgerSpent).toLocaleString('en-IN')}</span> • Est for visited: <span className="text-[#425d4c]">₹{totalEstimatedForVisited.toLocaleString('en-IN')}</span> • {pendingSettlements.length > 0 ? (
-                  <span className="text-rose-400 font-semibold">{pendingSettlements.length} UPI transfer(s) due</span>
+                  <span className="text-rose-700 font-semibold">{pendingSettlements.length} UPI transfer(s) due</span>
                 ) : (
                   <span className="text-emerald-700 font-semibold">All debts settled</span>
                 )}
@@ -1410,7 +1410,7 @@ export default function ItineraryView({
           <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="text-right">
               <span className="text-[10px] text-[#526653] block uppercase font-semibold">Remaining Trip Budget</span>
-              <span className={`text-sm font-extrabold ${remainingBudget >= 0 ? 'text-emerald-700' : 'text-rose-400'}`}>
+              <span className={`text-sm font-extrabold ${remainingBudget >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                 ₹{remainingBudget.toLocaleString('en-IN')}
               </span>
             </div>

@@ -5,6 +5,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { travelPreferences } from '@/lib/travel-preferences';
 import Header from '../components/Header';
+import PlannerLandscape from './PlannerLandscape';
+import PlanningScene from './PlanningScene';
 import TripForm from '../components/TripForm';
 import VariantSwitcher from '../components/VariantSwitcher';
 import ItineraryView from '../components/ItineraryView';
@@ -229,6 +231,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
 
   return (
     <div className="planner-theme min-h-screen bg-[#f3f4ea] text-[#243e33] flex flex-col font-sans">
+      <PlannerLandscape />
       <Header />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -329,13 +332,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               </>
             ) : (
               isLoading && (
-                <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-16 text-center text-[#526653] space-y-4">
-                  <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <h3 className="text-lg font-bold text-[#243e33]">Creating your itinerary…</h3>
-                  <p className="text-xs text-[#526653] max-w-md mx-auto">
-                    Comparing suitable places, travel time and estimated costs. The service may take about a minute to wake up.
-                  </p>
-                </div>
+                <PlanningScene />
               )
             )}
           </div>
@@ -348,7 +345,8 @@ export default function Home({ preferences }: { preferences?: unknown }) {
             </div>
 
             {/* Interactive map, variants and schedule */}
-            <div className="planner-results space-y-6">
+            <div className="planner-results space-y-6" aria-busy={isLoading}>
+              {isLoading && <PlanningScene />}
               {multiPlan && (
                 <VariantSwitcher
                   multiPlan={multiPlan}

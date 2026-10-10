@@ -1,6 +1,7 @@
 'use client';
 
 import InfoTip from './InfoTip';
+import ThemedSelect from './ThemedSelect';
 import React, { useState } from 'react';
 import {
   Calendar, Users, IndianRupee, Gauge,
@@ -318,18 +319,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
               <Gauge className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Sightseeing Pace</span>
             </div><InfoTip title="Pace">Relaxed allows up to 2 visits a day, balanced 3, intensive 4. Actual visits also depend on hours, journey time and budget.</InfoTip></div>
-            <select
-              aria-label="Sightseeing pace"
-              value={pace}
-              onChange={e => setPace(e.target.value as 'relaxed' | 'balanced' | 'intensive')}
-              className="w-full bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-3.5 py-2.5 text-sm text-[#243e33] focus:outline-none focus:border-amber-500"
-            >
-              {PACES.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.label} - {p.desc}
-                </option>
-              ))}
-            </select>
+            <ThemedSelect label="Sightseeing pace" value={pace} disabled={isLoading} onChange={value => setPace(value as typeof pace)} options={PACES.map(p => ({ value: p.id, label: `${p.label} — ${p.desc}` }))} />
           </div>
 
           <div>
@@ -337,18 +327,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
               <Car className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Transit Preference</span>
             </div><InfoTip title="Local transport">Preferred travel mode between stops. Metro availability and walking feasibility can limit your options. Fares and durations are estimates.</InfoTip></div>
-            <select
-              aria-label="Local transport"
-              value={transportMode}
-              onChange={e => setTransportMode(e.target.value as 'cab' | 'auto' | 'metro' | 'walk')}
-              className="w-full bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-3.5 py-2.5 text-sm text-[#243e33] focus:outline-none focus:border-amber-500"
-            >
-              {MODES.map(m => (
-                <option key={m.id} value={m.id}>
-                  {m.label}
-                </option>
-              ))}
-            </select>
+            <ThemedSelect label="Local transport" value={transportMode} disabled={isLoading} onChange={value => setTransportMode(value as typeof transportMode)} options={MODES.map(m => ({ value: m.id, label: m.label }))} />
           </div>
         </div>
 

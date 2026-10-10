@@ -135,3 +135,34 @@ body { font-family: var(--font-geist-sans),Arial,sans-serif; }
   html { scroll-behavior: auto; }
   .page-arrival,.trip-step:not([hidden]),.loading-train,.loading-dot,#manual-panel { animation: none; }
 }
+
+.themed-select { position: relative; min-width: 0; color: #294333; font: inherit; text-align: left; }
+.themed-select>button { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 44px; padding: 11px 14px; border: 1px solid #b9c9ad; border-radius: 12px; background: #eef2e7; text-align: left; font-size: 14px; }
+.themed-select>button span { min-width: 0; overflow-wrap: anywhere; }
+.themed-select svg { flex-shrink: 0; }
+.themed-select>button:hover { background: #e5ecda; }
+.themed-select>button[aria-expanded=true] { border-color: #5c7853; box-shadow: 0 0 0 3px #8ca77026; }
+.themed-options { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 90; max-height: 250px; overflow-y: auto; padding: 6px; border: 1px solid #b9c9ad; border-radius: 14px; background: #fffdf5; box-shadow: 0 14px 36px #29433326; animation: step-arrive .2s ease; }
+.themed-options [role=option] { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 9px; font-size: 14px; cursor: pointer; }
+.themed-options .option-active { background: #e5eddb; }
+.themed-options [aria-selected=true] { color: #25472f; font-weight: 650; }
+.planner-theme { position: relative; isolation: isolate; background: #f2e8d5; }
+.planner-landscape { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+.planner-landscape svg { width: 100%; height: 100%; opacity: .75; }
+.planner-theme>main { position: relative; }
+.planner-theme>main>div:first-child:not(.planner-workspace) { background: #fffdf5eb; padding: 24px; border-radius: 22px; border: 1px solid #d6dfd0; }
+.planner-theme footer { background: #fffdf5eb; }
+.sunset-bird { transform-origin: 536px 300px; animation: bird-excursion 30s ease-in-out infinite; }
+.bird-wing { transform-origin: 538px 300px; animation: bird-flap 1s ease-in-out infinite; }
+@keyframes bird-excursion { 0%,40%,100% { transform: translate(0,0) rotate(0); } 45% { transform: translate(180px,-100px) rotate(-12deg); } 57% { transform: translate(1100px,-360px) rotate(-8deg); } 65% { transform: translate(1200px,-150px) rotate(10deg); } 76% { transform: translate(500px,-100px) rotate(8deg); } 85% { transform: translate(0,0) rotate(0); } }
+@keyframes bird-flap { 0%,40%,100% { transform: scaleY(1); } 50%,75% { transform: scaleY(.35); } }
+.planning-scene { background: #fffdf5f5; border: 1px solid #c6d2c0; border-radius: 24px; min-height: 330px; padding: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; color: #294333; }
+.planning-scene .journey-loading { height: auto; padding: 8px; }
+.planning-scene .loading-caption { display: none; }
+.planning-phrase { font-family: var(--font-display),Georgia,serif; font-size: clamp(18px,2vw,24px); animation: page-arrive .6s ease; min-height: 2.6em; display: grid; place-items: center; }
+.planning-scene>p:not(.planning-phrase),.planning-scene small { font-size: 13px; line-height: 1.6; max-width: 500px; color: #526653; }
+@media(prefers-reduced-motion:reduce) { .sunset-bird,.bird-wing,.planning-phrase,.themed-options { animation: none; } }
+
+@media(min-width:1200px) { .planner-theme>main { max-width: 1100px; } }
+
+.themed-options.opens-above { top: auto; bottom: calc(100% + 6px); }

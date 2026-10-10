@@ -74,7 +74,7 @@ export default function VariantSwitcher({
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center space-x-2">
                   <Icon className={`w-4 h-4 ${isSelected ? 'text-[#89532d]' : 'text-[#526653]'}`} />
-                  <span className={`text-sm font-bold ${isSelected ? 'text-[#243e33]' : 'text-gray-200'}`}>
+                  <span className={`text-sm font-bold ${isSelected ? 'text-[#243e33]' : 'text-[#294333]'}`}>
                     {v.label}
                   </span>
                 </div>
