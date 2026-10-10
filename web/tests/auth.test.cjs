@@ -512,8 +512,16 @@ test('calendar validation rejects impossible dates and request/snapshot mismatch
   const s = { destination: 'Hyderabad', variants: { balanced: samplePlan } };
   const f = { destination: 'hyderabad', start_date: '2026-10-15', end_date: '2026-10-16', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [] };
   assert.doesNotThrow(() => snapshotValidator.validateTripRequest(f,s));
-  assert.throws(() => snapshotValidator.validateTripRequest({ ...f, budget_inr: 100 },s), /mismatch/);
+  assert.throws(() => snapshotValidator.validateTripRequest({ ...f, budget_inr: 100 },s), /budget/);
   assert.throws(() => snapshotValidator.validateTripRequest({ ...f, people_count: 21 },s), /travelers/);
+});
+test('saved snapshots retain unscheduled dates and reject truncated calendars', () => {
+  const snapshot = { schema_version: 1, destination: 'Hyderabad', variants: { balanced: structuredClone(samplePlan) } };
+  const form = { destination: 'hyderabad', start_date: '2026-10-15', end_date: '2026-10-17', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [] };
+  assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /every requested day/);
+  snapshot.variants.balanced.days.push({ ...snapshot.variants.balanced.days[1], day_number: 3, date: '2026-10-17', activities: [], day_cost_inr: 0 });
+  assert.doesNotThrow(() => snapshotValidator.validateSnapshot(snapshot));
+  assert.doesNotThrow(() => snapshotValidator.validateTripRequest(form, snapshot, 'balanced'));
 });
 
 test('saved requests cannot lose mandatory stops in the selected variant', () => {

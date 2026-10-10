@@ -28,6 +28,10 @@ Production rollout and live two-account browser acceptance remain pending. Unit/
 
 ## Local regression evidence
 
+### Calendar save fix
+
+The optimizer previously omitted dates with no scheduled stops (including dates emptied by budget trimming). That produced a shorter snapshot than the original request, so cloud save correctly rejected it. The optimizer now preserves every requested date with zero scheduled activity cost on free days, and the itinerary explicitly labels those days. Snapshot date/budget checks remain strict. A one-visit/three-day real solver regression checks the full calendar, empty-day costs and independent feasibility verification; frontend coverage checks saving free days and rejecting truncated snapshots. Deploy the backend fix and regenerate existing truncated itineraries before saving them; do not invent missing dates in the browser.
+
 - Type checking and lint passed; 28 frontend checks passed, including timeout, delayed response body, cancellation, no automatic POST retry, API configuration and error handling.
 - All 42 optimizer checks and 7 authentication checks passed.
 - Five readiness/configuration checks passed, covering all real catalogs, malformed/empty/duplicate catalogs, missing auth configuration, safe failures and bounded environment settings.

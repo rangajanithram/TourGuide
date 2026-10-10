@@ -448,21 +448,18 @@ class TripOptimizer:
                 day_places.append(place)
                 day_cost += place_cost
                 
-            if activities:
-                day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
-                date_str = day_date.isoformat() if day_date else None
-                day_name = day_date.strftime("%A") if day_date else None
-                cluster_label = clusterer.get_cluster_name(day_places) if day_places else "Central City Exploration"
-
-                day_plans.append(DayPlan(
-                    day_number=day_id + 1,
-                    date=date_str,
-                    day_of_week=day_name,
-                    cluster_name=cluster_label,
-                    activities=activities,
-                    day_cost_inr=day_cost
-                ))
-                total_activities_cost += day_cost
+            # Preserve the requested calendar even when a day has no scheduled visits.
+            # Dropping it changes trip length while hotel nights still cover all dates.
+            day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
+            day_plans.append(DayPlan(
+                day_number=day_id + 1,
+                date=day_date.isoformat() if day_date else None,
+                day_of_week=day_date.strftime("%A") if day_date else None,
+                cluster_name=clusterer.get_cluster_name(day_places) if day_places else "Free time — no scheduled visits",
+                activities=activities,
+                day_cost_inr=day_cost
+            ))
+            total_activities_cost += day_cost
 
         hotel_total = self.hotel_summary.total_cost_inr if self.hotel_summary else 0
         grand_total = total_activities_cost + total_transport_cost + hotel_total
@@ -594,6 +591,6 @@ class TripOptimizer:
             transport_budget_limit_inr=self.max_transport_budget,
             transport_mode=TransportMode(self.transport_mode),
             transport_budget_status=transport_status,
-            days=[d for d in day_plans if d.activities],
+            days=day_plans,
             total_cost_inr=grand_total
         )

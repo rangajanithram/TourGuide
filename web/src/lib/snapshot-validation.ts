@@ -133,7 +133,9 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if ((form.locked_activities || []).length > 15) invalid('too many pins');
   for (const plan of Object.values(snapshot.variants) as TripPlan[]) {
     if (plan.days.some((day, index) => day.day_number !== index + 1 || day.date !== new Date(Date.parse(form.start_date) + index * 86400000).toISOString().slice(0,10))) invalid('day sequence');
-    if (plan.total_cost_inr > form.budget_inr || plan.days.length !== days || plan.days[0].date !== form.start_date || plan.days[days - 1].date !== form.end_date) invalid('request and itinerary mismatch');
+    if (plan.total_cost_inr > form.budget_inr) invalid('itinerary exceeds the requested budget');
+    if (plan.days.length !== days) invalid('itinerary does not cover every requested day. Please regenerate the trip with the updated planner');
+    if (plan.days[0].date !== form.start_date || plan.days[days - 1].date !== form.end_date) invalid('itinerary dates differ from the requested travel dates');
   }
   if (selected) {
     const chosen = snapshot.variants[selected];

@@ -1072,6 +1072,7 @@ export default function ItineraryView({
 
             {/* Activities Timeline */}
             <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#c6d2c0]">
+              {day.activities.length === 0 && <p className="rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-sm text-[#304c3b]">Free time — no visits scheduled for this date. No activity or local route costs are included for this day; meals and personal expenses may still apply.</p>}
               {day.activities.map((act, actIdx) => {
                 const actKey = `${day.day_number}:${act.place_id || act.place_name}:${actIdx}`;
                 const visitInfo = visitedActivities[actKey];
