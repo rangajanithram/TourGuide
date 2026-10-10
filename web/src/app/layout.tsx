@@ -4,6 +4,10 @@ import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 
+const displayFont = localFont({
+  src: [{ path: './fonts/Fraunces.ttf', style: 'normal', weight: '100 900' }, { path: './fonts/Fraunces-Italic.ttf', style: 'italic', weight: '100 900' }],
+  variable: '--font-display', display: 'swap', preload: false,
+});
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -30,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${displayFont.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
           {children}

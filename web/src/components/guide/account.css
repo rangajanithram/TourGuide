@@ -615,3 +615,48 @@
   .account-header { height: 68px; }
   .account-shell { margin: 12px auto; }
 }
+
+/* A stable frame keeps the railway and form in place as account modes change. */
+.account-page { background-size: auto; padding: 0 clamp(16px,4vw,64px); gap: 16px; }
+.account-header { width: 100%; height: 64px; min-height: 64px; margin: 16px auto 0; padding: 12px 24px; border: 1px solid #cbd5bf; border-radius: 18px; background: #f9faefb8; box-shadow: 0 5px 25px #29433308; }
+.account-header>a { min-width: 0; }
+.account-header>a:last-child { flex-shrink: 0; min-height: 40px; }
+.account-shell { margin: auto; width: 100%; }
+.account-form-panel,.account-story { min-height: 0; }
+.account-story h1,.account-form-panel h2 { font-family: var(--font-display),Georgia,serif; font-weight: 450; font-optical-sizing: auto; }
+.account-story h1 { font-size: clamp(28px,2.8vw,41px); }
+.account-form-panel h2 { font-size: clamp(28px,2.4vw,35px); }
+.account-form-panel>p { font-size: 12px; }
+.account-form-panel>a { font-size: 12px; }
+.account-world { min-height: 120px; }
+.account-footer { margin: 0 auto 14px; flex-shrink: 0; }
+.account-form-panel form.signup-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); align-items: start; gap: 12px; }
+.signup-fields>label { min-width: 0; }
+.signup-fields>:not(label) { grid-column: 1 / -1; }
+.account-form-panel input { min-width: 0; width: 100%; }
+@media(min-width:851px) {
+  .account-page { height: 100svh; min-height: 660px; }
+  .account-shell { height: min(650px,calc(100svh - 140px)); min-height: 520px; flex-shrink: 0; }
+  .account-form-panel { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #a8b79b transparent; padding: 24px 32px; }
+  .account-story { padding: 28px 32px 20px; }
+  .account-form-panel h2 { margin: 12px 0 6px; }
+  .account-form-panel .account-switch { margin: 12px 0; }
+}
+@media(min-width:601px) and (max-width:850px) {
+  .account-page { height: auto; min-height: 100svh; }
+  .account-shell { display: flex; flex-direction: column; margin: 0 auto; }
+  .account-form-panel,.account-signup .account-form-panel { transform: none; order: 0; }
+  .account-story,.account-signup .account-story { transform: none; order: 1; min-height: 300px; }
+  .account-world { height: 180px; flex: none; }
+}
+@media(max-width:600px) {
+  .account-page { gap: 12px; }
+  .account-header { padding: 10px 14px; margin-top: 12px; }
+  .account-header>a { font-size: 19px; gap: 6px; }
+  .account-header>a>span { display: none; }
+  .account-header>a:last-child { font-size: 11px; }
+  .account-form-panel form.signup-fields { grid-template-columns: 1fr; }
+  .account-form-panel,.account-story { padding: 24px 20px; }
+}
+
+@media(max-width:850px) { .account-story,.account-form-panel { transition: none; } }

@@ -5,10 +5,11 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import ExperienceMetrics from './ExperienceMetrics';
+import JourneyLoading from '../JourneyLoading';
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowRight, Check, Compass, MapPin, Minus, Moon, Pause, Play, Plus, RotateCcw, Sun, Ticket, TrainFront, Users, Wallet, Route, Coffee, Sparkles, CloudFog, CloudRain } from 'lucide-react';
 
-const TravelWorld = dynamic(() => import('./NatureRailway'), { ssr: false, loading: () => <div className="world-loading">Assembling your little world…</div> });
+const TravelWorld = dynamic(() => import('./NatureRailway'), { ssr: false, loading: () => <div className="world-loading"><JourneyLoading compact label="Growing your little world…" /></div> });
 const stations = [
   { city: 'Hyderabad', id: 'departure', label: 'The big idea', coordinates: '17.3850° N / 78.4867° E' },
   { city: 'Jaipur', id: 'preferences', label: 'Your kind of trip', coordinates: '26.9124° N / 75.7873° E' },
@@ -92,6 +93,21 @@ export default function JourneyGuide() {
     window.addEventListener('resize', schedule);
     update();
     return () => { sceneObserver.disconnect(); cancelAnimationFrame(frame); window.removeEventListener('scroll', schedule); window.removeEventListener('resize', schedule); };
+  }, []);
+
+  useEffect(() => {
+    const notes = journey.current?.querySelectorAll<HTMLElement>('.cloud-note');
+    if (!notes || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-revealed');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    notes.forEach(note => { note.classList.add('reveal-ready'); observer.observe(note); });
+    return () => { observer.disconnect(); notes.forEach(note => note.classList.remove('reveal-ready')); };
   }, []);
 
   function openExample(city: string) {

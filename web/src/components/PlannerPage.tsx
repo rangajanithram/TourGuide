@@ -340,15 +340,15 @@ export default function Home({ preferences }: { preferences?: unknown }) {
             )}
           </div>
         ) : (
-          /* Dual Column Layout: Left Cockpit Form, Right Visual Results */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Left Column: Form */}
-            <div className="lg:col-span-5">
+          /* Guided setup followed by full-width results */
+          <div className="planner-workspace grid grid-cols-1 gap-6 items-start">
+            {/* Trip setup */}
+            <div className="planner-settings">
               <TripForm onSubmit={fetchTripPlan} isLoading={isLoading} initialValues={activeFormData} />
             </div>
 
-            {/* Right Column: Interactive Map, Variants & Schedule */}
-            <div className="lg:col-span-7 space-y-6">
+            {/* Interactive map, variants and schedule */}
+            <div className="planner-results space-y-6">
               {multiPlan && (
                 <VariantSwitcher
                   multiPlan={multiPlan}

@@ -73,6 +73,15 @@ const getFutureDate = (daysAhead: number): string => {
 };
 
 export default function TripForm({ onSubmit, isLoading, initialValues }: TripFormProps) {
+  const [step, setStep] = useState(0);
+  const formRef = React.useRef<HTMLFormElement>(null);
+  const previousStep = React.useRef(step);
+  React.useEffect(() => {
+    if (previousStep.current !== step) {
+      formRef.current?.querySelector<HTMLElement>('section:not([hidden])')?.focus({ preventScroll: true });
+      previousStep.current = step;
+    }
+  }, [step]);
   const [validationError, setValidationError] = useState('');
   const [destination, setDestination] = useState<string>('hyderabad');
   const [originCity, setOriginCity] = useState<string>('');
@@ -125,9 +134,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    if (!startDate || !endDate || endDate < startDate) { setValidationError('Choose an end date on or after the start date.'); return; }
-    if (startDate < getFutureDate(0)) { setValidationError('Choose today or a future start date.'); return; }
+    if (!startDate || !endDate || endDate < startDate) { setStep(0); setValidationError('Choose an end date on or after the start date.'); return; }
+    if (startDate < getFutureDate(0)) { setStep(0); setValidationError('Choose today or a future start date.'); return; }
     setValidationError('');
+    if (step < 2) { setStep(step + 1); return; }
     onSubmit({
       origin_city: originCity && originCity !== destination ? originCity : undefined,
       destination,
@@ -145,19 +155,21 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-6 shadow-xl">
+    <form ref={formRef} noValidate onSubmit={handleSubmit} className="trip-form bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-6 shadow-xl">
       <div className="flex items-center space-x-2 pb-4 border-b border-[#d6dfd0] mb-6">
         <Sparkles className="w-5 h-5 text-[#89532d]" />
         <h2 className="text-lg font-bold text-[#243e33] tracking-tight">Your trip, your way</h2>
       </div>
 
+      <nav className="trip-stepper" aria-label="Trip setup steps">{['Where & when', 'Your travel style', 'Arrival & create'].map((label, index) => <button type="button" key={label} aria-current={step === index ? 'step' : undefined} disabled={isLoading} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>
       {validationError && <p role="alert" className="mb-4 text-sm text-red-800">{validationError}</p>}
       <div className="space-y-6">
+        <section tabIndex={-1} hidden={step !== 0} className="trip-step trip-basics" aria-label="Where and when">
         {/* City Destination */}
         <div>
-          <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2">
+          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2">
             Where are you going?
-          </div><InfoTip title="Destination">Choose the city you want to explore. Changing it clears must-visit selections for the previous city.</InfoTip>
+          </div><InfoTip title="Destination">Choose the city you want to explore. Changing it clears must-visit selections for the previous city.</InfoTip></div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {CITIES.map(c => {
               const isSelected = destination === c.id;
@@ -187,10 +199,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
         {/* Date Range */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="trip-start" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+            <div className="trip-field-heading"><label htmlFor="trip-start" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Start Date</span>
-            </label><InfoTip title="Start date">First sightseeing day. For a full day, arrive beforehand. Choose dates with enough time for your must-sees.</InfoTip>
+            </label><InfoTip title="Start date">First sightseeing day. For a full day, arrive beforehand. Choose dates with enough time for your must-sees.</InfoTip></div>
             <input
               type="date"
               id="trip-start"
@@ -202,10 +214,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
             />
           </div>
           <div>
-            <label htmlFor="trip-end" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+            <div className="trip-field-heading"><label htmlFor="trip-end" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
               <Calendar className="w-3.5 h-3.5 text-[#89532d]" />
               <span>End Date</span>
-            </label><InfoTip title="End date">Last sightseeing day, including this date. It cannot be before the start date.</InfoTip>
+            </label><InfoTip title="End date">Last sightseeing day, including this date. It cannot be before the start date.</InfoTip></div>
             <input
               type="date"
               id="trip-end"
@@ -221,10 +233,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
         {/* Travelers & Budget */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="trip-people" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+            <div className="trip-field-heading"><label htmlFor="trip-people" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
               <Users className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Travelers ({peopleCount})</span>
-            </label><InfoTip title="Travelers">People sharing the trip. This changes tickets, transport capacity, rooms and the group cost estimate.</InfoTip>
+            </label><InfoTip title="Travelers">People sharing the trip. This changes tickets, transport capacity, rooms and the group cost estimate.</InfoTip></div>
             <input
               type="range"
               min={1}
@@ -242,13 +254,13 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
           </div>
 
           <div>
-            <label htmlFor="trip-budget" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center justify-between">
+            <div className="trip-field-heading"><label htmlFor="trip-budget" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center justify-between">
               <span className="flex items-center space-x-1.5">
                 <IndianRupee className="w-3.5 h-3.5 text-[#89532d]" />
                 <span>On-Ground Budget: ₹{budget.toLocaleString('en-IN')}</span>
               </span>
-              <span className="text-[10px] text-[#89532d]/80 font-normal lowercase">destination stay & activities</span>
-            </label><InfoTip title="Destination budget">Total on-ground budget for the whole group, not per person. Extra meals and intercity travel are estimated separately. Review the final total before booking.</InfoTip>
+
+            </label><InfoTip title="Destination budget">Total on-ground budget for the whole group, not per person. Extra meals and intercity travel are estimated separately. Review the final total before booking.</InfoTip></div>
             <input
               type="range"
               min={4000}
@@ -270,12 +282,12 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
           </div>
         </div>
 
-        <details className="trip-extra"><summary>Travel style & must-see places <span>Optional · tailor your day</span></summary><div className="space-y-6 mt-5">        {/* Traveler Group Profile */}
+        </section><section tabIndex={-1} hidden={step !== 1} className="trip-step" aria-label="Travel style"><p className="step-note">Your defaults are ready. Adjust anything you like, or continue.</p><div className="space-y-5">        {/* Traveler Group Profile */}
         <div>
-          <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
             <Users className="w-3.5 h-3.5 text-[#89532d]" />
             <span>Who’s coming along?</span>
-          </div><InfoTip title="Travel group">Adjusts fatigue assumptions. Family and senior profiles favor a gentler day; this is not an accessibility guarantee.</InfoTip>
+          </div><InfoTip title="Travel group">Adjusts fatigue assumptions. Family and senior profiles favor a gentler day; this is not an accessibility guarantee.</InfoTip></div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {GROUP_PROFILES.map(gp => {
               const active = groupProfile === gp.id;
@@ -302,10 +314,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
         {/* Pace & Transport Mode */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+            <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
               <Gauge className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Sightseeing Pace</span>
-            </div><InfoTip title="Pace">Relaxed allows up to 2 visits a day, balanced 3, intensive 4. Actual visits also depend on hours, journey time and budget.</InfoTip>
+            </div><InfoTip title="Pace">Relaxed allows up to 2 visits a day, balanced 3, intensive 4. Actual visits also depend on hours, journey time and budget.</InfoTip></div>
             <select
               aria-label="Sightseeing pace"
               value={pace}
@@ -321,10 +333,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
           </div>
 
           <div>
-            <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+            <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
               <Car className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Transit Preference</span>
-            </div><InfoTip title="Local transport">Preferred travel mode between stops. Metro availability and walking feasibility can limit your options. Fares and durations are estimates.</InfoTip>
+            </div><InfoTip title="Local transport">Preferred travel mode between stops. Metro availability and walking feasibility can limit your options. Fares and durations are estimates.</InfoTip></div>
             <select
               aria-label="Local transport"
               value={transportMode}
@@ -342,10 +354,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
 
         {/* Must-Visit Pins (Strict In-Solver Constraint) */}
         <div>
-          <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
             <Pin className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Must-Visit Places (Strict Pins 🔒)</span>
-          </div><InfoTip title="Must-visit places">Select essential stops only. Too many pins can make the plan impossible; reduce them or add days if that happens.</InfoTip>
+            <span>Must-see places</span>
+          </div><InfoTip title="Must-visit places">Select essential stops only. Too many pins can make the plan impossible; reduce them or add days if that happens.</InfoTip></div>
           <div className="flex flex-wrap gap-2">
             {(CITY_MUST_VISIT_PINS[destination] || []).map(placeName => {
               const active = lockedActivities.includes(placeName);
@@ -368,15 +380,15 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
             })}
           </div>
           <p className="text-[11px] text-[#596b57] mt-1.5">
-            Pinned stops become mandatory solver nodes protected against budget trimming.
+            These places must fit your trip. Pick only your essentials.
           </p>
         </div>
 
         {/* Interests & Themes */}
         <div>
-          <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2">
-            Interests & Themes (Prioritizes Drop Penalties)
-          </div><InfoTip title="Interests">Select the kinds of places you enjoy. These preferences guide selection; a matching attraction may still be omitted when constraints do not fit.</InfoTip>
+          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2">
+            What do you enjoy?
+          </div><InfoTip title="Interests">Select the kinds of places you enjoy. These preferences guide selection; a matching attraction may still be omitted when constraints do not fit.</InfoTip></div>
           <div className="flex flex-wrap gap-2">
             {INTEREST_TAGS.map(tag => {
               const active = interests.includes(tag.id);
@@ -400,16 +412,16 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
         </div>
 
         {/* Submit CTA */}
-        </div></details>
-        <details className="trip-extra"><summary>Arrival & departure <span>Optional · travel from another city</span></summary><div className="space-y-6 mt-5">        {/* Departure City (Inter-City Routing) */}
+        </div></section>
+        <section tabIndex={-1} hidden={step !== 2} className="trip-step" aria-label="Arrival"><p className="step-note">Already in the city? Keep the defaults, then create your trip.</p><div className="space-y-5">        {/* Departure City (Inter-City Routing) */}
         <div>
-          <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center justify-between">
+          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center justify-between">
             <span className="flex items-center space-x-1.5">
               <Train className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Traveling From (Departure City)</span>
             </span>
-            <span className="text-[11px] text-[#596b57] font-normal lowercase">Curated 10+ inter-city corridors</span>
-          </div><InfoTip title="Departure city">Already there? Keep Local / Same City. Otherwise select your departure city to compare estimated intercity travel; it is priced separately.</InfoTip>
+            <span className="text-[11px] text-[#596b57] font-normal lowercase">Optional</span>
+          </div><InfoTip title="Departure city">Already there? Keep Local / Same City. Otherwise select your departure city to compare estimated intercity travel; it is priced separately.</InfoTip></div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             <button
               type="button"
@@ -453,10 +465,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
 
         {/* Starting Origin Hub */}
         <div>
-          <div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
+          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
             <MapPin className="w-3.5 h-3.5 text-[#89532d]" />
             <span>Trip Starting Location / Origin</span>
-          </div><InfoTip title="Starting location">Choose where each day begins. Station and airport use representative city hubs; they are estimates, not your live location.</InfoTip>
+          </div><InfoTip title="Starting location">Choose where each day begins. Station and airport use representative city hubs; they are estimates, not your live location.</InfoTip></div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
             {ORIGIN_HUBS.map(hub => {
               const isSelected = originType === hub.id;
@@ -487,8 +499,8 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
           </p>
         </div>
 
-        </div></details>
-        <button
+        </div></section>
+        <div className="trip-step-actions">{step > 0 && <button type="button" className="step-back" onClick={() => setStep(step - 1)}>Back</button>}<button
           type="submit"
           disabled={isLoading}
           className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-sm tracking-wide shadow-lg shadow-amber-500/25 transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
@@ -501,11 +513,12 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: TripFor
           ) : (
             <>
               <Compass className="w-4 h-4" />
-              <span>Create my trip</span>
+              <span>{step < 2 ? 'Continue' : 'Create my trip'}</span>
             </>
           )}
         </button>
 
+        </div>
         {/* Blueprint Stage 1-10 Progressive Engine Telemetry (Shows while calculating) */}
         {isLoading && <p role="status" className="mt-4 text-sm">Comparing routes and estimates. The service may take about a minute to wake up. Keep this page open.</p>}
       </div>

@@ -83,3 +83,55 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #374151;
 }
+
+/* Shared typography, navigation and genuine loading states. */
+html { scroll-behavior: smooth; scroll-padding-top: 0; }
+body { font-family: var(--font-geist-sans),Arial,sans-serif; }
+.planner-theme h1,.profile-page h1,.profile-page h2 { font-family: var(--font-display),Georgia,serif; }
+.page-arrival { animation: page-arrive .45s ease both; }
+@keyframes page-arrive { from { opacity: .3; } to { opacity: 1; } }
+.journey-loading { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; padding: 32px; background: #f3f4ea; color: #294333; text-align: center; }
+.journey-loading-compact { min-height: 0; height: 100%; padding: 24px; background: transparent; }
+.journey-loading p { font-family: var(--font-display),Georgia,serif; font-size: 24px; margin: 0; }
+.loading-caption { font-size: 12px; color: #526653; }
+.loading-rail { position: relative; height: 64px; width: 180px; overflow: hidden; border-bottom: 3px double #91a779; }
+.loading-train { width: 90px; position: absolute; bottom: 0; animation: loading-journey 2.4s ease-in-out infinite alternate; }
+@keyframes loading-journey { from { transform: translateX(-42px); } to { transform: translateX(38px); } }
+.inline-processing { display: inline-flex; align-items: center; gap: 10px; }
+.loading-dot { width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: processing-turn .8s linear infinite; }
+@keyframes processing-turn { to { transform: rotate(360deg); } }
+.trip-form { box-shadow: 0 12px 40px #29433308; }
+.trip-form>div:first-child { margin-bottom: 16px; padding-bottom: 12px; }
+.trip-stepper { display: flex; gap: 8px; padding-bottom: 20px; }
+.trip-stepper button { flex: 1; display: flex; align-items: center; gap: 9px; padding: 10px 12px; border-radius: 12px; background: #eff2e8; font-size: 13px; font-weight: 600; color: #526653; text-align: left; }
+.trip-stepper button span { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid #bac9af; border-radius: 50%; flex-shrink: 0; }
+.trip-stepper button[aria-current=step] { background: #294333; color: #fffdf5; }
+.trip-stepper button[aria-current=step] span { border-color: #b6ca9d; }
+.trip-step:not([hidden]) { animation: step-arrive .3s ease; }
+.trip-step[hidden] { display: none !important; }
+@keyframes step-arrive { from { opacity: .2; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.trip-basics { display: grid; gap: 24px; }
+.trip-field-heading { display: flex; align-items: center; gap: 5px; margin-bottom: 8px; }
+.trip-field-heading>label,.trip-field-heading>div { margin-bottom: 0; letter-spacing: .035em; }
+.trip-field-heading .info-tip { margin: 0; flex-shrink: 0; }
+.trip-field-heading .info-tip>button { width: 28px; height: 28px; border: none; background: transparent; }
+.step-note { font-size: 13px; color: #526653; margin-bottom: 18px; }
+.trip-step-actions { display: flex; justify-content: flex-end; gap: 12px; padding-top: 18px; border-top: 1px solid #d6dfd0; }
+.trip-step-actions>button[type=submit] { width: auto; min-width: 190px; background: #294333; color: #fffdf5; box-shadow: 0 4px 10px #29433318; }
+.step-back { padding: 12px 20px; border-radius: 12px; border: 1px solid #c6d2c0; font-size: 14px; }
+.planner-settings,.planner-results,.trip-step { min-width: 0; }
+@media(min-width:900px) {
+  .trip-basics { grid-template-columns: 1fr 1fr; }
+  .trip-basics>div:first-child { grid-column: 1 / -1; }
+  .trip-basics>div:first-child>div:last-child { grid-template-columns: repeat(5,minmax(0,1fr)); }
+}
+@media(max-width:600px) {
+  .trip-form { padding: 18px; }
+  .trip-stepper { gap: 5px; }
+  .trip-stepper button { flex-direction: column; font-size: 11px; text-align: center; padding: 8px 4px; gap: 6px; }
+  .trip-step-actions>button[type=submit] { flex: 1; min-width: 0; }
+}
+@media(prefers-reduced-motion:reduce) {
+  html { scroll-behavior: auto; }
+  .page-arrival,.trip-step:not([hidden]),.loading-train,.loading-dot,#manual-panel { animation: none; }
+}

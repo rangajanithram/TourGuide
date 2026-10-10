@@ -9,6 +9,7 @@ import { useAuth } from '@/context/AuthContext';
 import { authErrorMessage, EMAIL_NOTICE } from '@/lib/auth-policy';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import AuthCaptcha from '@/components/auth/AuthCaptcha';
+import JourneyLoading from '../JourneyLoading';
 import {
   ArrowRight,
   Compass,
@@ -22,7 +23,7 @@ import {
 } from 'lucide-react';
 import './account.css';
 
-const TravelWorld = dynamic(() => import('./TravelWorld'), { ssr: false });
+const TravelWorld = dynamic(() => import('./TravelWorld'), { ssr: false, loading: () => <JourneyLoading compact label="Preparing the forest line…" /> });
 
 function calculatePasswordStrength(password: string): {
   score: number;
@@ -244,7 +245,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
             </div>
           )}
 
-          <form onSubmit={submit}>
+          <form onSubmit={submit} className={signup ? "signup-fields" : undefined}>
             {signup && (
               <label key="name">
                 Your name
@@ -347,7 +348,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
             <AuthCaptcha key={captchaCycle} onToken={setCaptchaToken} />
             <button className="account-primary" type="submit" disabled={isSubmitting}>
               {isSubmitting ? (
-                'Processing...'
+                <span role="status" className="inline-processing"><span className="loading-dot" />Processing…</span>
               ) : forgot ? (
                 <>
                   Send password reset link <ArrowRight size={17} />
