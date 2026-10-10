@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   const client = await getServerSupabase();
   if (client && typeof hash === 'string' && hash.length <= 1024 && (type === 'signup' || type === 'recovery')) {
     const { error } = await client.auth.verifyOtp({ token_hash: hash, type });
-    if (!error) destination = type === 'recovery' ? '/reset-password' : '/verified';
+    if (!error) destination = type === 'recovery' ? '/reset-password' : '/guide';
   }
   const response = NextResponse.redirect(new URL(destination, origin), 303);
   response.headers.set('Cache-Control', 'private, no-store');

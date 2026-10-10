@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { 
+import {
   MapPin, Calendar, Users, IndianRupee, Car,
   Sparkles, Pin, Tag, SlidersHorizontal, Check,
   Share2, HeartHandshake, EyeOff
@@ -102,31 +102,31 @@ export default function SharedTripOverview({
   };
 
   return (
-    <div className="bg-[#11131b] border border-amber-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="bg-[#fffdf5] border border-amber-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Background Accent Glow */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
       {/* Top Banner Row: Badges & Action CTAs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#1e2230] relative z-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#d6dfd0] relative z-10">
         <div className="space-y-1.5">
           <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider">
-              <HeartHandshake className="w-3.5 h-3.5 text-amber-400" />
+            <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-[#89532d] bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider">
+              <HeartHandshake className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Shared Group Itinerary</span>
             </span>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-[#526653]">
               Curated by Trip Organizer / Room Head
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center space-x-2 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-[#243e33] tracking-tight flex items-center space-x-2 flex-wrap">
             <span>{destination}</span>
             {origin && (
-              <span className="text-gray-400 text-lg font-normal flex items-center space-x-1.5">
+              <span className="text-[#526653] text-lg font-normal flex items-center space-x-1.5">
                 <span>• From</span>
-                <span className="text-amber-300 font-semibold">{origin}</span>
+                <span className="text-[#89532d] font-semibold">{origin}</span>
               </span>
             )}
-            <span className="text-xs font-semibold text-gray-400 bg-[#161922] border border-[#222736] px-2.5 py-1 rounded-lg">
+            <span className="text-xs font-semibold text-[#526653] bg-[#eef1e5] border border-[#c6d2c0] px-2.5 py-1 rounded-lg">
               {daysCount > 0 ? `${daysCount} Days` : ''}
               {startDate && endDate ? ` (${startDate} to ${endDate})` : ''}
             </span>
@@ -141,7 +141,7 @@ export default function SharedTripOverview({
             className={`inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all active:scale-95 shadow-sm ${
               showEditor
                 ? 'bg-amber-500 text-black border-amber-400 font-bold'
-                : 'bg-[#161922] text-gray-200 border-[#222736] hover:border-gray-500'
+                : 'bg-[#eef1e5] text-gray-200 border-[#c6d2c0] hover:border-gray-500'
             }`}
             title="Toggle the trip customization form to edit dates, budget, or destination"
           >
@@ -152,7 +152,7 @@ export default function SharedTripOverview({
               </>
             ) : (
               <>
-                <SlidersHorizontal className="w-4 h-4 text-amber-400" />
+                <SlidersHorizontal className="w-4 h-4 text-[#89532d]" />
                 <span>Customize / Edit Settings</span>
               </>
             )}
@@ -161,17 +161,17 @@ export default function SharedTripOverview({
           <button
             type="button"
             onClick={handleCopyLink}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold transition-all active:scale-95 shadow-sm"
+            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#89532d] border border-amber-500/30 text-xs font-bold transition-all active:scale-95 shadow-sm"
             title="Copy shared trip link to send to other group members"
           >
             {copied ? (
               <>
-                <Check className="w-4 h-4 text-emerald-400" />
+                <Check className="w-4 h-4 text-emerald-700" />
                 <span className="text-emerald-300">Link Copied!</span>
               </>
             ) : (
               <>
-                <Share2 className="w-4 h-4 text-amber-400" />
+                <Share2 className="w-4 h-4 text-[#89532d]" />
                 <span>Share with Group</span>
               </>
             )}
@@ -182,85 +182,85 @@ export default function SharedTripOverview({
       {/* Useful Settings Cards Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 relative z-10">
         {/* Destination & City Hub */}
-        <div className="bg-[#161922] border border-[#222736] rounded-xl p-3">
-          <span className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider block flex items-center space-x-1">
-            <MapPin className="w-3 h-3 text-amber-400" />
+        <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
+          <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
+            <MapPin className="w-3 h-3 text-[#89532d]" />
             <span>Target City</span>
           </span>
-          <span className="text-sm font-bold text-white block mt-0.5 truncate capitalize">
+          <span className="text-sm font-bold text-[#243e33] block mt-0.5 truncate capitalize">
             {formData?.destination || destination}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5">
+          <span className="text-[10px] text-[#526653] block mt-0.5">
             {origin ? `From ${origin}` : 'Local Hub'}
           </span>
         </div>
 
         {/* Travel Dates & Days */}
-        <div className="bg-[#161922] border border-[#222736] rounded-xl p-3">
-          <span className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider block flex items-center space-x-1">
-            <Calendar className="w-3 h-3 text-amber-400" />
+        <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
+          <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
+            <Calendar className="w-3 h-3 text-[#89532d]" />
             <span>Schedule</span>
           </span>
-          <span className="text-sm font-bold text-white block mt-0.5 truncate">
+          <span className="text-sm font-bold text-[#243e33] block mt-0.5 truncate">
             {daysCount} Days
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5 truncate">
+          <span className="text-[10px] text-[#526653] block mt-0.5 truncate">
             {startDate ? startDate : 'Flexible'}
           </span>
         </div>
 
         {/* Travelers & Profile */}
-        <div className="bg-[#161922] border border-[#222736] rounded-xl p-3">
-          <span className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider block flex items-center space-x-1">
-            <Users className="w-3 h-3 text-amber-400" />
+        <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
+          <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
+            <Users className="w-3 h-3 text-[#89532d]" />
             <span>Group Size</span>
           </span>
-          <span className="text-sm font-bold text-white block mt-0.5">
+          <span className="text-sm font-bold text-[#243e33] block mt-0.5">
             {people} {people === 1 ? 'Guest' : 'Guests'}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5 truncate">
+          <span className="text-[10px] text-[#526653] block mt-0.5 truncate">
             {PROFILE_LABELS[profile] || profile}
           </span>
         </div>
 
         {/* Trip Budget */}
-        <div className="bg-[#161922] border border-[#222736] rounded-xl p-3">
-          <span className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider block flex items-center space-x-1">
-            <IndianRupee className="w-3 h-3 text-amber-400" />
+        <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
+          <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
+            <IndianRupee className="w-3 h-3 text-[#89532d]" />
             <span>Target Budget</span>
           </span>
-          <span className="text-sm font-extrabold text-amber-400 block mt-0.5">
+          <span className="text-sm font-extrabold text-[#89532d] block mt-0.5">
             ₹{budget.toLocaleString('en-IN')}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5 truncate">
+          <span className="text-[10px] text-[#526653] block mt-0.5 truncate">
             ₹{Math.round(budget / people).toLocaleString('en-IN')} / person
           </span>
         </div>
 
         {/* Transit Mode & Pacing */}
-        <div className="bg-[#161922] border border-[#222736] rounded-xl p-3">
-          <span className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider block flex items-center space-x-1">
-            <Car className="w-3 h-3 text-amber-400" />
+        <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
+          <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
+            <Car className="w-3 h-3 text-[#89532d]" />
             <span>Transit & Pace</span>
           </span>
-          <span className="text-sm font-bold text-white block mt-0.5 truncate">
+          <span className="text-sm font-bold text-[#243e33] block mt-0.5 truncate">
             {MODE_LABELS[mode] || mode}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5 capitalize truncate">
+          <span className="text-[10px] text-[#526653] block mt-0.5 capitalize truncate">
             {pace} Pacing
           </span>
         </div>
 
         {/* Active Variant Tier */}
-        <div className="bg-[#161922] border border-[#222736] rounded-xl p-3">
-          <span className="text-[10px] uppercase font-semibold text-gray-500 tracking-wider block flex items-center space-x-1">
-            <Sparkles className="w-3 h-3 text-amber-400" />
+        <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
+          <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
+            <Sparkles className="w-3 h-3 text-[#89532d]" />
             <span>Active Tier</span>
           </span>
-          <span className="text-sm font-bold text-amber-300 block mt-0.5 truncate">
+          <span className="text-sm font-bold text-[#89532d] block mt-0.5 truncate">
             {VARIANT_NAMES[activeVariant] || activeVariant}
           </span>
-          <span className="text-[10px] text-gray-400 block mt-0.5">
+          <span className="text-[10px] text-[#526653] block mt-0.5">
             Pre-selected
           </span>
         </div>
@@ -268,18 +268,18 @@ export default function SharedTripOverview({
 
       {/* Must-Visit Pinned Stops & Travel Interests */}
       {(pinnedStops.length > 0 || interests.length > 0) && (
-        <div className="pt-3 border-t border-[#1e2230] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs relative z-10">
+        <div className="pt-3 border-t border-[#d6dfd0] flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs relative z-10">
           {/* Pinned Highlights */}
           {pinnedStops.length > 0 && (
             <div className="flex items-center space-x-2 flex-wrap gap-y-1.5">
-              <span className="text-gray-400 font-semibold flex items-center space-x-1 text-[11px] shrink-0">
-                <Pin className="w-3 h-3 text-amber-400" />
+              <span className="text-[#526653] font-semibold flex items-center space-x-1 text-[11px] shrink-0">
+                <Pin className="w-3 h-3 text-[#89532d]" />
                 <span>Must-Visit Highlights:</span>
               </span>
               {pinnedStops.map(p => (
                 <span
                   key={p}
-                  className="bg-amber-500/10 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-md font-medium text-[11px]"
+                  className="bg-amber-500/10 text-[#89532d] border border-amber-500/30 px-2 py-0.5 rounded-md font-medium text-[11px]"
                 >
                   {p}
                 </span>
@@ -290,14 +290,14 @@ export default function SharedTripOverview({
           {/* Interests */}
           {interests.length > 0 && (
             <div className="flex items-center space-x-2 flex-wrap gap-y-1.5">
-              <span className="text-gray-400 font-semibold flex items-center space-x-1 text-[11px] shrink-0">
+              <span className="text-[#526653] font-semibold flex items-center space-x-1 text-[11px] shrink-0">
                 <Tag className="w-3 h-3 text-sky-400" />
                 <span>Interests:</span>
               </span>
               {interests.map(t => (
                 <span
                   key={t}
-                  className="bg-[#161922] text-gray-300 border border-[#222736] px-2 py-0.5 rounded-md text-[11px]"
+                  className="bg-[#eef1e5] text-[#425d4c] border border-[#c6d2c0] px-2 py-0.5 rounded-md text-[11px]"
                 >
                   {INTEREST_LABELS[t] || t}
                 </span>

@@ -1,9 +1,9 @@
 export function safeNext(value: string | null | undefined): string {
-  return ['/planner', '/account', '/reset-password'].includes(value || '') ? value! : '/account';
+  return ['/guide', '/account', '/reset-password'].includes(value || '') ? value! : '/guide';
 }
 export function authErrorMessage(error: unknown): string {
   const e = error as { code?: string; status?: number; name?: string };
-  if (e?.code === 'configuration') return 'Account sign-in is not configured yet. You can still explore the guest planner.';
+  if (e?.code === 'configuration') return 'Account sign-in is not configured yet. You can still explore the guide.';
   if (e?.code === 'verification_configuration') return 'Email verification needs to be enabled by the site administrator.';
   if (e?.code === 'reauthentication_needed' || e?.code === 'session_not_found') return 'Sign in again or request a new password recovery link.';
   if (e?.status === 429 || e?.code?.includes('rate_limit')) return 'Too many attempts. Please wait a minute before trying again.';

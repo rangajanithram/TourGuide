@@ -63,12 +63,12 @@ const CATEGORY_CONFIG: Record<
   ExpenseCategory,
   { label: string; icon: typeof Utensils; color: string; bg: string }
 > = {
-  dining: { label: 'Dining & Food', icon: Utensils, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' },
-  transit: { label: 'Transit & Commute', icon: Car, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/30' },
+  dining: { label: 'Dining & Food', icon: Utensils, color: 'text-[#89532d]', bg: 'bg-amber-500/10 border-amber-500/30' },
+  transit: { label: 'Transit & Commute', icon: Car, color: 'text-cyan-700', bg: 'bg-cyan-500/10 border-cyan-500/30' },
   lodging: { label: 'Lodging & Stays', icon: Hotel, color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/30' },
-  activities: { label: 'Activities & Entry', icon: Ticket, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' },
+  activities: { label: 'Activities & Entry', icon: Ticket, color: 'text-emerald-700', bg: 'bg-emerald-500/10 border-emerald-500/30' },
   shopping: { label: 'Shopping & Souvenirs', icon: ShoppingBag, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10 border-fuchsia-500/30' },
-  other: { label: 'Other & Tips', icon: Package, color: 'text-gray-400', bg: 'bg-gray-500/10 border-gray-500/30' },
+  other: { label: 'Other & Tips', icon: Package, color: 'text-[#526653]', bg: 'bg-gray-500/10 border-gray-500/30' },
 };
 
 type ActiveTab = 'overview' | 'settle' | 'history' | 'members';
@@ -458,26 +458,26 @@ export default function GroupExpenseModal({
         aria-modal="true"
         aria-labelledby="group-expense-dialog-title"
         tabIndex={-1}
-        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[#222736] bg-[#0d0f17] shadow-2xl outline-none sm:max-h-[92dvh]"
+        className="relative flex max-h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[#c6d2c0] bg-[#eef1e5] shadow-2xl outline-none sm:max-h-[92dvh]"
       >
-        
+
         {/* Header Bar */}
-        <div className="flex items-center justify-between gap-2 border-b border-[#1e2230] bg-[#11131b] px-3 py-3 sm:px-5 sm:py-4">
+        <div className="flex items-center justify-between gap-2 border-b border-[#d6dfd0] bg-[#fffdf5] px-3 py-3 sm:px-5 sm:py-4">
           <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-            <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/40 bg-gradient-to-tr from-amber-500/20 to-orange-500/20 font-bold text-amber-400 shadow-inner sm:flex">
+            <div className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-500/40 bg-gradient-to-tr from-amber-500/20 to-orange-500/20 font-bold text-[#89532d] shadow-inner sm:flex">
               <IndianRupee className="h-5 w-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h3 id="group-expense-dialog-title" className="truncate text-sm font-bold tracking-wide text-white sm:text-base">
+                <h3 id="group-expense-dialog-title" className="truncate text-sm font-bold tracking-wide text-[#243e33] sm:text-base">
                   Group Expense Tracker & UPI Settlement
                 </h3>
-                <span className="hidden shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-400 sm:inline-flex">
+                <span className="hidden shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#89532d] sm:inline-flex">
                   Live Ledger
                 </span>
               </div>
-              <p className="mt-0.5 truncate text-[10px] text-gray-400 sm:text-xs">
-                {destination.charAt(0).toUpperCase() + destination.slice(1)} • {ledger.members.length} Members • Total Spent: <span className="text-white font-bold">₹{totalSpentInr.toLocaleString('en-IN')}</span>
+              <p className="mt-0.5 truncate text-[10px] text-[#526653] sm:text-xs">
+                {destination.charAt(0).toUpperCase() + destination.slice(1)} • {ledger.members.length} Members • Total Spent: <span className="text-[#243e33] font-bold">₹{totalSpentInr.toLocaleString('en-IN')}</span>
               </p>
             </div>
           </div>
@@ -486,17 +486,17 @@ export default function GroupExpenseModal({
             <button
               type="button"
               onClick={handleCopyWhatsApp}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-[#2e3447] bg-[#1a1e2b] px-2 py-1.5 text-xs font-semibold text-gray-200 shadow-sm transition-all hover:bg-[#23283a] hover:text-white sm:px-3"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-[#d6dfd0] bg-[#d6dfd0] px-2 py-1.5 text-xs font-semibold text-gray-200 shadow-sm transition-all hover:bg-[#d6dfd0] hover:text-[#243e33] sm:px-3"
               title="Copy formatted WhatsApp summary"
             >
               {copiedWhatsApp ? (
                 <>
-                  <Check className="w-3.5 h-3.5 text-emerald-400" />
-                  <span className="text-emerald-400">Copied!</span>
+                  <Check className="w-3.5 h-3.5 text-emerald-700" />
+                  <span className="text-emerald-700">Copied!</span>
                 </>
               ) : (
                 <>
-                  <Share2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <Share2 className="w-3.5 h-3.5 text-emerald-700" />
                   <span className="hidden sm:inline">WhatsApp Card</span>
                 </>
               )}
@@ -504,7 +504,7 @@ export default function GroupExpenseModal({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-gray-400 hover:text-white rounded-lg hover:bg-[#1a1e2b] transition-colors"
+              className="p-1.5 text-[#526653] hover:text-[#243e33] rounded-lg hover:bg-[#d6dfd0] transition-colors"
               aria-label="Close group expense tracker"
             >
               <X className="w-5 h-5" />
@@ -513,15 +513,15 @@ export default function GroupExpenseModal({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center justify-between gap-2 border-b border-[#1e2230] bg-[#0f111a] px-2 py-2 sm:px-5">
+        <div className="flex items-center justify-between gap-2 border-b border-[#d6dfd0] bg-[#eef1e5] px-2 py-2 sm:px-5">
           <div className="flex min-w-0 items-center gap-1 overflow-x-auto sm:gap-2">
             <button
               type="button"
               onClick={() => { setActiveTab('overview'); setIsAddingExpense(false); }}
               className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all sm:px-3 sm:text-xs ${
                 activeTab === 'overview'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#161924]'
+                  ? 'bg-amber-500/20 text-[#89532d] border border-amber-500/40 shadow-sm'
+                  : 'text-[#526653] hover:text-[#243e33] hover:bg-[#eef1e5]'
               }`}
             >
               <PieChart className="w-3.5 h-3.5" />
@@ -533,8 +533,8 @@ export default function GroupExpenseModal({
               onClick={() => { setActiveTab('settle'); setIsAddingExpense(false); }}
               className={`relative flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all sm:px-3 sm:text-xs ${
                 activeTab === 'settle'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#161924]'
+                  ? 'bg-amber-500/20 text-[#89532d] border border-amber-500/40 shadow-sm'
+                  : 'text-[#526653] hover:text-[#243e33] hover:bg-[#eef1e5]'
               }`}
             >
               <CreditCard className="w-3.5 h-3.5" />
@@ -551,8 +551,8 @@ export default function GroupExpenseModal({
               onClick={() => { setActiveTab('history'); setIsAddingExpense(false); }}
               className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all sm:px-3 sm:text-xs ${
                 activeTab === 'history'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#161924]'
+                  ? 'bg-amber-500/20 text-[#89532d] border border-amber-500/40 shadow-sm'
+                  : 'text-[#526653] hover:text-[#243e33] hover:bg-[#eef1e5]'
               }`}
             >
               <History className="w-3.5 h-3.5" />
@@ -564,8 +564,8 @@ export default function GroupExpenseModal({
               onClick={() => { setActiveTab('members'); setIsAddingExpense(false); }}
               className={`flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-all sm:px-3 sm:text-xs ${
                 activeTab === 'members'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-                  : 'text-gray-400 hover:text-gray-200 hover:bg-[#161924]'
+                  ? 'bg-amber-500/20 text-[#89532d] border border-amber-500/40 shadow-sm'
+                  : 'text-[#526653] hover:text-[#243e33] hover:bg-[#eef1e5]'
               }`}
             >
               <Users className="w-3.5 h-3.5" />
@@ -590,18 +590,18 @@ export default function GroupExpenseModal({
 
           {/* Add Expense Form Drawer */}
           {isAddingExpense && (
-            <div className="bg-[#131622] border border-amber-500/40 rounded-xl p-4 sm:p-5 shadow-xl animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#222736]">
+            <div className="bg-[#eef1e5] border border-amber-500/40 rounded-xl p-4 sm:p-5 shadow-xl animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#c6d2c0]">
                 <div className="flex items-center space-x-2">
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-xs">
+                  <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-[#89532d] flex items-center justify-center font-bold text-xs">
                     ₹
                   </div>
-                  <h4 className="text-sm font-bold text-white">Record New Group Expense</h4>
+                  <h4 className="text-sm font-bold text-[#243e33]">Record New Group Expense</h4>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsAddingExpense(false)}
-                  className="text-gray-400 hover:text-white text-xs"
+                  className="text-[#526653] hover:text-[#243e33] text-xs"
                 >
                   Cancel
                 </button>
@@ -618,7 +618,7 @@ export default function GroupExpenseModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Title / Description */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-[#425d4c] mb-1">
                       Expense Description <span className="text-rose-400">*</span>
                     </label>
                     <input
@@ -627,17 +627,17 @@ export default function GroupExpenseModal({
                       value={newTitle}
                       onChange={e => setNewTitle(e.target.value)}
                       required
-                      className="w-full px-3 py-2 text-xs bg-[#1a1e2b] border border-[#2e3447] focus:border-amber-400 rounded-lg text-white placeholder-gray-500 focus:outline-none"
+                      className="w-full px-3 py-2 text-xs bg-[#d6dfd0] border border-[#d6dfd0] focus:border-amber-400 rounded-lg text-[#243e33] placeholder-gray-500 focus:outline-none"
                     />
                   </div>
 
                   {/* Amount in INR */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-[#425d4c] mb-1">
                       Total Amount (₹ INR) <span className="text-rose-400">*</span>
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 text-xs font-bold">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-[#526653] text-xs font-bold">
                         ₹
                       </span>
                       <input
@@ -648,7 +648,7 @@ export default function GroupExpenseModal({
                         value={newAmount}
                         onChange={e => setNewAmount(e.target.value)}
                         required
-                        className="w-full pl-7 pr-3 py-2 text-xs bg-[#1a1e2b] border border-[#2e3447] focus:border-amber-400 rounded-lg text-white font-bold placeholder-gray-500 focus:outline-none"
+                        className="w-full pl-7 pr-3 py-2 text-xs bg-[#d6dfd0] border border-[#d6dfd0] focus:border-amber-400 rounded-lg text-[#243e33] font-bold placeholder-gray-500 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -656,7 +656,7 @@ export default function GroupExpenseModal({
 
                 {/* Category Selection */}
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1.5">
+                  <label className="block text-xs font-medium text-[#425d4c] mb-1.5">
                     Category
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
@@ -671,8 +671,8 @@ export default function GroupExpenseModal({
                           onClick={() => setNewCategory(catKey)}
                           className={`flex items-center space-x-1.5 p-2 rounded-lg text-xs font-medium border transition-all text-left ${
                             isSelected
-                              ? 'bg-amber-500/20 border-amber-500/50 text-white shadow-sm'
-                              : 'bg-[#1a1e2b] border-[#2e3447] text-gray-400 hover:text-gray-200'
+                              ? 'bg-amber-500/20 border-amber-500/50 text-[#243e33] shadow-sm'
+                              : 'bg-[#d6dfd0] border-[#d6dfd0] text-[#526653] hover:text-[#243e33]'
                           }`}
                         >
                           <Icon className={`w-3.5 h-3.5 shrink-0 ${cfg.color}`} />
@@ -686,13 +686,13 @@ export default function GroupExpenseModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Paid By */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-[#425d4c] mb-1">
                       Paid By <span className="text-rose-400">*</span>
                     </label>
                     <select
                       value={newPaidBy}
                       onChange={e => setNewPaidBy(e.target.value)}
-                      className="w-full px-3 py-2 text-xs bg-[#1a1e2b] border border-[#2e3447] focus:border-amber-400 rounded-lg text-white focus:outline-none"
+                      className="w-full px-3 py-2 text-xs bg-[#d6dfd0] border border-[#d6dfd0] focus:border-amber-400 rounded-lg text-[#243e33] focus:outline-none"
                     >
                       {ledger.members.map(m => (
                         <option key={m.id} value={m.id}>
@@ -704,17 +704,17 @@ export default function GroupExpenseModal({
 
                   {/* Split Type Toggle */}
                   <div>
-                    <label className="block text-xs font-medium text-gray-300 mb-1">
+                    <label className="block text-xs font-medium text-[#425d4c] mb-1">
                       Split Mode
                     </label>
-                    <div className="flex rounded-lg bg-[#1a1e2b] p-0.5 border border-[#2e3447]">
+                    <div className="flex rounded-lg bg-[#d6dfd0] p-0.5 border border-[#d6dfd0]">
                       <button
                         type="button"
                         onClick={() => setNewSplitType('equal')}
                         className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                           newSplitType === 'equal'
                             ? 'bg-amber-500 text-black shadow-sm'
-                            : 'text-gray-400 hover:text-white'
+                            : 'text-[#526653] hover:text-[#243e33]'
                         }`}
                       >
                         Split Equally
@@ -725,7 +725,7 @@ export default function GroupExpenseModal({
                         className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition-all ${
                           newSplitType === 'custom'
                             ? 'bg-amber-500 text-black shadow-sm'
-                            : 'text-gray-400 hover:text-white'
+                            : 'text-[#526653] hover:text-[#243e33]'
                         }`}
                       >
                         Custom Split
@@ -735,9 +735,9 @@ export default function GroupExpenseModal({
                 </div>
 
                 {/* Member Split Selection */}
-                <div className="bg-[#161a26] border border-[#232838] rounded-xl p-3">
+                <div className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-gray-300">
+                    <span className="text-xs font-semibold text-[#425d4c]">
                       Split Among ({selectedMemberIds.length} members)
                     </span>
                     <button
@@ -749,7 +749,7 @@ export default function GroupExpenseModal({
                           setSelectedMemberIds(ledger.members.map(m => m.id));
                         }
                       }}
-                      className="text-[11px] text-amber-400 hover:underline"
+                      className="text-[11px] text-[#89532d] hover:underline"
                     >
                       {selectedMemberIds.length === ledger.members.length ? 'Deselect Others' : 'Select All'}
                     </button>
@@ -768,8 +768,8 @@ export default function GroupExpenseModal({
                           key={m.id}
                           className={`flex items-center justify-between p-2 rounded-lg border text-xs transition-all ${
                             isSelected
-                              ? 'bg-[#1b2030] border-amber-500/40 text-white'
-                              : 'bg-[#12141c] border-[#1e2230] text-gray-500'
+                              ? 'bg-[#d6dfd0] border-amber-500/40 text-[#243e33]'
+                              : 'bg-[#eef1e5] border-[#d6dfd0] text-[#596b57]'
                           }`}
                         >
                           <label className="flex items-center space-x-2 cursor-pointer select-none">
@@ -785,12 +785,12 @@ export default function GroupExpenseModal({
                           {isSelected && (
                             <div>
                               {newSplitType === 'equal' ? (
-                                <span className="text-amber-400 font-mono font-bold">
+                                <span className="text-[#89532d] font-mono font-bold">
                                   ₹{equalShare}
                                 </span>
                               ) : (
                                 <div className="flex items-center space-x-1">
-                                  <span className="text-gray-400 text-[10px]">₹</span>
+                                  <span className="text-[#526653] text-[10px]">₹</span>
                                   <input
                                     type="number"
                                     min="0"
@@ -798,7 +798,7 @@ export default function GroupExpenseModal({
                                     placeholder="0"
                                     value={customSplits[m.id] ?? ''}
                                     onChange={e => handleCustomSplitChange(m.id, e.target.value)}
-                                    className="w-16 px-1.5 py-0.5 text-xs bg-[#10121a] border border-[#2e3447] focus:border-amber-400 rounded text-right text-white font-bold"
+                                    className="w-16 px-1.5 py-0.5 text-xs bg-[#eef1e5] border border-[#d6dfd0] focus:border-amber-400 rounded text-right text-[#243e33] font-bold"
                                   />
                                 </div>
                               )}
@@ -817,7 +817,7 @@ export default function GroupExpenseModal({
                     placeholder="Optional notes or receipt details..."
                     value={newNotes}
                     onChange={e => setNewNotes(e.target.value)}
-                    className="w-full px-3 py-1.5 text-xs bg-[#1a1e2b] border border-[#2e3447] focus:border-amber-400 rounded-lg text-white placeholder-gray-500 focus:outline-none"
+                    className="w-full px-3 py-1.5 text-xs bg-[#d6dfd0] border border-[#d6dfd0] focus:border-amber-400 rounded-lg text-[#243e33] placeholder-gray-500 focus:outline-none"
                   />
                 </div>
 
@@ -825,7 +825,7 @@ export default function GroupExpenseModal({
                   <button
                     type="button"
                     onClick={() => setIsAddingExpense(false)}
-                    className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#1a1e2b] hover:bg-[#23283a] text-gray-300"
+                    className="px-4 py-2 text-xs font-semibold rounded-lg bg-[#d6dfd0] hover:bg-[#d6dfd0] text-[#425d4c]"
                   >
                     Cancel
                   </button>
@@ -843,27 +843,27 @@ export default function GroupExpenseModal({
           {/* TAB 1: OVERVIEW & BALANCES */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              
+
               {/* Top Metrics Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="bg-[#12141f] border border-[#1e2230] rounded-xl p-3.5">
-                  <span className="text-[10px] text-gray-400 uppercase font-semibold block">Total Logged Spend</span>
-                  <div className="text-xl font-extrabold text-white mt-1">
+                <div className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-3.5">
+                  <span className="text-[10px] text-[#526653] uppercase font-semibold block">Total Logged Spend</span>
+                  <div className="text-xl font-extrabold text-[#243e33] mt-1">
                     ₹{totalSpentInr.toLocaleString('en-IN')}
                   </div>
-                  <span className="text-[11px] text-gray-400 mt-1 block">
+                  <span className="text-[11px] text-[#526653] mt-1 block">
                     Across {ledger.expenses.length} recorded items
                   </span>
                 </div>
 
-                <div className="bg-[#12141f] border border-[#1e2230] rounded-xl p-3.5">
-                  <span className="text-[10px] text-gray-400 uppercase font-semibold block">Trip Estimated Budget</span>
-                  <div className="text-xl font-extrabold text-amber-400 mt-1">
+                <div className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-3.5">
+                  <span className="text-[10px] text-[#526653] uppercase font-semibold block">Trip Estimated Budget</span>
+                  <div className="text-xl font-extrabold text-[#89532d] mt-1">
                     ₹{plannedBudget.total.toLocaleString('en-IN')}
                   </div>
                   <div className="text-[11px] mt-1 flex items-center space-x-1">
                     {plannedBudget.total - totalSpentInr >= 0 ? (
-                      <span className="text-emerald-400 font-semibold">
+                      <span className="text-emerald-700 font-semibold">
                         ✓ ₹{(plannedBudget.total - totalSpentInr).toLocaleString('en-IN')} remaining
                       </span>
                     ) : (
@@ -874,11 +874,11 @@ export default function GroupExpenseModal({
                   </div>
                 </div>
 
-                <div className="bg-[#12141f] border border-[#1e2230] rounded-xl p-3.5">
-                  <span className="text-[10px] text-gray-400 uppercase font-semibold block">Settlement Status</span>
+                <div className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-3.5">
+                  <span className="text-[10px] text-[#526653] uppercase font-semibold block">Settlement Status</span>
                   <div className="text-xl font-extrabold mt-1">
                     {pendingSettlements.length === 0 ? (
-                      <span className="text-emerald-400 flex items-center space-x-1">
+                      <span className="text-emerald-700 flex items-center space-x-1">
                         <CheckCircle2 className="w-5 h-5" />
                         <span>All Settled</span>
                       </span>
@@ -888,7 +888,7 @@ export default function GroupExpenseModal({
                       </span>
                     )}
                   </div>
-                  <span className="text-[11px] text-gray-400 mt-1 block">
+                  <span className="text-[11px] text-[#526653] mt-1 block">
                     {settledTransfers.length} completed settlements
                   </span>
                 </div>
@@ -896,8 +896,8 @@ export default function GroupExpenseModal({
 
               {/* Net Balances per Member */}
               <div>
-                <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3 flex items-center space-x-1.5">
-                  <Users className="w-4 h-4 text-amber-400" />
+                <h4 className="text-xs font-bold text-[#425d4c] uppercase tracking-wider mb-3 flex items-center space-x-1.5">
+                  <Users className="w-4 h-4 text-[#89532d]" />
                   <span>Individual Net Balances</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
@@ -909,31 +909,31 @@ export default function GroupExpenseModal({
                     return (
                       <div
                         key={m.id}
-                        className="bg-[#12141f] border border-[#1e2230] rounded-xl p-3.5 flex flex-col justify-between"
+                        className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-3.5 flex flex-col justify-between"
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center space-x-2">
-                            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500/20 to-orange-500/20 text-amber-300 flex items-center justify-center font-bold text-xs border border-amber-500/30">
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-500/20 to-orange-500/20 text-[#89532d] flex items-center justify-center font-bold text-xs border border-amber-500/30">
                               {m.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <span className="text-xs font-bold text-white block">{m.name}</span>
-                              <span className="text-[10px] text-gray-400 font-mono">
+                              <span className="text-xs font-bold text-[#243e33] block">{m.name}</span>
+                              <span className="text-[10px] text-[#526653] font-mono">
                                 {m.upi_id || 'No UPI ID'}
                               </span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="pt-2 border-t border-[#1e2230] flex items-center justify-between">
-                          <span className="text-[11px] text-gray-400">Net Balance:</span>
+                        <div className="pt-2 border-t border-[#d6dfd0] flex items-center justify-between">
+                          <span className="text-[11px] text-[#526653]">Net Balance:</span>
                           <span
                             className={`text-xs font-bold font-mono ${
                               isCreditor
-                                ? 'text-emerald-400'
+                                ? 'text-emerald-700'
                                 : isDebtor
                                 ? 'text-rose-400'
-                                : 'text-gray-400'
+                                : 'text-[#526653]'
                             }`}
                           >
                             {isCreditor ? `+₹${net.toLocaleString('en-IN')}` : isDebtor ? `-₹${Math.abs(net).toLocaleString('en-IN')}` : '₹0 (Settled)'}
@@ -947,8 +947,8 @@ export default function GroupExpenseModal({
 
               {/* Category Breakdown vs Planned Budget */}
               <div>
-                <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3 flex items-center space-x-1.5">
-                  <PieChart className="w-4 h-4 text-amber-400" />
+                <h4 className="text-xs font-bold text-[#425d4c] uppercase tracking-wider mb-3 flex items-center space-x-1.5">
+                  <PieChart className="w-4 h-4 text-[#89532d]" />
                   <span>Category Spend vs Planned Budget</span>
                 </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -962,7 +962,7 @@ export default function GroupExpenseModal({
                     const isOver = hasPlanned && actual > planned;
 
                     return (
-                      <div key={catKey} className="bg-[#12141f] border border-[#1e2230] rounded-xl p-3">
+                      <div key={catKey} className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-3">
                         <div className="flex items-center justify-between mb-1.5">
                           <div className="flex items-center space-x-2">
                             <div className={`p-1.5 rounded-lg border ${cfg.bg}`}>
@@ -971,9 +971,9 @@ export default function GroupExpenseModal({
                             <span className="text-xs font-semibold text-gray-200">{cfg.label}</span>
                           </div>
                           <div className="text-right">
-                            <span className="text-xs font-bold text-white">₹{actual.toLocaleString('en-IN')}</span>
+                            <span className="text-xs font-bold text-[#243e33]">₹{actual.toLocaleString('en-IN')}</span>
                             {hasPlanned && (
-                              <span className="text-[10px] text-gray-400 block">
+                              <span className="text-[10px] text-[#526653] block">
                                 / ₹{planned.toLocaleString('en-IN')}
                               </span>
                             )}
@@ -982,7 +982,7 @@ export default function GroupExpenseModal({
 
                         {hasPlanned && (
                           <div className="mt-2">
-                            <div className="w-full bg-[#1b1f2d] h-1.5 rounded-full overflow-hidden">
+                            <div className="w-full bg-[#d6dfd0] h-1.5 rounded-full overflow-hidden">
                               <div
                                 className={`h-full transition-all duration-300 ${
                                   isOver ? 'bg-rose-500' : 'bg-amber-400'
@@ -991,11 +991,11 @@ export default function GroupExpenseModal({
                               />
                             </div>
                             <div className="flex justify-between text-[10px] mt-1">
-                              <span className={isOver ? 'text-rose-400 font-semibold' : 'text-gray-400'}>
+                              <span className={isOver ? 'text-rose-400 font-semibold' : 'text-[#526653]'}>
                                 {isOver ? `⚠️ Over by ₹${(actual - planned).toLocaleString('en-IN')}` : `${pct}% of budget`}
                               </span>
                               {!isOver && (
-                                <span className="text-emerald-400 font-medium">
+                                <span className="text-emerald-700 font-medium">
                                   ₹{(planned - actual).toLocaleString('en-IN')} left
                                 </span>
                               )}
@@ -1016,21 +1016,21 @@ export default function GroupExpenseModal({
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider flex items-center space-x-1.5">
-                      <CreditCard className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-xs font-bold text-[#425d4c] uppercase tracking-wider flex items-center space-x-1.5">
+                      <CreditCard className="w-4 h-4 text-[#89532d]" />
                       <span>Recommended Minimum-Transfer Settlements</span>
                     </h4>
-                    <p className="text-[11px] text-gray-400 mt-0.5">
+                    <p className="text-[11px] text-[#526653] mt-0.5">
                       Greedy bipartite matching settles all group balances in at most {ledger.members.length - 1} payments.
                     </p>
                   </div>
                 </div>
 
                 {pendingSettlements.length === 0 ? (
-                  <div className="bg-[#12141f] border border-emerald-500/30 rounded-xl p-8 text-center space-y-2">
-                    <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto" />
-                    <h4 className="text-sm font-bold text-white">All Debts Completely Cleared!</h4>
-                    <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  <div className="bg-[#eef1e5] border border-emerald-500/30 rounded-xl p-8 text-center space-y-2">
+                    <CheckCircle2 className="w-10 h-10 text-emerald-700 mx-auto" />
+                    <h4 className="text-sm font-bold text-[#243e33]">All Debts Completely Cleared!</h4>
+                    <p className="text-xs text-[#526653] max-w-sm mx-auto">
                       There are no pending settlement transfers. All expenses are balanced or have been marked as paid.
                     </p>
                   </div>
@@ -1053,7 +1053,7 @@ export default function GroupExpenseModal({
                       return (
                         <div
                           key={s.id || idx}
-                          className="bg-[#12141f] border border-[#1e2230] hover:border-amber-500/30 rounded-xl p-4 transition-all"
+                          className="bg-[#eef1e5] border border-[#d6dfd0] hover:border-amber-500/30 rounded-xl p-4 transition-all"
                         >
                           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                             <div className="flex items-center space-x-3">
@@ -1062,18 +1062,18 @@ export default function GroupExpenseModal({
                               </div>
 
                               <div className="flex items-center space-x-2">
-                                <span className="text-xs font-bold text-white">{fromMember.name}</span>
-                                <ArrowRight className="w-3.5 h-3.5 text-gray-500" />
-                                <span className="text-xs font-bold text-emerald-400">{toMember.name}</span>
+                                <span className="text-xs font-bold text-[#243e33]">{fromMember.name}</span>
+                                <ArrowRight className="w-3.5 h-3.5 text-[#596b57]" />
+                                <span className="text-xs font-bold text-emerald-700">{toMember.name}</span>
                               </div>
                             </div>
 
                             <div className="flex items-center space-x-3 sm:space-x-4">
                               <div className="text-right">
-                                <span className="text-sm font-extrabold text-white font-mono block">
+                                <span className="text-sm font-extrabold text-[#243e33] font-mono block">
                                   ₹{s.amount_inr.toLocaleString('en-IN')}
                                 </span>
-                                <span className="text-[10px] text-gray-400">
+                                <span className="text-[10px] text-[#526653]">
                                   {toMember.upi_id ? `Pay to: ${toMember.upi_id}` : 'No UPI ID'}
                                 </span>
                               </div>
@@ -1092,11 +1092,11 @@ export default function GroupExpenseModal({
                                     <button
                                       type="button"
                                       onClick={() => toMember.upi_id && handleCopyUpi(toMember.upi_id)}
-                                      className="p-1.5 bg-[#1b2030] hover:bg-[#23283a] border border-[#2e3447] text-gray-300 hover:text-white rounded-lg transition-colors"
+                                      className="p-1.5 bg-[#d6dfd0] hover:bg-[#d6dfd0] border border-[#d6dfd0] text-[#425d4c] hover:text-[#243e33] rounded-lg transition-colors"
                                       title="Copy UPI ID"
                                     >
                                       {copiedUpiId === toMember.upi_id ? (
-                                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                        <Check className="w-3.5 h-3.5 text-emerald-700" />
                                       ) : (
                                         <Copy className="w-3.5 h-3.5" />
                                       )}
@@ -1109,7 +1109,7 @@ export default function GroupExpenseModal({
                                       setInlineUpiTarget(toMember.id);
                                       setInlineUpiValue('');
                                     }}
-                                    className="px-2.5 py-1.5 bg-[#1b2030] hover:bg-[#23283a] border border-[#2e3447] text-amber-300 text-xs font-semibold rounded-lg"
+                                    className="px-2.5 py-1.5 bg-[#d6dfd0] hover:bg-[#d6dfd0] border border-[#d6dfd0] text-[#89532d] text-xs font-semibold rounded-lg"
                                   >
                                     + Add UPI ID
                                   </button>
@@ -1118,7 +1118,7 @@ export default function GroupExpenseModal({
                                 <button
                                   type="button"
                                   onClick={() => handleMarkSettled(s, 'upi')}
-                                  className="px-2.5 py-1.5 bg-[#161a26] hover:bg-[#1e2333] border border-[#272d3f] text-gray-300 hover:text-white text-xs font-semibold rounded-lg transition-colors"
+                                  className="px-2.5 py-1.5 bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#d6dfd0] text-[#425d4c] hover:text-[#243e33] text-xs font-semibold rounded-lg transition-colors"
                                   title="Mark as paid/cleared"
                                 >
                                   Mark Settled
@@ -1129,14 +1129,14 @@ export default function GroupExpenseModal({
 
                           {/* Inline UPI ID Input if missing */}
                           {inlineUpiTarget === toMember.id && (
-                            <div className="mt-3 pt-3 border-t border-[#1e2230] flex items-center space-x-2">
-                              <span className="text-xs text-gray-400">Enter UPI ID for {toMember.name}:</span>
+                            <div className="mt-3 pt-3 border-t border-[#d6dfd0] flex items-center space-x-2">
+                              <span className="text-xs text-[#526653]">Enter UPI ID for {toMember.name}:</span>
                               <input
                                 type="text"
                                 placeholder="e.g. name@oksbi"
                                 value={inlineUpiValue}
                                 onChange={e => setInlineUpiValue(e.target.value)}
-                                className="px-2 py-1 text-xs bg-[#1a1e2b] border border-[#2e3447] rounded text-white font-mono"
+                                className="px-2 py-1 text-xs bg-[#d6dfd0] border border-[#d6dfd0] rounded text-[#243e33] font-mono"
                               />
                               <button
                                 type="button"
@@ -1148,7 +1148,7 @@ export default function GroupExpenseModal({
                               <button
                                 type="button"
                                 onClick={() => setInlineUpiTarget(null)}
-                                className="text-xs text-gray-400 hover:text-white px-1"
+                                className="text-xs text-[#526653] hover:text-[#243e33] px-1"
                               >
                                 Cancel
                               </button>
@@ -1163,8 +1163,8 @@ export default function GroupExpenseModal({
 
               {/* Settled History */}
               {settledTransfers.length > 0 && (
-                <div className="pt-4 border-t border-[#1e2230]">
-                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
+                <div className="pt-4 border-t border-[#d6dfd0]">
+                  <h4 className="text-xs font-bold text-[#526653] uppercase tracking-wider mb-3">
                     Completed Settlements ({settledTransfers.length})
                   </h4>
                   <div className="space-y-2">
@@ -1174,22 +1174,22 @@ export default function GroupExpenseModal({
                       return (
                         <div
                           key={s.id || idx}
-                          className="bg-[#10121a] border border-[#1a1e2b] rounded-lg p-2.5 flex items-center justify-between text-xs"
+                          className="bg-[#eef1e5] border border-[#d6dfd0] rounded-lg p-2.5 flex items-center justify-between text-xs"
                         >
                           <div className="flex items-center space-x-2">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-gray-300">
-                              <span className="text-white font-semibold">{fromMember?.name || 'Member'}</span> paid{' '}
-                              <span className="text-white font-semibold">{toMember?.name || 'Member'}</span> ₹{s.amount_inr.toLocaleString('en-IN')}
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                            <span className="text-[#425d4c]">
+                              <span className="text-[#243e33] font-semibold">{fromMember?.name || 'Member'}</span> paid{' '}
+                              <span className="text-[#243e33] font-semibold">{toMember?.name || 'Member'}</span> ₹{s.amount_inr.toLocaleString('en-IN')}
                             </span>
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-[10px] text-[#596b57]">
                               ({s.payment_method?.toUpperCase() || 'UPI'})
                             </span>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleUndoSettlement(s.id)}
-                            className="text-[11px] text-gray-500 hover:text-rose-400 transition-colors"
+                            className="text-[11px] text-[#596b57] hover:text-rose-400 transition-colors"
                             title="Undo this settlement"
                           >
                             Revert
@@ -1207,19 +1207,19 @@ export default function GroupExpenseModal({
           {activeTab === 'history' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                <h4 className="text-xs font-bold text-[#425d4c] uppercase tracking-wider">
                   Logged Expenses ({ledger.expenses.length})
                 </h4>
-                <span className="text-xs text-gray-400 font-mono">
+                <span className="text-xs text-[#526653] font-mono">
                   Total: ₹{totalSpentInr.toLocaleString('en-IN')}
                 </span>
               </div>
 
               {ledger.expenses.length === 0 ? (
-                <div className="bg-[#12141f] border border-[#1e2230] rounded-xl p-8 text-center space-y-2">
-                  <Utensils className="w-8 h-8 text-gray-500 mx-auto" />
-                  <h4 className="text-sm font-bold text-white">No expenses recorded yet</h4>
-                  <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                <div className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-8 text-center space-y-2">
+                  <Utensils className="w-8 h-8 text-[#596b57] mx-auto" />
+                  <h4 className="text-sm font-bold text-[#243e33]">No expenses recorded yet</h4>
+                  <p className="text-xs text-[#526653] max-w-sm mx-auto">
                     Click &quot;Add Expense&quot; above or check off items in your itinerary to start tracking group spends!
                   </p>
                 </div>
@@ -1233,7 +1233,7 @@ export default function GroupExpenseModal({
                     return (
                       <div
                         key={exp.id}
-                        className="bg-[#12141f] border border-[#1e2230] hover:border-[#2a3044] rounded-xl p-3.5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                        className="bg-[#eef1e5] border border-[#d6dfd0] hover:border-[#d6dfd0] rounded-xl p-3.5 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                       >
                         <div className="flex items-start space-x-3">
                           <div className={`p-2 rounded-lg border ${cfg.bg} shrink-0 mt-0.5`}>
@@ -1241,28 +1241,28 @@ export default function GroupExpenseModal({
                           </div>
                           <div>
                             <div className="flex items-center space-x-2">
-                              <h5 className="text-xs font-bold text-white">{exp.title}</h5>
-                              <span className="text-[10px] text-gray-400 bg-[#1a1e2b] px-2 py-0.2 rounded font-medium">
+                              <h5 className="text-xs font-bold text-[#243e33]">{exp.title}</h5>
+                              <span className="text-[10px] text-[#526653] bg-[#d6dfd0] px-2 py-0.2 rounded font-medium">
                                 {cfg.label}
                               </span>
                             </div>
-                            <p className="text-[11px] text-gray-400 mt-1">
-                              Paid by <span className="text-amber-300 font-semibold">{payer?.name || 'Member'}</span> • Split between{' '}
-                              <span className="text-gray-300">{exp.splits.length} people</span>{' '}
+                            <p className="text-[11px] text-[#526653] mt-1">
+                              Paid by <span className="text-[#89532d] font-semibold">{payer?.name || 'Member'}</span> • Split between{' '}
+                              <span className="text-[#425d4c]">{exp.splits.length} people</span>{' '}
                               ({exp.split_type === 'equal' ? 'Equally' : 'Custom'})
                             </p>
                             {exp.notes && (
-                              <p className="text-[10px] text-gray-500 italic mt-0.5">{exp.notes}</p>
+                              <p className="text-[10px] text-[#596b57] italic mt-0.5">{exp.notes}</p>
                             )}
                           </div>
                         </div>
 
                         <div className="flex items-center justify-between sm:justify-end space-x-3">
                           <div className="text-right">
-                            <span className="text-sm font-extrabold text-white font-mono block">
+                            <span className="text-sm font-extrabold text-[#243e33] font-mono block">
                               ₹{exp.amount_inr.toLocaleString('en-IN')}
                             </span>
-                            <span className="text-[10px] text-gray-500">
+                            <span className="text-[10px] text-[#596b57]">
                               {new Date(exp.created_at).toLocaleDateString('en-IN', {
                                 month: 'short',
                                 day: 'numeric'
@@ -1272,7 +1272,7 @@ export default function GroupExpenseModal({
                           <button
                             type="button"
                             onClick={() => handleDeleteExpense(exp.id)}
-                            className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                            className="p-1.5 text-[#596b57] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
                             title="Delete expense"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -1290,7 +1290,7 @@ export default function GroupExpenseModal({
           {activeTab === 'members' && (
             <div className="space-y-6">
               <div>
-                <h4 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3">
+                <h4 className="text-xs font-bold text-[#425d4c] uppercase tracking-wider mb-3">
                   Group Members ({ledger.members.length})
                 </h4>
                 <div className="space-y-2.5">
@@ -1303,7 +1303,7 @@ export default function GroupExpenseModal({
                     return (
                       <div
                         key={m.id}
-                        className="bg-[#12141f] border border-[#1e2230] rounded-xl p-3 flex items-center justify-between gap-3 text-xs"
+                        className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-3 flex items-center justify-between gap-3 text-xs"
                       >
                         {isEditing ? (
                           <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1312,24 +1312,24 @@ export default function GroupExpenseModal({
                               value={memberEditName}
                               onChange={e => setMemberEditName(e.target.value)}
                               placeholder="Name"
-                              className="px-2 py-1 bg-[#1a1e2b] border border-amber-500/50 rounded text-white text-xs font-semibold"
+                              className="px-2 py-1 bg-[#d6dfd0] border border-amber-500/50 rounded text-[#243e33] text-xs font-semibold"
                             />
                             <input
                               type="text"
                               value={memberEditUpi}
                               onChange={e => setMemberEditUpi(e.target.value)}
                               placeholder="UPI ID (optional, e.g. name@bank)"
-                              className="px-2 py-1 bg-[#1a1e2b] border border-amber-500/50 rounded text-white text-xs font-mono"
+                              className="px-2 py-1 bg-[#d6dfd0] border border-amber-500/50 rounded text-[#243e33] text-xs font-mono"
                             />
                           </div>
                         ) : (
                           <div className="flex items-center space-x-3">
-                            <div className="w-7 h-7 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs border border-amber-500/30">
+                            <div className="w-7 h-7 rounded-full bg-amber-500/20 text-[#89532d] flex items-center justify-center font-bold text-xs border border-amber-500/30">
                               {m.name.charAt(0).toUpperCase()}
                             </div>
                             <div>
-                              <span className="font-bold text-white block">{m.name}</span>
-                              <span className="text-[11px] text-gray-400 font-mono">
+                              <span className="font-bold text-[#243e33] block">{m.name}</span>
+                              <span className="text-[11px] text-[#526653] font-mono">
                                 {m.upi_id ? `UPI: ${m.upi_id}` : 'No UPI configured'}
                               </span>
                             </div>
@@ -1349,7 +1349,7 @@ export default function GroupExpenseModal({
                               <button
                                 type="button"
                                 onClick={() => setEditingMemberId(null)}
-                                className="text-gray-400 hover:text-white px-1"
+                                className="text-[#526653] hover:text-[#243e33] px-1"
                               >
                                 Cancel
                               </button>
@@ -1363,7 +1363,7 @@ export default function GroupExpenseModal({
                                   setMemberEditName(m.name);
                                   setMemberEditUpi(m.upi_id || '');
                                 }}
-                                className="p-1.5 text-gray-400 hover:text-white hover:bg-[#1a1e2b] rounded-lg"
+                                className="p-1.5 text-[#526653] hover:text-[#243e33] hover:bg-[#d6dfd0] rounded-lg"
                                 title="Edit details"
                               >
                                 <Edit2 className="w-3.5 h-3.5" />
@@ -1378,7 +1378,7 @@ export default function GroupExpenseModal({
                                     });
                                     setSelectedMemberIds(prev => prev.filter(id => id !== m.id));
                                   }}
-                                  className="p-1.5 text-gray-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                                  className="p-1.5 text-[#596b57] hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
                                   title="Remove member"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1394,8 +1394,8 @@ export default function GroupExpenseModal({
               </div>
 
               {/* Add New Member Form */}
-              <div className="bg-[#12141f] border border-[#1e2230] rounded-xl p-4">
-                <h5 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-2">
+              <div className="bg-[#eef1e5] border border-[#d6dfd0] rounded-xl p-4">
+                <h5 className="text-xs font-bold text-[#425d4c] uppercase tracking-wider mb-2">
                   + Add New Group Traveler
                 </h5>
                 <form onSubmit={handleAddMember} className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -1405,14 +1405,14 @@ export default function GroupExpenseModal({
                     value={newMemberName}
                     onChange={e => setNewMemberName(e.target.value)}
                     required
-                    className="px-3 py-1.5 text-xs bg-[#1a1e2b] border border-[#2e3447] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                    className="px-3 py-1.5 text-xs bg-[#d6dfd0] border border-[#d6dfd0] rounded-lg text-[#243e33] placeholder-gray-500 focus:outline-none focus:border-amber-400"
                   />
                   <input
                     type="text"
                     placeholder="UPI ID (optional, e.g. priya@okhdfc)"
                     value={newMemberUpi}
                     onChange={e => setNewMemberUpi(e.target.value)}
-                    className="px-3 py-1.5 text-xs bg-[#1a1e2b] border border-[#2e3447] rounded-lg text-white font-mono placeholder-gray-500 focus:outline-none focus:border-amber-400"
+                    className="px-3 py-1.5 text-xs bg-[#d6dfd0] border border-[#d6dfd0] rounded-lg text-[#243e33] font-mono placeholder-gray-500 focus:outline-none focus:border-amber-400"
                   />
                   <button
                     type="submit"
@@ -1428,7 +1428,7 @@ export default function GroupExpenseModal({
         </div>
 
         {/* Footer Bar */}
-        <div className="flex items-center justify-between gap-2 border-t border-[#1e2230] bg-[#11131b] px-3 py-2 text-[10px] text-gray-400 sm:px-5 sm:py-3 sm:text-xs">
+        <div className="flex items-center justify-between gap-2 border-t border-[#d6dfd0] bg-[#fffdf5] px-3 py-2 text-[10px] text-[#526653] sm:px-5 sm:py-3 sm:text-xs">
           <div className="flex items-center space-x-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span>Auto-synced with browser local storage</span>
@@ -1436,7 +1436,7 @@ export default function GroupExpenseModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-[#1a1e2b] hover:bg-[#23283a] text-gray-300 hover:text-white font-semibold transition-colors"
+            className="px-4 py-1.5 rounded-lg bg-[#d6dfd0] hover:bg-[#d6dfd0] text-[#425d4c] hover:text-[#243e33] font-semibold transition-colors"
           >
             Done
           </button>

@@ -18,8 +18,8 @@ const geistMono = localFont({
 import { AuthProvider } from "@/context/AuthContext";
 
 export const metadata: Metadata = {
-  title: "TripWeave — Algorithmic Travel Itinerary Optimizer",
-  description: "Deterministic travel itinerary optimization engine powered by Google OR-Tools, DBSCAN neighborhood clustering, and solar sunset geometry.",
+  title: "TripWeave — Your next journey",
+  description: "Plan your days, compare estimated itineraries and travel together. Explore the TripWeave field guide and start your next journey.",
 };
 
 export default function RootLayout({

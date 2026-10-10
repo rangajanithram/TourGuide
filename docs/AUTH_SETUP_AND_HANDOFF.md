@@ -1,3 +1,36 @@
+# Updated website flow — October 10, 2026
+
+## Entry and access
+
+- Root URL opens `/guide`. Legacy trip query links route through the protected planner.
+- Guide is public. Signed-out visitors see Log in / Sign up. Open planner sends them to login; direct planner URLs also require verification on the server.
+- Email login, Google callback and email verification return to `/guide`. Verified members see My profile and can open the planner.
+- Guest planner links are removed. Logout clears provider sessions and returns to the public guide.
+- FastAPI generation, variant generation, candidates, edit previews and live rebalance require a verified bearer token. Frontend sends the Supabase session token; backend verifies it independently.
+
+## Profile and design
+
+`/account` saves display name and pace, transport and group defaults to authenticated Supabase user metadata. These are preferences, never authorization claims. New trips use them; shared links preserve explicit choices. Profile lists verified email/providers, password recovery and global logout. No new database migration is needed for these preferences. Display metadata is not used for authorization.
+
+Planner uses cream, forest and clay colors, clear primary actions, accessible info explanations, and optional expandable settings. Ordinary visits no longer send an unwanted default generation request. Generation has a Cancel action, a two-minute timeout and protection against stale responses replacing a newer trip. The login keeps its 3D world and slow form transition with lightweight botanical SVG decoration. Expense records remain local to the browser, not private cloud synchronization.
+
+## Deployment requirements
+
+Redeploy **both Vercel and Render** from the changed code. In Render, set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` from the same project used by Vercel. A publishable key is sufficient; do not use a service-role or secret key. Keep `NEXT_PUBLIC_API_URL` pointing to your Render service. Set `NEXT_PUBLIC_SITE_URL=https://tour-guide-e3es.vercel.app` and use that same origin as the Supabase Auth Site URL. Allow `/auth/callback` and `/auth/confirm` for this domain (and your intentional development origins). `NEXT_PUBLIC_API_URL` should be `https://tripweave-api-u6sy.onrender.com`.
+
+## Acceptance checklist after deployment
+
+1. Signed out: root opens guide; direct `/planner` and `/account` redirect to login. No guest buttons.
+2. Register, verify email: return to guide; open planner, generate and preview an edit.
+3. Repeat Google login: guide → planner.
+4. Save profile defaults, reopen ordinary planner: defaults match. Shared links keep their selected settings.
+5. Logout: direct planner access is blocked, and a request without a bearer token cannot generate a trip.
+6. Test phone and desktop layouts, keyboard/touch info icons, failed login and failed generation recovery.
+
+Downloaded `client_secret_*.json` files are now ignored by Git. Do not commit OAuth client secrets.
+
+---
+
 # TripWeave authentication: implementation, setup, and acceptance checks
 
 ## What is implemented
@@ -13,7 +46,7 @@ Implemented routes:
 - `/auth/confirm`: deliberate Continue action before consuming a single-use email link, helping prevent email scanners from consuming it.
 - `/auth/verify`: same-origin POST to verify signup/recovery token hashes.
 - `/auth/callback`: Google PKCE code exchange, verified identity check, restricted internal redirects and safe error recovery.
-- `/verified`: verified email success screen.
+- `/verified`: compatibility redirect to the guide for verified users.
 - `/reset-password`: server-protected password form, password confirmation, global logout after success.
 - `/account`: server-protected email, verification status, connected provider names, password action and logout.
 - `/auth/error`: cancelled, invalid, expired or already-used links, including missing PKCE verifier recovery.
@@ -22,7 +55,7 @@ Account pages and callbacks disable shared caching and referrers. Browser auth s
 
 FastAPI `/api/auth/me` verifies Supabase bearer identity. Asymmetric JWT signatures, issuer, audience, expiry and role are checked against the configured project's keys; the Auth service also validates the user. A JWT is a signed token carrying identity claims. Legacy HS256 signatures are verified by the Auth service, followed by issuer/audience/expiry checks. Provider outages return 503, invalid sessions return 401. The old custom signup/login/Google/logout endpoints now return 410. SQLite password/session handling and the browser Google-client-ID setup modal are retired. Existing local account databases are not deleted or automatically migrated.
 
-The public guest planner remains stateless. Browser-local expense ledgers and share-by-query features are not cloud account storage. The RLS migration prepares private `profiles` and `saved_trips`; this change does not claim that all planner state is now saved to Supabase. RLS (row-level security) makes Postgres enforce ownership even when someone bypasses the UI and calls its API directly. Both UPDATE and INSERT check the resulting owner; anonymous visitors and anonymous Auth identities are excluded.
+The planner now requires a verified Supabase account, enforced on the server page and every itinerary API endpoint. Browser-local expense ledgers and share-by-query features are not cloud account storage. The RLS migration prepares private `profiles` and `saved_trips`; this change does not claim that all planner state is now saved to Supabase. RLS (row-level security) makes Postgres enforce ownership even when someone bypasses the UI and calls its API directly. Both UPDATE and INSERT check the resulting owner; anonymous visitors and anonymous Auth identities are excluded.
 
 Next.js was updated from 14.2.35 to **15.5.27** for published security fixes; async request APIs were adapted. The JWT verifier uses PyJWT **2.15.1**, including the current JWKS refresh and malformed-token security fixes. Supabase packages are pinned to SSR **0.10.0** and JS **2.109.0**, compatible with the installed Node 20 runtime. PostCSS, selector parsing and source map dependencies received available published fixes. Lockfile changes are part of this work. Never run an unreviewed `npm audit fix --force` across this application.
 

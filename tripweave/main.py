@@ -292,7 +292,7 @@ def list_places(destination: str = "hyderabad"):
     return get_database_places(destination)
 
 @app.post("/api/itinerary/generate", response_model=TripPlan, tags=["Itinerary Generation"])
-def generate_itinerary(request: TripRequest):
+def generate_itinerary(request: TripRequest, current_user: UserProfile = Depends(get_current_user)):
     """
     Generates a single optimal itinerary based on user constraints.
     Enforces opening hours, day-of-week closures, golden hour, and budget limits.
@@ -300,7 +300,7 @@ def generate_itinerary(request: TripRequest):
     return _build_single_plan(request, variant=PlanVariantType.BALANCED)
 
 @app.post("/api/itinerary/generate-variants", response_model=MultiVariantTripPlan, tags=["Itinerary Generation"])
-def generate_variants(request: TripRequest):
+def generate_variants(request: TripRequest, current_user: UserProfile = Depends(get_current_user)):
     """
     Blueprint Stage 9: Generates 3 Diverse Plan Variants:
     1. Budget / Relaxed: Slower pace (2 places/day), lower expense.
@@ -407,7 +407,7 @@ def generate_variants(request: TripRequest):
     )
 
 @app.post("/api/itinerary/preview-edit", response_model=EditConsequenceResponse, tags=["Interactive Customizer"])
-def preview_itinerary_edit(request: EditConsequenceRequest):
+def preview_itinerary_edit(request: EditConsequenceRequest, current_user: UserProfile = Depends(get_current_user)):
     """
     Blueprint Section 12: Simulates the real-world physical and cost consequences
     of swapping, dropping, pinning, or rescheduling an activity to sunset.
@@ -421,7 +421,7 @@ def preview_itinerary_edit(request: EditConsequenceRequest):
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @app.get("/api/itinerary/candidates", response_model=List[Place], tags=["Interactive Customizer"])
-def get_candidates_for_swap(destination: str, exclude_ids: Optional[str] = None):
+def get_candidates_for_swap(destination: str, exclude_ids: Optional[str] = None, current_user: UserProfile = Depends(get_current_user)):
     """
     Returns alternative candidate attractions for swapping, omitting already scheduled venues.
     """
@@ -432,7 +432,7 @@ def get_candidates_for_swap(destination: str, exclude_ids: Optional[str] = None)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @app.post("/api/itinerary/rebalance-day", response_model=RebalanceTiredResponse, tags=["Live In-Trip Mode"])
-def rebalance_tired_day(request: RebalanceTiredRequest):
+def rebalance_tired_day(request: RebalanceTiredRequest, current_user: UserProfile = Depends(get_current_user)):
     """
     Produce a constraint-checked heuristic adjustment to the remaining day.
     The client supplies trip progress; this endpoint does not track a live trip

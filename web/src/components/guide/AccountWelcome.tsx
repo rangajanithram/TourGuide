@@ -84,7 +84,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
     if (busy.current) return;
     setErrorMessage('');
     setSuccessMessage('');
-    if (!isSupabaseConfigured) { setErrorMessage('Account sign-in is not configured yet. Explore the guest planner below.'); return; }
+    if (!isSupabaseConfigured) { setErrorMessage('Account sign-in is not configured yet. Explore the guide while sign-in is unavailable.'); return; }
     if (forgot && Date.now() < cooldown.current) { setErrorMessage('Please wait a minute before requesting another email.'); return; }
     if (signup && fields.password !== fields.confirmPassword) { setErrorMessage('The passwords do not match.'); return; }
     if (process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) { setErrorMessage('Complete the security check first.'); return; }
@@ -128,7 +128,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
         setSuccessMessage(`Welcome back, ${user.name}! Opening your account...`);
       }
 
-      router.replace('/account');
+      router.replace('/guide');
       router.refresh();
     } catch (err: unknown) {
       const msg = authErrorMessage(err);
@@ -144,7 +144,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
     if (busy.current) return;
     busy.current = true; setIsSubmitting(true); setErrorMessage('');
     try { await loginWithGoogle(); }
-    catch (error) { setErrorMessage(isSupabaseConfigured ? authErrorMessage(error) : 'Account sign-in is not configured yet. Explore the guest planner below.'); }
+    catch (error) { setErrorMessage(isSupabaseConfigured ? authErrorMessage(error) : 'Account sign-in is not configured yet. Explore the guide while sign-in is unavailable.'); }
     finally { busy.current = false; setIsSubmitting(false); }
   }
 
@@ -432,9 +432,6 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
           </p>
 
           <Link href="/check-email">Check email / resend verification</Link>
-          <Link className="account-guest" href="/planner">
-            Continue as a guest to planner <ArrowRight size={16} />
-          </Link>
           <p className="account-privacy">
             Your password is handled by Supabase. Never share a verification or recovery link.
           </p>
@@ -443,7 +440,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
 
       <footer className="account-footer">
         <span>LESS PLANNING FRICTION. MORE POSSIBILITY.</span>
-        <Link href="/planner">Go straight to the planner ↗</Link>
+        <Link href="/guide">Explore the field guide ↗</Link>
       </footer>
     </main>
   );

@@ -8,6 +8,12 @@
   background-image: radial-gradient(#87997020 .6px,transparent .6px);
   background-size: 8px 8px;
 }
+.account-page { position: relative; isolation: isolate; overflow: clip; background-image: radial-gradient(ellipse at 0 15%,#bfceaa70,transparent 45%),radial-gradient(ellipse at 100% 80%,#dbc4aa70,transparent 40%); }
+.account-page::before,.account-page::after { content: ''; position: absolute; width: clamp(120px,20vw,300px); height: clamp(200px,35vw,480px); pointer-events: none; z-index: -1; opacity: .5; background: url('/botanical-sprig.svg') center/contain no-repeat; }
+.account-page::before { top: 80px; left: -30px; transform: rotate(-18deg); }
+.account-page::after { bottom: 20px; right: -20px; transform: rotate(160deg); }
+.account-header { position: relative; z-index: 3; }
+.account-shell { backdrop-filter: blur(10px); }
 .account-page * {
   box-sizing: border-box;
 }
@@ -601,4 +607,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+@media(max-width:600px) {
+  .account-form-panel { order: 0; }
+  .account-story { order: 1; }
+  .account-header { height: 68px; }
+  .account-shell { margin: 12px auto; }
 }

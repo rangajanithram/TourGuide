@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 import ExperienceMetrics from './ExperienceMetrics';
 import { useRouter } from 'next/navigation';
 import { ArrowDown, ArrowRight, Check, Compass, MapPin, Minus, Moon, Pause, Play, Plus, RotateCcw, Sun, Ticket, TrainFront, Users, Wallet, Route, Coffee, Sparkles, CloudFog, CloudRain } from 'lucide-react';
@@ -49,6 +50,7 @@ function LandmarkStamp({ index }: { index: number }) {
 }
 
 export default function JourneyGuide() {
+  const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const journey = useRef<HTMLDivElement>(null);
   const progress = useRef(0);
@@ -108,7 +110,7 @@ export default function JourneyGuide() {
     <header className="journey-header">
       <Link className="journey-brand" href="/guide"><span><Compass size={23} strokeWidth={1.6} /></span>TripWeave<i /></Link>
       <nav aria-label="Guide navigation"><a href="#departure">The journey</a><a href="#user-manual">Field guide</a><a href="#questions">Good to know</a></nav>
-      <Link className="guide-account-link" href="/login">Log in / Sign up</Link><Link className="nav-planner" href="/planner">Open planner <ArrowRight size={16} /></Link>
+      <Link className="guide-account-link" href={user ? "/account" : "/login"}>{user ? "My profile" : "Log in / Sign up"}</Link><Link className="nav-planner" href={user || authLoading ? "/planner" : "/login"}>Open planner <ArrowRight size={16} /></Link>
     </header>
 
     <div className="journey-layout" ref={journey}>

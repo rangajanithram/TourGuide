@@ -98,3 +98,12 @@ class AuthSecurityTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PlannerAccessTests(unittest.TestCase):
+    def test_every_itinerary_route_requires_verified_identity(self):
+        from tripweave.main import app
+        routes = [r for r in app.routes if getattr(r, 'path', '').startswith('/api/itinerary/')]
+        self.assertEqual(len(routes), 5)
+        for route in routes:
+            self.assertIn(get_current_user, [dependency.call for dependency in route.dependant.dependencies], route.path)

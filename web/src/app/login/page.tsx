@@ -6,7 +6,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   const params = await searchParams;
 
-  const notice = params.error === 'configuration' ? 'Account sign-in is not configured yet. Explore the guest planner.'
+  const notice = params.error === 'configuration' ? 'Account sign-in is not configured yet. You can still explore the guide.'
 
     : params.error === 'session_expired' ? 'Your session has ended. Please log in again.'
 

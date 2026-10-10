@@ -1,13 +1,10 @@
-import AccountWelcome from '@/components/guide/AccountWelcome';
-import PlannerPage from '@/components/PlannerPage';
-
-// Keep previously shared root URLs working while giving new visitors a welcome page.
-export default async function Home({ searchParams }: {
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
-}) {
+import { redirect } from 'next/navigation';
+export default async function Home({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const params = await searchParams;
-  const tripKeys = ['dest', 'destination', 'start', 'start_date', 'end', 'end_date', 'budget', 'pins', 'locked', 'origin', 'from', 'shared', 'mode', 'people', 'pace', 'profile', 'variant', 'interests', 'origin_type', 'start_location', 'hub'];
-  return tripKeys.some(key => params[key] !== undefined)
-    ? <PlannerPage />
-    : <AccountWelcome />;
+  if (params.dest || params.destination || params.shared) {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => { if (typeof value === 'string') query.set(key, value); });
+    redirect(`/planner?${query}`);
+  }
+  redirect('/guide');
 }

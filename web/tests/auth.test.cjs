@@ -28,7 +28,7 @@ function provider(overrides = {}) {
   return { client: { auth }, calls };
 }
 test('redirects reject external, encoded, protocol-relative and unknown destinations', () => {
-  for (const value of ['https://evil.test', '//evil.test', '/%2f%2fevil.test', '/account/../evil', '/account?next=evil', null]) assert.equal(safeNext(value), '/account');
+  for (const value of ['https://evil.test', '//evil.test', '/%2f%2fevil.test', '/account/../evil', '/account?next=evil', null]) assert.equal(safeNext(value), '/guide');
   assert.equal(safeNext('/reset-password'), '/reset-password');
 });
 test('email signup does not sign in or reveal duplicate account existence', async () => {
@@ -89,7 +89,7 @@ test('OAuth callback exchanges the code, checks the user and rejects open redire
   } });
   const response = await GET(new Request('https://trip.test/auth/callback?code=controlled-code&next=https://evil.test'));
   assert.deepEqual(calls, ['controlled-code']);
-  assert.equal(response.headers.get('location'), 'https://trip.test/account');
+  assert.equal(response.headers.get('location'), 'https://trip.test/guide');
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
 });
 test('cancelled, expired and missing-verifier OAuth produce a safe recovery page', async () => {
@@ -115,13 +115,13 @@ test('confirmation and recovery verify single-use token hashes through the provi
     const POST = load('app/auth/verify/route.ts', { 'next/server': next, '@/lib/auth-origin': { authOrigin }, '@/lib/supabase/server': { getServerSupabase: async () => ({ auth: { verifyOtp: async input => { calls.push(input); return { error: null }; } } }) } }).POST;
     const response = await POST(new Request('https://trip.test/auth/verify', { method: 'POST', headers: { Origin: 'https://trip.test' }, body: new URLSearchParams({ token_hash: 'mock-hash', type }) }));
     assert.deepEqual(calls, [{ token_hash: 'mock-hash', type }]);
-    assert.equal(response.headers.get('location'), 'https://trip.test/' + (type === 'signup' ? 'verified' : 'reset-password'));
+    assert.equal(response.headers.get('location'), 'https://trip.test/' + (type === 'signup' ? 'guide' : 'reset-password'));
     assert.equal(response.status, 303);
   }
 });
 
 test('middleware forwards refreshed cookies and disables response caching', async () => {
-  const request = new next.NextRequest('https://trip.test/account');
+  const request = new next.NextRequest('https://trip.test/guide');
   const { middleware } = load('middleware.ts', {
     'next/server': next, '@/lib/auth-origin': { authOrigin },
     '@/lib/supabase/config': { getAuthConfig: () => ({ url: 'https://example.supabase.co', key: 'sb_publishable_test' }), cookieOptions: { path: '/' } },
@@ -140,4 +140,36 @@ test('middleware forwards refreshed cookies and disables response caching', asyn
 test('local callback preserves the browser cookie origin despite Next dev URL normalization', () => {
   const request = new Request('http://localhost:3100/auth/callback', { headers: { host: '127.0.0.1:3100' } });
   assert.equal(authOrigin(request), 'http://127.0.0.1:3100');
+});
+
+
+test('protected pages reject missing, unverified and anonymous users', async () => {
+  for (const user of [null, { ...verified, email_confirmed_at: null }, { ...verified, is_anonymous: true }, verified]) {
+    const { requireVerifiedUser } = load('lib/require-user.ts', {
+      'server-only': {},
+      'next/navigation': { redirect: path => { throw new Error(path); } },
+      './supabase/server': { getServerSupabase: async () => ({ auth: { getUser: async () => ({ data: { user }, error: null }) } }) },
+    });
+    if (user === verified) assert.equal(await requireVerifiedUser(), verified);
+    else await assert.rejects(requireVerifiedUser(), /login/);
+  }
+});
+test('travel preferences reject unknown values and preserve valid selections', () => {
+  const { travelPreferences } = load('lib/travel-preferences.ts');
+  assert.deepEqual(travelPreferences(null), { pace: 'balanced', transport_mode: 'cab', group_profile: 'default' });
+  assert.deepEqual(travelPreferences({ pace: 'fast', transport_mode: 'plane', group_profile: 'admin' }), travelPreferences(null));
+  assert.deepEqual(travelPreferences({ pace: 'relaxed', transport_mode: 'walk', group_profile: 'family' }), { pace: 'relaxed', transport_mode: 'walk', group_profile: 'family' });
+});
+test('planner requests include bearer credentials and reject missing sessions', async () => {
+  const previousFetch = global.fetch;
+  try {
+    let sent;
+    global.fetch = async (input, init) => { sent = init; return { status: 200 }; };
+    const { plannerFetch } = load('lib/planner-fetch.ts', { './supabase': { getBrowserSupabase: () => ({ auth: { getSession: async () => ({ data: { session: { access_token: 'test-token' } } }) } }) } });
+    await plannerFetch('https://api.test', { headers: { 'Content-Type': 'application/json' } });
+    assert.equal(sent.headers.get('Authorization'), 'Bearer test-token');
+    assert.equal(sent.headers.get('Content-Type'), 'application/json');
+    const absent = load('lib/planner-fetch.ts', { './supabase': { getBrowserSupabase: () => ({ auth: { getSession: async () => ({ data: { session: null } }) } }) } });
+    await assert.rejects(absent.plannerFetch('https://api.test'), /expired/);
+  } finally { global.fetch = previousFetch; }
 });

@@ -39,3 +39,6 @@ web/out/
 web/.next-auth/
 .auth-npm-audit.json
 supabase/.temp/
+
+# Downloaded OAuth credentials must remain local
+client_secret_*.json

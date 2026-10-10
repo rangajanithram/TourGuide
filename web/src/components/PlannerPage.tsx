@@ -1,7 +1,9 @@
 'use client';
+import { plannerFetch } from '@/lib/planner-fetch';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
+import { travelPreferences } from '@/lib/travel-preferences';
 import Header from '../components/Header';
 import TripForm from '../components/TripForm';
 import VariantSwitcher from '../components/VariantSwitcher';
@@ -14,14 +16,18 @@ import { AlertCircle, Compass, Sparkles } from 'lucide-react';
 const MapComponent = dynamic(() => import('../components/MapComponent'), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-80 rounded-2xl bg-[#11131b] border border-[#1e2230] flex flex-col items-center justify-center text-gray-500 space-y-2">
+    <div className="w-full h-80 rounded-2xl bg-[#fffdf5] border border-[#d6dfd0] flex flex-col items-center justify-center text-[#596b57] space-y-2">
       <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
       <span className="text-xs">Initializing Interactive Map...</span>
     </div>
   )
 });
 
-export default function Home() {
+export default function Home({ preferences }: { preferences?: unknown }) {
+  const defaults = useRef(travelPreferences(preferences));
+  const requestVersion = useRef(0);
+  const activeRequest = useRef<AbortController | null>(null);
+  useEffect(() => () => { requestVersion.current += 1; activeRequest.current?.abort(); }, []);
   const [multiPlan, setMultiPlan] = useState<MultiVariantTripPlan | null>(null);
   const [activeVariant, setActiveVariant] = useState<'budget' | 'balanced' | 'comfort'>('balanced');
   const [selectedDay, setSelectedDay] = useState<number | 'all'>('all');
@@ -32,14 +38,21 @@ export default function Home() {
   const [showEditor, setShowEditor] = useState(false);
 
   const fetchTripPlan = async (formData: TripFormData) => {
+    activeRequest.current?.abort();
+    const controller = new AbortController();
+    activeRequest.current = controller;
+    const timeout = setTimeout(() => controller.abort(), 120000);
+    const version = ++requestVersion.current;
     setIsLoading(true);
     setError(null);
+    setMultiPlan(null);
     setSelectedDay('all');
     setActiveFormData(formData);
 
     try {
       const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000';
-      const response = await fetch(`${apiBase}/api/itinerary/generate-variants`, {
+      const response = await plannerFetch(`${apiBase}/api/itinerary/generate-variants`, {
+        signal: controller.signal,
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -63,17 +76,19 @@ export default function Home() {
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || `Server returned status ${response.status}`);
+        const detail = typeof errData.detail === 'string' ? errData.detail : Array.isArray(errData.detail) ? errData.detail.map((item: { msg?: string }) => item.msg || 'Check your trip details.').join(' ') : `Could not create the trip (status ${response.status}). Please try again.`;
+        throw new Error(detail);
       }
 
       const data: MultiVariantTripPlan = await response.json();
-      setMultiPlan(data);
+      if (version === requestVersion.current) setMultiPlan(data);
     } catch (err: unknown) {
       console.error('Failed to generate trip:', err);
-      const message = err instanceof Error ? err.message : 'Could not connect to TripWeave optimization engine. Ensure the FastAPI backend is running on port 8000.';
-      setError(message);
+      const message = controller.signal.aborted ? 'Planning took too long. Please try again; the service may be waking up.' : err instanceof Error ? err.message : 'Could not reach the trip planning service. Check your connection and try again.';
+      if (version === requestVersion.current) setError(message);
     } finally {
-      setIsLoading(false);
+      clearTimeout(timeout);
+      if (version === requestVersion.current) setIsLoading(false);
     }
   };
 
@@ -82,18 +97,18 @@ export default function Home() {
     const getFutureDate = (daysAhead: number): string => {
       const d = new Date();
       d.setDate(d.getDate() + daysAhead);
-      return d.toISOString().split('T')[0];
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     };
 
     let dest = 'hyderabad';
     let orig: string | undefined = undefined;
     let sDate = getFutureDate(7);
     let eDate = getFutureDate(9);
-    let mode: 'cab' | 'auto' | 'metro' | 'walk' = 'cab';
+    let mode = defaults.current.transport_mode;
     let budget = 15000;
     let people = 2;
-    let pace: 'relaxed' | 'balanced' | 'intensive' = 'balanced';
-    let profile: 'default' | 'young_solo' | 'family' | 'elderly' = 'default';
+    let pace = defaults.current.pace;
+    let profile = defaults.current.group_profile;
     let interests = ['unesco', 'history', 'sunset'];
     let lockedActs: string[] = [];
     let originType: 'hotel' | 'center' | 'station' | 'airport' = 'hotel';
@@ -185,7 +200,7 @@ export default function Home() {
     };
 
     setActiveFormData(initialData);
-    fetchTripPlan(initialData);
+    if (shared) void fetchTripPlan(initialData);
   }, []);
 
   const handleUpdatePlan = (updatedPlan: TripPlan) => {
@@ -213,33 +228,34 @@ export default function Home() {
   const currentPlan: TripPlan | undefined = multiPlan?.variants[activeVariant];
 
   return (
-    <div className="min-h-screen bg-[#090a0f] text-gray-100 flex flex-col font-sans">
+    <div className="planner-theme min-h-screen bg-[#f3f4ea] text-[#243e33] flex flex-col font-sans">
       <Header />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section (Only in standard builder view) */}
         {!isSharedView && (
           <div className="mb-8">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold mb-3">
+            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[#89532d] text-xs font-semibold mb-3">
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Deterministic Travel Optimization Engine</span>
+              <span>YOUR NEXT JOURNEY</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white mb-2">
-              Plan without <span className="text-amber-400">hallucinations</span>.
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-[#243e33] mb-2">
+              A trip that feels <span className="text-[#89532d]">like you</span>.
             </h1>
-            <p className="text-sm sm:text-base text-gray-400 max-w-2xl leading-relaxed">
-              Every route is optimized with Google OR-Tools time-window routing, DBSCAN neighborhood clustering, strict budget conservation, and NOAA astronomical sunset calculations.
+            <p className="text-sm sm:text-base text-[#526653] max-w-2xl leading-relaxed">
+              Choose your dates and travel style. Compare three estimated itineraries, then explore each day. Confirm prices and opening hours before traveling.
             </p>
           </div>
         )}
 
+        {isLoading && <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-sm"><span>Creating your itinerary. The service may take about a minute to wake up.</span><button type="button" className="underline font-semibold" onClick={() => { requestVersion.current += 1; activeRequest.current?.abort(); setIsLoading(false); }}>Cancel</button></div>}
         {/* Global Error Banner */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-950/40 border border-red-500/30 flex items-start space-x-3 text-red-300 text-sm">
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-500/30 flex items-start space-x-3 text-red-800 text-sm">
+            <AlertCircle className="w-5 h-5 text-red-700 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold block">Optimization Engine Notice</span>
-              <p className="text-xs text-red-300/90 mt-0.5 leading-relaxed">{error}</p>
+              <span className="font-semibold block">Trip planning notice</span>
+              <p className="text-xs text-red-800/90 mt-0.5 leading-relaxed">{error}</p>
             </div>
           </div>
         )}
@@ -256,24 +272,24 @@ export default function Home() {
             />
 
             {showEditor && (
-              <div className="bg-[#11131b] border border-amber-500/30 rounded-2xl p-6 shadow-xl animate-in fade-in duration-200">
-                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1e2230]">
+              <div className="bg-[#fffdf5] border border-amber-500/30 rounded-2xl p-6 shadow-xl animate-in fade-in duration-200">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#d6dfd0]">
                   <div className="flex items-center space-x-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <h3 className="text-base font-bold text-white">Customize Itinerary Settings</h3>
+                    <Sparkles className="w-4 h-4 text-[#89532d]" />
+                    <h3 className="text-base font-bold text-[#243e33]">Customize Itinerary Settings</h3>
                   </div>
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => setShowEditor(false)}
-                    className="text-xs text-gray-400 hover:text-white px-2.5 py-1 rounded-lg bg-[#161922] border border-[#222736]"
+                    className="text-xs text-[#526653] hover:text-[#243e33] px-2.5 py-1 rounded-lg bg-[#eef1e5] border border-[#c6d2c0]"
                   >
                     Close Settings Form
                   </button>
                 </div>
-                <TripForm 
-                  onSubmit={fetchTripPlan} 
-                  isLoading={isLoading} 
-                  initialValues={activeFormData} 
+                <TripForm
+                  onSubmit={fetchTripPlan}
+                  isLoading={isLoading}
+                  initialValues={activeFormData}
                 />
               </div>
             )}
@@ -293,15 +309,15 @@ export default function Home() {
               <>
                 {/* Interactive Leaflet Map */}
                 <div className="w-full h-[460px]">
-                  <MapComponent 
-                    plan={currentPlan} 
+                  <MapComponent
+                    plan={currentPlan}
                     selectedDay={selectedDay}
                     onSelectDay={setSelectedDay}
                   />
                 </div>
 
                 {/* Itinerary Schedule and Hotel Details */}
-                <ItineraryView 
+                <ItineraryView
                   plan={currentPlan}
                   destination={multiPlan?.destination || 'City'}
                   selectedDay={selectedDay}
@@ -313,11 +329,11 @@ export default function Home() {
               </>
             ) : (
               isLoading && (
-                <div className="bg-[#11131b] border border-[#1e2230] rounded-2xl p-16 text-center text-gray-400 space-y-4">
+                <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-16 text-center text-[#526653] space-y-4">
                   <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                  <h3 className="text-lg font-bold text-white">Synthesizing Curated Itinerary...</h3>
-                  <p className="text-xs text-gray-400 max-w-md mx-auto">
-                    Computing time-window routing, DBSCAN neighborhood clusters, transit times, and live budget conservation.
+                  <h3 className="text-lg font-bold text-[#243e33]">Creating your itinerary…</h3>
+                  <p className="text-xs text-[#526653] max-w-md mx-auto">
+                    Comparing suitable places, travel time and estimated costs. The service may take about a minute to wake up.
                   </p>
                 </div>
               )
@@ -327,7 +343,7 @@ export default function Home() {
           /* Dual Column Layout: Left Cockpit Form, Right Visual Results */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Left Column: Form */}
-            <div className="lg:col-span-5 sticky top-24">
+            <div className="lg:col-span-5">
               <TripForm onSubmit={fetchTripPlan} isLoading={isLoading} initialValues={activeFormData} />
             </div>
 
@@ -348,15 +364,15 @@ export default function Home() {
                 <>
                   {/* Interactive Leaflet Map */}
                   <div className="w-full h-[460px]">
-                    <MapComponent 
-                      plan={currentPlan} 
+                    <MapComponent
+                      plan={currentPlan}
                       selectedDay={selectedDay}
                       onSelectDay={setSelectedDay}
                     />
                   </div>
 
                   {/* Itinerary Schedule and Hotel Details */}
-                  <ItineraryView 
+                  <ItineraryView
                     plan={currentPlan}
                     destination={multiPlan?.destination || 'City'}
                     selectedDay={selectedDay}
@@ -368,11 +384,11 @@ export default function Home() {
                 </>
               ) : (
                 !isLoading && (
-                  <div className="bg-[#11131b] border border-[#1e2230] rounded-2xl p-12 text-center text-gray-500 space-y-3">
+                  <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-12 text-center text-[#596b57] space-y-3">
                     <Compass className="w-10 h-10 text-gray-600 mx-auto" />
-                    <h3 className="text-base font-bold text-gray-300">Ready to synthesize your itinerary</h3>
-                    <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                      Fill out the parameters on the left and click Synthesize to generate feasible, mathematically optimal routes.
+                    <h3 className="text-base font-bold text-[#425d4c]">Your journey starts here</h3>
+                    <p className="text-xs text-[#596b57] max-w-sm mx-auto">
+                      Choose your trip details and select Create my trip. Your options, route map, and daily schedule will appear here.
                     </p>
                   </div>
                 )
@@ -383,8 +399,8 @@ export default function Home() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#1e2230] py-6 mt-12 bg-[#090a0f] text-center text-xs text-gray-500">
-        <p>TripWeave Travel Engine • OR-Tools VRP & DBSCAN Geo-Clustering</p>
+      <footer className="border-t border-[#d6dfd0] py-6 mt-12 bg-[#f3f4ea] text-center text-xs text-[#596b57]">
+        <p>TripWeave · A little planning. A world of possibility.</p>
       </footer>
     </div>
   );

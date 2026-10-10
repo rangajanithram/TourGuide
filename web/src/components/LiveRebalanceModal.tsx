@@ -1,4 +1,5 @@
 'use client';
+import { plannerFetch } from '@/lib/planner-fetch';
 
 import React, { useState, useEffect } from 'react';
 import { X, Zap, Coffee, Bed, Footprints, Sparkles, AlertCircle, MapPin } from 'lucide-react';
@@ -109,7 +110,7 @@ export default function LiveRebalanceModal({
     const loadPreview = async () => {
       try {
         const apiBase = (process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
-        const res = await fetch(`${apiBase}/api/itinerary/rebalance-day`, {
+        const res = await plannerFetch(`${apiBase}/api/itinerary/rebalance-day`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
@@ -157,29 +158,29 @@ export default function LiveRebalanceModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-[#11131b] border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl text-gray-100 max-h-[92vh] flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-2xl bg-[#fffdf5] border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl text-[#243e33] max-h-[92vh] flex flex-col overflow-hidden">
         {/* Glow Accent */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
 
         {/* Header */}
-        <div className="flex items-start justify-between pb-4 border-b border-[#1e2230] relative z-10 shrink-0">
+        <div className="flex items-start justify-between pb-4 border-b border-[#d6dfd0] relative z-10 shrink-0">
           <div className="space-y-1">
-            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[11px] font-bold uppercase tracking-wider">
+            <div className="inline-flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-[#89532d] text-[11px] font-bold uppercase tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping mr-0.5"></span>
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <Zap className="w-3.5 h-3.5 text-[#89532d]" />
               <span>Mid-Trip Replan Preview</span>
             </div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-[#243e33] tracking-tight">
                   I&apos;m Tired / Running Late
                 </h2>
-                <p className="text-xs text-gray-400 max-w-md">
+                <p className="text-xs text-[#526653] max-w-md">
                   Heuristic preview from your selected progress. Route, fatigue, and fare figures are estimates; known schedule conflicts block applying the revision.
                 </p>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-xl bg-[#161922] border border-[#222736] text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 rounded-xl bg-[#eef1e5] border border-[#c6d2c0] text-[#526653] hover:text-[#243e33] transition-colors"
             aria-label="Close"
           >
             <X className="w-4 h-4" />
@@ -190,7 +191,7 @@ export default function LiveRebalanceModal({
         <div className="flex-1 overflow-y-auto pr-1 py-4 space-y-5 relative z-10 text-xs">
           {/* Day Selector */}
           <div>
-            <label className="block text-gray-400 font-semibold uppercase tracking-wider text-[11px] mb-2">
+            <label className="block text-[#526653] font-semibold uppercase tracking-wider text-[11px] mb-2">
               Select Active Day
             </label>
             <div className="flex items-center space-x-2 flex-wrap gap-y-2">
@@ -205,7 +206,7 @@ export default function LiveRebalanceModal({
                   className={`px-3 py-1.5 rounded-xl border font-bold transition-all ${
                     selectedDayNumber === d.day_number
                       ? 'bg-amber-500 text-black border-amber-400 shadow-md scale-105'
-                      : 'bg-[#161922] border-[#222736] text-gray-300 hover:border-gray-500'
+                      : 'bg-[#eef1e5] border-[#c6d2c0] text-[#425d4c] hover:border-gray-500'
                   }`}
                 >
                   Day {d.day_number} ({d.activities.length} stops)
@@ -217,13 +218,13 @@ export default function LiveRebalanceModal({
           {/* Current Progress & Time */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
-              <label className="block text-gray-400 font-semibold uppercase tracking-wider text-[11px] mb-1.5">
+              <label className="block text-[#526653] font-semibold uppercase tracking-wider text-[11px] mb-1.5">
                 Current Location / Last Completed
               </label>
               <select
                 value={currentActivityIndex ?? ''}
                 onChange={e => setCurrentActivityIndex(e.target.value === '' ? null : Number(e.target.value))}
-                className="w-full bg-[#161922] border border-[#222736] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500"
+                className="w-full bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-3 py-2 text-[#243e33] focus:outline-none focus:border-amber-500"
               >
                 <option value="">Infer from the current time</option>
                 <option value={-1}>No stops completed yet</option>
@@ -236,7 +237,7 @@ export default function LiveRebalanceModal({
             </div>
 
             <div>
-              <label className="block text-gray-400 font-semibold uppercase tracking-wider text-[11px] mb-1.5">
+              <label className="block text-[#526653] font-semibold uppercase tracking-wider text-[11px] mb-1.5">
                 Current Time
               </label>
               <div className="flex items-center space-x-1.5">
@@ -244,7 +245,7 @@ export default function LiveRebalanceModal({
                   type="time"
                   value={currentTimeStr}
                   onChange={e => setCurrentTimeStr(e.target.value)}
-                  className="w-full bg-[#161922] border border-[#222736] rounded-xl px-3 py-2 text-white focus:outline-none focus:border-amber-500 text-xs"
+                  className="w-full bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-3 py-2 text-[#243e33] focus:outline-none focus:border-amber-500 text-xs"
                 />
               </div>
               <button type="button" onClick={requestCurrentLocation} className="mt-2 inline-flex items-center gap-1.5 text-[10px] text-sky-300 hover:text-sky-200">
@@ -252,18 +253,18 @@ export default function LiveRebalanceModal({
                 {currentLocation ? 'GPS location attached to preview' : 'Use my current location'}
               </button>
               {currentLocation && (
-                <button type="button" onClick={() => setCurrentLocation(null)} className="ml-2 text-[10px] text-gray-500 hover:text-gray-300">Clear GPS location</button>
+                <button type="button" onClick={() => setCurrentLocation(null)} className="ml-2 text-[10px] text-[#596b57] hover:text-[#425d4c]">Clear GPS location</button>
               )}
-              <p className="text-[10px] text-gray-500 mt-1">Without GPS, the selected last stop is used as your approximate location. GPS is sent with the preview request for estimates; the saved break pin uses your last completed stop or hotel.</p>
+              <p className="text-[10px] text-[#596b57] mt-1">Without GPS, the selected last stop is used as your approximate location. GPS is sent with the preview request for estimates; the saved break pin uses your last completed stop or hotel.</p>
               {locationError && <p className="text-[10px] text-rose-300 mt-1">{locationError}</p>}
             </div>
           </div>
 
           {/* Tiredness Level Selector */}
           <div>
-            <label className="block text-gray-400 font-semibold uppercase tracking-wider text-[11px] mb-2 flex items-center justify-between">
+            <label className="block text-[#526653] font-semibold uppercase tracking-wider text-[11px] mb-2 flex items-center justify-between">
               <span>Select Fatigue Relief Level</span>
-              <span className="text-[10px] text-amber-400/90 font-normal">Fatigue score is a heuristic estimate</span>
+              <span className="text-[10px] text-[#89532d]/90 font-normal">Fatigue score is a heuristic estimate</span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               {TIREDNESS_OPTIONS.map(opt => {
@@ -276,20 +277,20 @@ export default function LiveRebalanceModal({
                     onClick={() => setTirednessLevel(opt.id)}
                     className={`p-3 text-left rounded-2xl border transition-all relative ${
                       isSelected
-                        ? 'bg-amber-500/10 border-amber-500/60 ring-1 ring-amber-500/40 text-white'
-                        : 'bg-[#161922] border-[#222736] text-gray-300 hover:border-gray-600'
+                        ? 'bg-amber-500/10 border-amber-500/60 ring-1 ring-amber-500/40 text-[#243e33]'
+                        : 'bg-[#eef1e5] border-[#c6d2c0] text-[#425d4c] hover:border-gray-600'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
-                      <IconComp className={`w-4 h-4 ${isSelected ? 'text-amber-400' : 'text-gray-400'}`} />
+                      <IconComp className={`w-4 h-4 ${isSelected ? 'text-[#89532d]' : 'text-[#526653]'}`} />
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                        isSelected ? 'bg-amber-400 text-black' : 'bg-[#1e2230] text-gray-400'
+                        isSelected ? 'bg-amber-400 text-black' : 'bg-[#d6dfd0] text-[#526653]'
                       }`}>
                         {opt.badge}
                       </span>
                     </div>
-                    <span className="font-bold text-xs block text-white mb-0.5">{opt.title}</span>
-                    <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">{opt.desc}</p>
+                    <span className="font-bold text-xs block text-[#243e33] mb-0.5">{opt.title}</span>
+                    <p className="text-[10px] text-[#526653] line-clamp-2 leading-relaxed">{opt.desc}</p>
                   </button>
                 );
               })}
@@ -298,23 +299,23 @@ export default function LiveRebalanceModal({
 
           {/* Error Banner */}
           {error && (
-            <div className="p-3 rounded-xl bg-red-950/40 border border-red-500/30 text-red-300 text-xs flex items-center space-x-2">
-              <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+            <div className="p-3 rounded-xl bg-red-50 border border-red-500/30 text-red-800 text-xs flex items-center space-x-2">
+              <AlertCircle className="w-4 h-4 text-red-700 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {/* Live Preview & Simulation Results */}
           {isLoading ? (
-            <div className="p-8 rounded-2xl bg-[#161922] border border-[#222736] text-center space-y-2">
+            <div className="p-8 rounded-2xl bg-[#eef1e5] border border-[#c6d2c0] text-center space-y-2">
               <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-              <span className="text-gray-400 text-xs font-medium">Re-calculating physics, travel distances &amp; time windows...</span>
+              <span className="text-[#526653] text-xs font-medium">Re-calculating physics, travel distances &amp; time windows...</span>
             </div>
           ) : previewData ? (
-            <div className="space-y-3.5 bg-[#161922] border border-amber-500/30 rounded-2xl p-4 animate-in fade-in duration-200">
+            <div className="space-y-3.5 bg-[#eef1e5] border border-amber-500/30 rounded-2xl p-4 animate-in fade-in duration-200">
               {/* Summary Headline */}
               <div className="flex items-start space-x-2.5">
-                <Sparkles className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <Sparkles className="w-4 h-4 text-[#89532d] shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-200 font-medium leading-relaxed">
                   {previewData.summary_message}
                 </p>
@@ -332,39 +333,39 @@ export default function LiveRebalanceModal({
               </div>
 
               {/* Metrics Row */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-2 border-t border-[#222736]">
-                <div className="bg-[#11131b] border border-[#222736] rounded-xl p-2.5 text-center">
-                  <span className="text-[10px] text-gray-400 block uppercase">Modeled Fatigue</span>
-                  <span className="text-sm font-extrabold text-emerald-400 block mt-0.5">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 pt-2 border-t border-[#c6d2c0]">
+                <div className="bg-[#fffdf5] border border-[#c6d2c0] rounded-xl p-2.5 text-center">
+                  <span className="text-[10px] text-[#526653] block uppercase">Modeled Fatigue</span>
+                  <span className="text-sm font-extrabold text-emerald-700 block mt-0.5">
                     {previewData.old_fatigue_score} → {previewData.new_fatigue_score}
                   </span>
-                  <span className="text-[10px] text-emerald-400/80">
+                  <span className="text-[10px] text-emerald-700/80">
                     {previewData.fatigue_change_pct >= 0 ? `${previewData.fatigue_change_pct.toFixed(1)}% lower` : `${Math.abs(previewData.fatigue_change_pct).toFixed(1)}% higher`}
                   </span>
                 </div>
 
-                <div className="bg-[#11131b] border border-[#222736] rounded-xl p-2.5 text-center">
-                  <span className="text-[10px] text-gray-400 block uppercase">Est. Route Distance Δ</span>
-                  <span className="text-sm font-extrabold text-amber-400 block mt-0.5">
+                <div className="bg-[#fffdf5] border border-[#c6d2c0] rounded-xl p-2.5 text-center">
+                  <span className="text-[10px] text-[#526653] block uppercase">Est. Route Distance Δ</span>
+                  <span className="text-sm font-extrabold text-[#89532d] block mt-0.5">
                     {previewData.route_distance_delta_km >= 0 ? '+' : ''}{previewData.route_distance_delta_km.toFixed(1)} km
                   </span>
-                  <span className="text-[10px] text-gray-400">straight-line × road factor estimate</span>
+                  <span className="text-[10px] text-[#526653]">straight-line × road factor estimate</span>
                 </div>
 
-                <div className="bg-[#11131b] border border-[#222736] rounded-xl p-2.5 text-center">
-                  <span className="text-[10px] text-gray-400 block uppercase">Est. Transit Time Δ</span>
+                <div className="bg-[#fffdf5] border border-[#c6d2c0] rounded-xl p-2.5 text-center">
+                  <span className="text-[10px] text-[#526653] block uppercase">Est. Transit Time Δ</span>
                   <span className="text-sm font-extrabold text-sky-400 block mt-0.5">
                     {previewData.transit_time_delta_minutes >= 0 ? '+' : ''}{previewData.transit_time_delta_minutes} min
                   </span>
-                  <span className="text-[10px] text-gray-400">negative means less time</span>
+                  <span className="text-[10px] text-[#526653]">negative means less time</span>
                 </div>
 
-                <div className="bg-[#11131b] border border-[#222736] rounded-xl p-2.5 text-center">
-                  <span className="text-[10px] text-gray-400 block uppercase">Local Fare Δ</span>
+                <div className="bg-[#fffdf5] border border-[#c6d2c0] rounded-xl p-2.5 text-center">
+                  <span className="text-[10px] text-[#526653] block uppercase">Local Fare Δ</span>
                   <span className="text-sm font-extrabold text-sky-400 block mt-0.5">
                     {previewData.transport_cost_delta_inr >= 0 ? '+' : '−'}₹{Math.abs(previewData.transport_cost_delta_inr).toLocaleString('en-IN')}
                   </span>
-                  <span className="text-[10px] text-gray-400">party estimate</span>
+                  <span className="text-[10px] text-[#526653]">party estimate</span>
                 </div>
               </div>
 
@@ -385,8 +386,8 @@ export default function LiveRebalanceModal({
               </div>
 
               {/* Revised Day Itinerary Snippet */}
-              <div className="pt-2 border-t border-[#222736]">
-                <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
+              <div className="pt-2 border-t border-[#c6d2c0]">
+                <span className="text-[10px] font-semibold text-[#526653] uppercase tracking-wider block mb-1.5">
                   Revised Afternoon Timeline (Day {selectedDayNumber})
                 </span>
                 <div className="space-y-1.5">
@@ -396,13 +397,13 @@ export default function LiveRebalanceModal({
                       <div
                         key={idx}
                         className={`flex items-center justify-between p-2 rounded-lg text-xs ${
-                          isNew 
-                            ? 'bg-amber-500/10 border border-amber-500/40 text-amber-300 font-semibold' 
-                            : 'bg-[#11131b] border border-[#222736] text-gray-300'
+                          isNew
+                            ? 'bg-amber-500/10 border border-amber-500/40 text-[#89532d] font-semibold'
+                            : 'bg-[#fffdf5] border border-[#c6d2c0] text-[#425d4c]'
                         }`}
                       >
                         <div className="flex items-center space-x-2 truncate">
-                          <span className="font-mono text-[10px] text-gray-400">{act.start_time} - {act.end_time}</span>
+                          <span className="font-mono text-[10px] text-[#526653]">{act.start_time} - {act.end_time}</span>
                           <span className="truncate">{act.place_name}</span>
                         </div>
                         {isNew && (
@@ -420,11 +421,11 @@ export default function LiveRebalanceModal({
         </div>
 
         {/* Modal Action Footer */}
-        <div className="pt-4 border-t border-[#1e2230] flex items-center justify-between gap-3 relative z-10 shrink-0">
+        <div className="pt-4 border-t border-[#d6dfd0] flex items-center justify-between gap-3 relative z-10 shrink-0">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-[#161922] border border-[#222736] text-xs font-semibold text-gray-300 hover:text-white hover:border-gray-500 transition-colors"
+            className="px-4 py-2 rounded-xl bg-[#eef1e5] border border-[#c6d2c0] text-xs font-semibold text-[#425d4c] hover:text-[#243e33] hover:border-gray-500 transition-colors"
           >
             Cancel / Keep Original
           </button>
@@ -436,7 +437,7 @@ export default function LiveRebalanceModal({
             className={`inline-flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-lg transition-all active:scale-95 ${
               previewData?.is_feasible && previewData.updated_plan && !isLoading
                 ? 'bg-gradient-to-r from-amber-500 to-amber-400 text-black hover:brightness-105 cursor-pointer'
-                : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+                : 'bg-gray-800 text-[#596b57] cursor-not-allowed border border-gray-700'
             }`}
           >
             <Zap className="w-4 h-4 fill-black text-black" />

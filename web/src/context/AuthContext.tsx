@@ -21,7 +21,7 @@ function useAuthState() {
     try {
       const { data, error } = await getBrowserSupabase().auth.getUser();
       if (!mounted.current || current !== revision.current) return;
-      setUser(!error && data.user?.email_confirmed_at ? profile(data.user) : null);
+      setUser(!error && data.user?.email_confirmed_at && !data.user.is_anonymous ? profile(data.user) : null);
       setLoading(false);
     } catch {
       if (!mounted.current || current !== revision.current) return;
@@ -59,7 +59,7 @@ function useAuthState() {
     createAuthService(getBrowserSupabase(), location.origin).recover(email, captchaToken), []);
   const logout = useCallback(async () => {
     await createAuthService(getBrowserSupabase(), location.origin).logout();
-    revision.current += 1; setUser(null); location.assign('/login');
+    revision.current += 1; setUser(null); location.assign('/guide');
   }, []);
   return useMemo(() => ({ user, isLoading, isSupabase: isSupabaseConfigured, login, signup, loginWithGoogle, resetPassword, logout, refreshUser }), [user, isLoading, login, signup, loginWithGoogle, resetPassword, logout, refreshUser]);
 }
