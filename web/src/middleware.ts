@@ -17,7 +17,8 @@ export async function middleware(request: NextRequest) {
     await client.auth.getClaims();
   }
   response.headers.set('Cache-Control', 'private, no-store');
-  response.headers.set('Referrer-Policy', 'no-referrer');
+  // Tile providers require website identification; origin-only excludes trip IDs.
+  response.headers.set('Referrer-Policy', request.nextUrl.pathname.startsWith('/planner') ? 'strict-origin' : 'no-referrer');
   response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   response.headers.set('Expires', '0');
   response.headers.set('Pragma', 'no-cache');

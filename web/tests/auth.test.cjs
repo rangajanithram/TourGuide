@@ -177,6 +177,18 @@ test('middleware forwards refreshed cookies and disables response caching', asyn
   assert.equal(response.cookies.get('sb-refresh-test').value, 'refreshed-mock');
   assert.equal(response.headers.get('cache-control'), 'private, no-store');
   assert.equal(response.headers.get('expires'), '0');
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
+  const plannerResponse = await middleware(new next.NextRequest('https://trip.test/planner?tripId=private-id'));
+  assert.equal(plannerResponse.headers.get('referrer-policy'), 'strict-origin');
+});
+
+test('map tiles use the canonical OSM URL and require valid managed provider configuration', () => {
+  const { mapTileConfig } = load('lib/map-tiles.ts');
+  assert.equal(mapTileConfig().url, 'https://tile.openstreetmap.org/{z}/{x}/{y}.png');
+  assert.throws(() => mapTileConfig('http://tiles.test/{z}/{x}/{y}.png', 'Provider'));
+  assert.throws(() => mapTileConfig('https://tiles.test/{z}/{x}/{y}.png', ''));
+  assert.throws(() => mapTileConfig('https://tiles.test/fixed.png', 'Provider'));
+  assert.equal(mapTileConfig('https://tiles.test/{z}/{x}/{y}.png', 'Provider').attribution, 'Provider');
 });
 
 test('local callback preserves the browser cookie origin despite Next dev URL normalization', () => {

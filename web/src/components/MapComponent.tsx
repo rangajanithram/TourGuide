@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { TripPlan } from '../types/trip';
+import { mapTileConfig } from '../lib/map-tiles';
 
 interface MapComponentProps {
   plan: TripPlan;
@@ -29,6 +30,12 @@ function MapAutoFitter({ coordinates, filterKey }: { coordinates: [number, numbe
 const DAY_COLORS = ['#38bdf8', '#34d399', '#fbbf24', '#f87171', '#a78bfa'];
 
 export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }: MapComponentProps) {
+  const [tilesFailed, setTilesFailed] = useState(false);
+  const [tileAttempt, setTileAttempt] = useState(0);
+  const tiles = useMemo(() => {
+    try { return mapTileConfig(process.env.NEXT_PUBLIC_MAP_TILE_URL, process.env.NEXT_PUBLIC_MAP_TILE_ATTRIBUTION); }
+    catch { return null; }
+  }, []);
   const hotel = plan.hotel_summary;
   const hotelLat = hotel?.lat || 17.3850;
   const hotelLng = hotel?.lng || 78.4867;
@@ -147,10 +154,17 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
         scrollWheelZoom={false}
         className="w-full h-full"
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        {tiles && !tilesFailed && <TileLayer
+          key={tileAttempt}
+          attribution={tiles.attribution}
+          url={tiles.url}
+          maxZoom={tiles.maxZoom}
+          referrerPolicy="strict-origin"
+          updateWhenIdle
+          updateWhenZooming={false}
+          keepBuffer={1}
+          eventHandlers={{ tileerror: () => setTilesFailed(true) }}
+        />}
 
         {filteredCoords.length > 0 && <MapAutoFitter coordinates={filteredCoords} filterKey={filterKey} />}
 
@@ -244,6 +258,10 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
           );
         })}
       </MapContainer>
+      {(tilesFailed || !tiles) && <div role="status" className="absolute bottom-8 left-3 right-3 z-[1000] rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-3 text-sm text-[#243e33] shadow-md">
+        <p>The background map is unavailable. Your trip stops and route lines are still shown.</p>
+        {tiles && <button type="button" className="mt-2 font-semibold underline" onClick={() => { setTileAttempt(n => n + 1); setTilesFailed(false); }}>Retry map</button>}
+      </div>}
     </div>
   );
 }
