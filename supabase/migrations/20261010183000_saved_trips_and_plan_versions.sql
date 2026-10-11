@@ -9,10 +9,18 @@ do $$ begin
   end if;
   execute format('grant tripweave_trip_writer to %I', current_user);
 end $$;
-grant usage on schema public, auth, tripweave_private to tripweave_trip_writer;
+grant usage on schema public, tripweave_private to tripweave_trip_writer;
+-- Hosted Supabase does not allow postgres to grant auth schema usage to custom roles.
+-- These read-only helpers bridge identity checks without granting auth table access.
+create or replace function tripweave_private.session_uid()
+returns uuid language sql stable security definer set search_path = '' as $$
+  select auth.uid();
+$$;
+alter function tripweave_private.session_uid() owner to postgres;
+revoke all on function tripweave_private.session_uid() from public, anon;
+grant execute on function tripweave_private.session_uid() to authenticated, tripweave_trip_writer;
 grant create on schema tripweave_private to tripweave_trip_writer;
 grant usage on schema tripweave_private to authenticated;
-grant select(id, email_confirmed_at, is_anonymous) on auth.users to tripweave_trip_writer;
 create or replace function tripweave_private.verified_owner(row_user_id uuid)
 returns boolean language sql stable security definer set search_path = '' as $$
   select auth.uid() = row_user_id
@@ -20,9 +28,9 @@ returns boolean language sql stable security definer set search_path = '' as $$
     and exists (select 1 from auth.users u where u.id = auth.uid()
       and u.email_confirmed_at is not null and not coalesce(u.is_anonymous, false));
 $$;
-alter function tripweave_private.verified_owner(uuid) owner to tripweave_trip_writer;
+alter function tripweave_private.verified_owner(uuid) owner to postgres;
 revoke all on function tripweave_private.verified_owner(uuid) from public, anon;
-grant execute on function tripweave_private.verified_owner(uuid) to authenticated;
+grant execute on function tripweave_private.verified_owner(uuid) to authenticated, tripweave_trip_writer;
 create or replace function public.is_verified_account_owner(row_user_id uuid)
 returns boolean language sql stable security invoker set search_path = '' as $$
   select tripweave_private.verified_owner(row_user_id);
@@ -110,7 +118,7 @@ end $$;
 create table if not exists public.plan_versions (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references public.saved_trips(id) on delete cascade,
-  user_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  user_id uuid not null default tripweave_private.session_uid() references auth.users(id) on delete cascade,
   version_number integer not null check (version_number >= 1 and version_number <= 10000),
   schema_version integer not null default 1 check (schema_version >= 1 and schema_version <= 100),
   change_type text not null default 'initial_save'
@@ -193,9 +201,9 @@ create policy trips_owner on public.saved_trips for all to authenticated, tripwe
   using (public.is_verified_account_owner(user_id)) with check (public.is_verified_account_owner(user_id));
 create policy versions_owner on public.plan_versions for all to authenticated, tripweave_trip_writer
   using (public.is_verified_account_owner(user_id) and exists (
-    select 1 from public.saved_trips t where t.id = trip_id and t.user_id = auth.uid()))
+    select 1 from public.saved_trips t where t.id = trip_id and t.user_id = tripweave_private.session_uid()))
   with check (public.is_verified_account_owner(user_id) and exists (
-    select 1 from public.saved_trips t where t.id = trip_id and t.user_id = auth.uid()));
+    select 1 from public.saved_trips t where t.id = trip_id and t.user_id = tripweave_private.session_uid()));
 revoke all on public.saved_trips, public.plan_versions from public, anon, authenticated, tripweave_trip_writer;
 grant select, delete on public.saved_trips to authenticated;
 grant update(title, updated_at) on public.saved_trips to authenticated;
@@ -304,7 +312,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_owner uuid := auth.uid();
+  v_owner uuid := tripweave_private.session_uid();
   v_trip public.saved_trips;
 begin
   if v_owner is null or not public.is_verified_account_owner(v_owner) then
@@ -412,7 +420,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_owner uuid := auth.uid();
+  v_owner uuid := tripweave_private.session_uid();
   v_trip public.saved_trips;
   v_version public.plan_versions;
   v_next_version integer;
@@ -508,7 +516,7 @@ security definer
 set search_path = ''
 as $$
 declare
-  v_owner uuid := auth.uid();
+  v_owner uuid := tripweave_private.session_uid();
   v_target public.plan_versions;
 begin
   if v_owner is null or not public.is_verified_account_owner(v_owner) then

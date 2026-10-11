@@ -535,3 +535,44 @@ test('absent verification evidence stays unknown', () => {
   assert.equal(provenance.is_verified_valid, null);
   assert.equal(provenance.audit_score, null);
 });
+
+test('history reads metadata in stable pages without downloading snapshots', async () => {
+  const tripId = 'a1000000-0000-4000-8000-000000000001';
+  const rows = Array.from({ length: 101 }, (_, i) => ({ id: `v${i}`, trip_id: tripId,
+    version_number: i + 1, change_type: 'edit', change_summary: 'Updated',
+    selected_variant: 'balanced', created_at: '2026-10-11T00:00:00Z' }));
+  const ranges = [];
+  const chain = {
+    select(columns) { assert.equal(columns.includes('*'), false); assert.equal(columns.includes('itinerary_data'), false); return this; },
+    eq(column, value) { assert.equal(column, 'trip_id'); assert.equal(value, tripId); return this; },
+    order(column, options) { assert.equal(column, 'version_number'); assert.equal(options.ascending, true); return this; },
+    range(from, to) { ranges.push([from, to]); return Promise.resolve({ data: rows.slice(from, to + 1), error: null }); },
+  };
+  const service = createTripsService({ from: () => chain });
+  const history = await service.listTripVersions(tripId);
+  assert.deepEqual(ranges, [[0, 99], [100, 199]]);
+  assert.equal(history.length, 101);
+  assert.equal(history[0].version_number, 101);
+  assert.equal(history[100].version_number, 1);
+});
+
+test('trip pages are bounded and invalid pages never reach the database', async () => {
+  const calls = [];
+  const chain = { select() { return this; }, order(column) { calls.push(column); return this; },
+    range(from, to) { calls.push([from, to]); return Promise.resolve({ data: [], error: null }); } };
+  const service = createTripsService({ from: () => chain });
+  assert.deepEqual(await service.listSavedTrips(2), []);
+  assert.deepEqual(calls, ['updated_at', 'id', [24, 35]]);
+  for (const page of [-1, NaN, 0.5]) await assert.rejects(service.listSavedTrips(page), err => err.code === 'INVALID_PAGE');
+});
+
+test('delete requires a returned row and releases its lock after failure', async () => {
+  let result = { data: null, error: { code: 'PGRST116' } };
+  const chain = { delete() { return this; }, eq() { return this; },
+    select(columns) { assert.equal(columns, 'id'); return this; }, single: async () => result };
+  const service = createTripsService({ from: () => chain });
+  const id = 'a1000000-0000-4000-8000-000000000001';
+  await assert.rejects(service.deleteSavedTrip(id), err => err.code === 'NOT_FOUND');
+  result = { data: { id }, error: null };
+  await service.deleteSavedTrip(id);
+});

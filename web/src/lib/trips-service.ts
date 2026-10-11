@@ -3,6 +3,7 @@ import type {
   MultiVariantTripPlan,
   PlanVersionChangeType,
   PlanVersionRecord,
+  PlanVersionSummary,
   SavedTripRecord,
   TripFormData,
   TripPlan,
@@ -11,6 +12,7 @@ import type {
 } from '@/types/trip';
 
 export const SNAPSHOT_SCHEMA_VERSION = 1;
+export const SAVED_TRIPS_PAGE_SIZE = 12;
 export const VALID_VARIANTS: VariantKey[] = ['budget', 'balanced', 'comfort'];
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -147,6 +149,7 @@ export interface SupabaseQueryChain extends PromiseLike<SupabaseQueryResult> {
   eq: (column: string, value: string) => SupabaseQueryChain;
   order: (column: string, opts: { ascending: boolean }) => SupabaseQueryChain;
   select: (columns?: string) => SupabaseQueryChain;
+  range: (from: number, to: number) => SupabaseQueryChain;
   single: () => PromiseLike<SupabaseQueryResult>;
 }
 
@@ -305,11 +308,14 @@ export function createTripsService(client: SupabasePersistenceClient) {
       });
     },
 
-    async listSavedTrips(): Promise<SavedTripRecord[]> {
+    async listSavedTrips(page = 0): Promise<SavedTripRecord[]> {
+      if (!Number.isSafeInteger(page) || page < 0) throw new TripPersistenceError('Invalid page.', 'INVALID_PAGE');
       const { data, error } = await client
         .from('saved_trips')
         .select('*')
-        .order('updated_at', { ascending: false });
+        .order('updated_at', { ascending: false })
+        .order('id', { ascending: false })
+        .range(page * SAVED_TRIPS_PAGE_SIZE, (page + 1) * SAVED_TRIPS_PAGE_SIZE - 1);
 
       if (error) {
         throw normalizeError(error, 'Failed to load your saved trips.');
@@ -370,40 +376,53 @@ export function createTripsService(client: SupabasePersistenceClient) {
         throw new TripPersistenceError('Invalid trip ID format.', 'INVALID_ID');
       }
       return withLock(`delete:${tripId}`, async () => {
-        const { error } = await client
+        const { data, error } = await client
           .from('saved_trips')
           .delete()
-          .eq('id', tripId.trim());
+          .eq('id', tripId.trim())
+          .select('id')
+          .single();
 
-        if (error) {
+        if (error || !data) {
           throw normalizeError(error, 'Failed to delete trip.');
         }
       });
     },
 
-    async listTripVersions(tripId: string): Promise<PlanVersionRecord[]> {
+    async listTripVersions(tripId: string): Promise<PlanVersionSummary[]> {
       if (!isValidUuid(tripId)) {
         throw new TripPersistenceError('Invalid trip ID format.', 'INVALID_ID');
       }
-      const { data, error } = await client
-        .from('plan_versions')
-        .select('*')
-        .eq('trip_id', tripId.trim())
-        .order('version_number', { ascending: false });
+      const versions: PlanVersionSummary[] = [];
+      // Explicit pages avoid the server's default row limit truncating history.
+      // Ascending immutable versions keep page offsets stable as new revisions are appended.
+      let offset = 0;
+      while (true) {
+        const { data, error } = await client
+          .from('plan_versions')
+          .select('id,trip_id,version_number,change_type,change_summary,selected_variant,restored_from_version,created_at')
+          .eq('trip_id', tripId.trim())
+          .order('version_number', { ascending: true })
+          .range(offset, offset + 99);
 
-      if (error) {
-        throw normalizeError(error, 'Failed to load version history.');
-      }
-      if (!Array.isArray(data)) return [];
-      const versions: PlanVersionRecord[] = [];
-      for (const row of data) {
-        try {
-          versions.push(normalizeVersionRow(row as Record<string, unknown>));
-        } catch (error) {
-          throw new TripPersistenceError(`A history entry could not be read: ${error instanceof Error ? error.message : 'Invalid snapshot'}.`, 'INVALID_SNAPSHOT');
+        if (error) {
+          throw normalizeError(error, 'Failed to load version history.');
         }
+        if (!Array.isArray(data)) throw new TripPersistenceError('Invalid version history response.');
+        for (const row of data) {
+          if (!row || typeof row.id !== 'string' || row.trip_id !== tripId.trim() ||
+              !Number.isSafeInteger(row.version_number) || row.version_number < 1 ||
+              typeof row.change_summary !== 'string' || typeof row.created_at !== 'string' ||
+              !['initial_save', 'edit', 'rebalance', 'variant_switch', 'restore'].includes(row.change_type) ||
+              !VALID_VARIANTS.includes(row.selected_variant)) {
+            throw new TripPersistenceError('A history entry could not be read.', 'INVALID_SNAPSHOT');
+          }
+          versions.push(row as PlanVersionSummary);
+        }
+        if (data.length < 100) break;
+        offset += data.length;
       }
-      return versions;
+      return versions.reverse();
     },
 
     async commitTripRevision(params: {

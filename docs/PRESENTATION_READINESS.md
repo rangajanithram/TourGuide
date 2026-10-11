@@ -1,5 +1,15 @@
 # Presentation reliability pass — 2026-10-10
 
+## Hosted save repair — 2026-10-11
+
+Applied the missing Stage 2 migration to the TripWeave Supabase project, followed by `repair_trip_writer_auth_access`. The hosted migration records are `20261010180735` and `20261011062447`. GitHub deployment had not applied the database migration, causing PGRST202 on Save trip.
+
+Hosted Supabase's `postgres` role cannot grant custom roles usage on the protected `auth` schema. The writer now obtains the caller ID through a private, fixed-search-path, read-only helper. The private ownership check runs as postgres solely to check the current caller's verified/non-anonymous auth record. All trip writes still run as the restricted writer with forced RLS. No auth table is exposed through the helper and no browser user ID is trusted.
+
+Hosted `account_isolation.sql` passed after repair: create/read, idempotent retries, revision conflicts, restore, ownership isolation, anonymous/unverified denial, immutable history and deletion cascade. All fixtures rolled back; zero fixture users remain. The PostgREST schema cache was reloaded. This verifies database behavior; the user should retry Save trip on the existing open itinerary to confirm their browser session.
+
+For future releases, run `supabase/tests/deployment_contract.sql` against the target database after migration and before frontend deployment. It fails on missing RPC signatures, incorrect execute grants, missing forced RLS or an unsafe writer role. Then run the rollback-based account isolation test. Both gates passed on the hosted project. The source migration contains the hosted identity fix for fresh databases. Already migrated environments need the updated SQL applied explicitly; do not assume editing an applied migration makes a deployment runner execute it again. Reconcile hosted migration versions before introducing CLI-managed deployments.
+
 ## Implemented in this pass
 
 - The generation flow checks `/ready` before submitting a costly solver request. Loading text reflects two actual client operations: checking the service, then waiting for generation. This is not live solver-stage telemetry.
@@ -24,7 +34,19 @@ The catalogs still use curated JSON records. This pass improves real backend exe
 4. Set the frontend `NEXT_PUBLIC_API_URL` to the deployed backend HTTPS base URL, without an endpoint path. Build/deploy the frontend after the `/ready` route is available. New frontend code expects this route.
 5. Run the two-account save/reopen/edit/restore flow from the Stage 2 handoff. Test service startup, offline mode, validation failures, rate limits and browser cancellation. Confirm a failed new generation keeps the old trip.
 
-Production rollout and live two-account browser acceptance remain pending. Unit/regression checks are not a substitute for them. Next coding work after acceptance: bounded metadata-only trip/history pagination, then a maintained catalog and one licensed live provider with provenance and explicit fallback.
+Live save and two-account isolation were confirmed by the user on October 11. Signed-in browser edit/restore/delete acceptance remains pending. Unit/regression checks are not a substitute for that journey. Next coding work after acceptance: a maintained catalog and one licensed live provider with provenance and explicit fallback.
+
+## Stage 2 follow-up — October 11
+
+- My Trips now loads 12 complete snapshots per page, with deterministic ordering and Previous/Next controls. Opening a trip still loads and validates its complete snapshot. Metadata-only trip cards remain a future optimization.
+- History fetches revision metadata in explicit 100-row batches, ordered oldest-first during retrieval so appending a revision cannot shift earlier pages. The UI displays newest-first. Snapshot validation still runs on restore responses.
+- Aggregate serialized history size on the current hosted rows: 64,492 bytes for full rows versus 697 bytes for selected metadata (about 98.9% less; this is a payload measurement, not a latency benchmark).
+- Delete now requests the deleted ID and rejects a zero-row result. It cannot claim success when RLS hides a row or another session already deleted it.
+- Stale list responses are ignored; refresh/paging cannot run during rename/delete. Failed initial loads no longer display the empty-account message. History has explicit loading feedback, and closing its drawer does not fetch it again.
+- Hosted deployment-contract and rollback account-isolation SQL checks passed. The latter exercises create/idempotency, edit revisions, stale/null version rejection, restore, immutable history, rename, cross-account and anonymous/unverified denial, and cascading delete. Zero fixture users remained afterward.
+- Local checks: typecheck, lint, 32 frontend service/auth checks, 42 optimizer checks, and 7 backend authentication checks passed.
+- Final release checks: an isolated optimized Next.js production build passed (all 13 static pages generated). The sandboxed build stalled; the approved local build completed. My Trips refills the current page after deletion so the Next control remains available when later trips exist.
+- Production browser access to `/trips` redirected the available session to `/login?error=session_expired`, correctly protecting private data. After deployment, use a disposable trip to check rename → reopen → edit/rebalance → save revision → restore → reopen → delete in a signed-in browser. Also check paging and a failed-network refresh. This signed-in UI journey remains unverified by the agent.
 
 ## Local regression evidence
 

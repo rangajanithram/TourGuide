@@ -251,6 +251,11 @@ export interface PlanVersionRecord {
   created_at: string;
 }
 
+// History lists need labels only; the database loads the snapshot on restore.
+export type PlanVersionSummary = Pick<PlanVersionRecord,
+  'id' | 'trip_id' | 'version_number' | 'change_type' | 'change_summary' |
+  'selected_variant' | 'restored_from_version' | 'created_at'>;
+
 export interface TripFormData {
   origin_city?: string;
   destination: string;

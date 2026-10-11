@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import {
   BookmarkCheck,
@@ -21,12 +21,15 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { getBrowserSupabase, isSupabaseConfigured } from '@/lib/supabase';
-import { createTripsService, getAvailableVariants, type SupabasePersistenceClient } from '@/lib/trips-service';
+import { createTripsService, getAvailableVariants, SAVED_TRIPS_PAGE_SIZE, type SupabasePersistenceClient } from '@/lib/trips-service';
 import type { SavedTripRecord } from '@/types/trip';
 
 export default function TripsListClient() {
   const [trips, setTrips] = useState<SavedTripRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const requestId = useRef(0);
+  const mutationPending = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -42,7 +45,9 @@ export default function TripsListClient() {
     return createTripsService(getBrowserSupabase() as unknown as SupabasePersistenceClient);
   }, []);
 
-  const loadTrips = useCallback(async () => {
+  const loadTrips = useCallback(async (targetPage = 0) => {
+    if (mutationPending.current) return;
+    const request = ++requestId.current;
     if (!tripsService) {
       setErrorMessage('Supabase client is not configured in this environment.');
       setLoading(false);
@@ -51,17 +56,21 @@ export default function TripsListClient() {
     setLoading(true);
     setErrorMessage(null);
     try {
-      const list = await tripsService.listSavedTrips();
+      const list = await tripsService.listSavedTrips(targetPage);
+      if (request !== requestId.current) return;
       setTrips(list);
+      setPage(targetPage);
     } catch (err: unknown) {
+      if (request !== requestId.current) return;
       setErrorMessage(err instanceof Error ? err.message : 'Unable to load saved trips. Make sure the latest Supabase migration has been applied.');
     } finally {
-      setLoading(false);
+      if (request === requestId.current) setLoading(false);
     }
   }, [tripsService]);
 
   useEffect(() => {
     void loadTrips();
+    return () => { requestId.current += 1; };
   }, [loadTrips]);
 
   const handleStartRename = (trip: SavedTripRecord) => {
@@ -72,13 +81,14 @@ export default function TripsListClient() {
   };
 
   const handleSaveRename = async (tripId: string) => {
-    if (!tripsService) return;
+    if (!tripsService || mutationPending.current || loading) return;
     const trimmed = editingTitle.trim();
     if (!trimmed) {
       setErrorMessage('Trip title cannot be empty.');
       return;
     }
     setRenamingId(tripId);
+    mutationPending.current = true;
     setErrorMessage(null);
     try {
       const updated = await tripsService.renameSavedTrip(tripId, trimmed);
@@ -89,11 +99,13 @@ export default function TripsListClient() {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to rename trip.');
     } finally {
       setRenamingId(null);
+      mutationPending.current = false;
     }
   };
 
   const handleDelete = async (trip: SavedTripRecord) => {
-    if (!tripsService) return;
+    if (!tripsService || mutationPending.current || loading) return;
+    mutationPending.current = true;
     setDeletingId(trip.id);
     setErrorMessage(null);
     try {
@@ -101,10 +113,15 @@ export default function TripsListClient() {
       setTrips((prev) => prev.filter((item) => item.id !== trip.id));
       setConfirmDeleteId(null);
       setStatusMessage(`Deleted "${trip.title}" and its version history.`);
+      // Refill this page so deleting one card does not hide the Next control
+      // while more trips still exist on subsequent pages.
+      mutationPending.current = false;
+      await loadTrips(page);
     } catch (err: unknown) {
       setErrorMessage(err instanceof Error ? err.message : 'Failed to delete trip.');
     } finally {
       setDeletingId(null);
+      mutationPending.current = false;
     }
   };
 
@@ -126,7 +143,7 @@ export default function TripsListClient() {
           <button
             type="button"
             onClick={() => void loadTrips()}
-            disabled={loading}
+            disabled={loading || renamingId !== null || deletingId !== null}
             className="inline-flex items-center gap-1.5 rounded-xl border border-[#c6d2c0] bg-white px-3.5 py-2.5 text-xs font-bold text-[#243e33] hover:bg-[#f2f6ee] transition disabled:opacity-50"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
@@ -186,14 +203,16 @@ export default function TripsListClient() {
           <p className="mt-3 text-sm font-semibold text-[#243e33]">Loading your saved itineraries…</p>
           <p className="mt-1 text-xs text-[#557064]">Fetching verified account snapshots from Supabase</p>
         </div>
+      ) : trips.length === 0 && errorMessage ? (
+        <p className="mt-8 text-sm text-[#496357]">Your trips could not be loaded. Use Refresh to try again.</p>
       ) : trips.length === 0 ? (
         <div className="mt-10 rounded-3xl border border-dashed border-[#b5c7ad] bg-[#f7faf4] p-10 sm:p-14 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#e5efe0] text-[#243e33]">
             <Compass size={28} />
           </div>
-          <h2 className="mt-4 text-xl font-bold text-[#1f332a]">No saved trips yet</h2>
+          <h2 className="mt-4 text-xl font-bold text-[#1f332a]">{page === 0 ? 'No saved trips yet' : 'No more trips on this page'}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-[#4e675b]">
-            Generate a multi-day itinerary in the planner and click <strong>Save trip</strong> to keep a permanent snapshot with full version history.
+            {page > 0 ? 'Go back to the previous page, or refresh to see your latest saved trips.' : <>Generate a multi-day itinerary in the planner and click <strong>Save trip</strong> to keep a permanent snapshot with full version history.</>}
           </p>
           <div className="mt-6 flex justify-center">
             <Link
@@ -374,6 +393,13 @@ export default function TripsListClient() {
             );
           })}
         </div>
+      )}
+      {!loading && (page > 0 || trips.length === SAVED_TRIPS_PAGE_SIZE) && (
+        <nav aria-label="Saved trips pages" className="mt-6 flex items-center justify-center gap-4 text-sm">
+          <button type="button" disabled={page === 0 || renamingId !== null || deletingId !== null} onClick={() => void loadTrips(page - 1)} className="rounded-xl border border-[#c6d2c0] px-4 py-2 disabled:opacity-40">Previous</button>
+          <span aria-live="polite">Page {page + 1}</span>
+          <button type="button" disabled={trips.length < SAVED_TRIPS_PAGE_SIZE || renamingId !== null || deletingId !== null} onClick={() => void loadTrips(page + 1)} className="rounded-xl border border-[#c6d2c0] px-4 py-2 disabled:opacity-40">Next</button>
+        </nav>
       )}
     </main>
   );

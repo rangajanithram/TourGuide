@@ -27,7 +27,7 @@ import {
   TripPlan,
   TripFormData,
   SavedTripRecord,
-  PlanVersionRecord,
+  PlanVersionSummary,
   PlanVersionChangeType,
   VariantKey,
 } from '../types/trip';
@@ -85,7 +85,8 @@ export default function Home({ preferences }: { preferences?: unknown }) {
 
   // Saved trip & version history state
   const [savedTrip, setSavedTrip] = useState<SavedTripRecord | null>(null);
-  const [versions, setVersions] = useState<PlanVersionRecord[]>([]);
+  const [versions, setVersions] = useState<PlanVersionSummary[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [isLoadingSavedTrip, setIsLoadingSavedTrip] = useState(false);
   const [isSavingTrip, setIsSavingTrip] = useState(false);
   const [restoringVersion, setRestoringVersion] = useState<number | null>(null);
@@ -114,8 +115,10 @@ export default function Home({ preferences }: { preferences?: unknown }) {
   const refreshHistory = useCallback(async (tripId: string) => {
     if (!tripsService) return;
     const version = ++historyVersion.current;
+    setIsLoadingHistory(true);
     try { const history = await tripsService.listTripVersions(tripId); if (version === historyVersion.current) setVersions(history); }
     catch { if (version === historyVersion.current) setSaveError('Your trip is saved, but history could not refresh. Reopen history to retry.'); }
+    finally { if (version === historyVersion.current) setIsLoadingHistory(false); }
   }, [tripsService]);
 
   const loadSavedTripById = useCallback(
@@ -670,7 +673,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
 
                 <button
                   type="button"
-                  onClick={() => { setShowHistoryDrawer(prev => !prev); void refreshHistory(savedTrip.id); }}
+                  onClick={() => { setShowHistoryDrawer(prev => !prev); if (!showHistoryDrawer) void refreshHistory(savedTrip.id); }}
                   className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition ${
                     showHistoryDrawer
                       ? 'border-[#243e33] bg-[#243e33] text-[#fffdf5]'
@@ -729,7 +732,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                   </span>
                 </div>
 
-                {versions.length === 0 ? (
+                {isLoadingHistory ? (
+                  <p role="status" className="flex items-center gap-2 py-3 text-sm text-[#243e33]"><Loader2 size={16} className="animate-spin" />Loading revision history…</p>
+                ) : versions.length === 0 ? (
                   <p className="text-xs text-[#526653] py-2">No version records found.</p>
                 ) : (
                   <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
