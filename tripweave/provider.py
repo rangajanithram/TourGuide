@@ -7,8 +7,7 @@ import json
 import time
 import threading
 from urllib.request import Request, urlopen
-from urllib.parse import urlencode
-from pydantic import ValidationError
+from urllib.parse import urlencode, urlparse
 from typing import List, Protocol, Dict
 from tripweave.models import Place
 from tripweave.config import settings
@@ -71,8 +70,9 @@ class DatabaseCatalogUnavailable(OSError):
 class SupabasePlacesProvider:
     """Read-only public catalog; Hyderabad moves first, other cities retain seeds."""
     def __init__(self, url, key, seed=None, opener=urlopen, clock=time.monotonic):
-        if not url or not key or not url.startswith("https://"):
-            raise ValueError("Supabase catalog requires an HTTPS URL and a publishable key")
+        parsed = urlparse(url or "")
+        if not key or parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.query or parsed.fragment or parsed.path not in {"", "/"}:
+            raise DatabaseCatalogUnavailable("Supabase catalog configuration is invalid")
         self.url, self.key = url.rstrip("/"), key
         self.seed = seed or JsonFilePlacesProvider()
         self.opener, self.clock = opener, clock
@@ -128,5 +128,5 @@ def get_places_provider() -> PlacesDataProvider:
         elif settings.place_catalog_provider == "json":
             _provider_instance = JsonFilePlacesProvider()
         else:
-            raise ValueError("Unknown PLACE_CATALOG_PROVIDER")
+            raise DatabaseCatalogUnavailable("Unknown PLACE_CATALOG_PROVIDER")
     return _provider_instance

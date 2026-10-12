@@ -197,8 +197,8 @@ def readiness_check():
 
 def get_database_places(destination: str = "hyderabad") -> List[Place]:
     """Loads curated places via the PlacesDataProvider abstraction."""
-    provider = get_places_provider()
     try:
+        provider = get_places_provider()
         return provider.get_places(destination)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

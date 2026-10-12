@@ -20,6 +20,21 @@ class CatalogTests(unittest.TestCase):
  def test_invalid_payload_rejected(self):
   p=self.provider();p.opener.return_value.read.return_value=b'[]'
   with self.assertRaises(DatabaseCatalogUnavailable):p.get_places('hyderabad')
+ def test_invalid_configuration_is_service_unavailability(self):
+  from unittest.mock import patch
+  from tripweave.main import get_database_places
+  from fastapi import HTTPException
+  for url in ['http://example.com', 'https://user:password@example.com', 'https://example.com?key=value', 'https://example.com/rest/v1']:
+   with self.assertRaises(DatabaseCatalogUnavailable):SupabasePlacesProvider(url,'test')
+  with patch('tripweave.main.get_places_provider',side_effect=DatabaseCatalogUnavailable('bad configuration')):
+   with self.assertRaises(HTTPException) as caught:get_database_places('hyderabad')
+   self.assertEqual(caught.exception.status_code,503)
+ def test_legacy_and_publishable_keys_use_apikey_header(self):
+  for key in ['sb_publishable_test','eyJlegacy-anon-test']:
+   p=self.provider();p.key=key;p.get_places('hyderabad')
+   request=p.opener.call_args.args[0]
+   self.assertEqual(request.get_header('Apikey'),key)
+   self.assertIsNone(request.get_header('Authorization'))
  def test_other_cities_remain_compatible(self):
   p=self.provider();self.assertTrue(p.get_places('jaipur'));p.opener.assert_not_called()
 
