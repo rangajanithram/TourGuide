@@ -257,6 +257,9 @@ export type PlanVersionSummary = Pick<PlanVersionRecord,
   'selected_variant' | 'restored_from_version' | 'created_at'>;
 
 export interface TripFormData {
+  max_visit_minutes?: number;
+  avoid_climbing?: boolean;
+  food_preference?: 'any' | 'vegetarian' | 'vegan' | 'halal' | 'own_meals';
   origin_city?: string;
   destination: string;
   start_date: string;

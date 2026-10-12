@@ -1,506 +1,126 @@
 'use client';
-
-import InfoTip from './InfoTip';
+import React, { useEffect, useRef, useState } from 'react';
+import { Compass, Pin, Sparkles, X } from 'lucide-react';
 import ThemedSelect from './ThemedSelect';
-import React, { useState } from 'react';
-import {
-  Calendar, Users, IndianRupee, Gauge,
-  Car, Sparkles, Check, Compass, Building,
-  Train, Plane, MapPin, Pin
-} from 'lucide-react';
+import PlaceSearch, { SearchOption } from './PlaceSearch';
+import InfoTip from './InfoTip';
 import { TripFormData } from '../types/trip';
+import { apiBaseUrl, boundedFetch, requireApiSuccess } from '@/lib/planner-network';
 
-interface TripFormProps {
-  onSubmit: (formData: TripFormData) => void;
-  isLoading: boolean;
-  initialValues?: TripFormData | null;
+interface Catalog {
+  cities: SearchOption[];
+  places: (SearchOption & { type: string; duration: number })[];
+  interests: string[];
+  long_visits: boolean;
+  climbing_known: boolean;
+  food_available: boolean;
+  dietary_options: string[];
+  source: string;
 }
-
-const CITY_MUST_VISIT_PINS: Record<string, string[]> = {
-  hyderabad: ['Charminar', 'Golconda Fort', 'Chowmahalla Palace', 'Salar Jung Museum'],
-  delhi: ['Qutub Minar', "Humayun's Tomb", 'Red Fort (Lal Qila)'],
-  jaipur: ['Amber Fort', 'Hawa Mahal', 'Nahargarh Fort Sunset Viewpoint'],
-  bengaluru: ['Bangalore Palace', 'Lalbagh Botanical Garden', "Tipu Sultan's Summer Palace", 'Cubbon Park & Vidhana Soudha'],
-  mumbai: ['Gateway of India', 'CSMVS Museum (Prince of Wales)', 'Marine Drive & Nariman Point', 'Elephanta Caves'],
-};
-
-const CITIES = [
-  { id: 'hyderabad', name: 'Hyderabad', tagline: 'Charminar, Golconda & Nizam Heritage' },
-  { id: 'delhi', name: 'Delhi', tagline: 'Red Fort, Qutub Minar & Mughal Monuments' },
-  { id: 'jaipur', name: 'Jaipur', tagline: 'Amber Fort, Hawa Mahal & Pink City' },
-  { id: 'bengaluru', name: 'Bengaluru', tagline: 'Bangalore Palace, Lalbagh & Garden City' },
-  { id: 'mumbai', name: 'Mumbai', tagline: 'Gateway of India, Marine Drive & Coastal Heritage' },
-];
-
-const ORIGIN_HUBS = [
-  { id: 'center', label: 'City Center Hub', desc: 'Central Downtown Landmark Base', icon: Building },
-  { id: 'station', label: 'Railway Station', desc: 'Central Train Station', icon: Train },
-  { id: 'airport', label: 'Airport Hub', desc: 'Flight Terminal', icon: Plane },
-];
-
-const GROUP_PROFILES = [
-  { id: 'default', label: 'General Group', desc: 'Standard leisure pacing' },
-  { id: 'young_solo', label: 'Solo / Active', desc: 'Fast-paced, low fatigue sensitivity' },
-  { id: 'family', label: 'Family with Kids', desc: 'Rest buffers & kid-friendly pacing' },
-  { id: 'elderly', label: 'Senior Travelers', desc: 'Accessibility-first & minimal walking' },
-];
-
-const PACES = [
-  { id: 'relaxed', label: 'Relaxed', desc: 'Max 2 stops/day' },
-  { id: 'balanced', label: 'Balanced', desc: 'Max 3 stops/day (Recommended)' },
-  { id: 'intensive', label: 'Intensive', desc: 'Max 4 stops/day' },
-];
-
-const MODES = [
-  { id: 'cab', label: 'Cab / Taxi' },
-  { id: 'auto', label: 'Auto-Rickshaw' },
-  { id: 'metro', label: 'Metro Rail' },
-  { id: 'walk', label: 'Walking' },
-];
-
-const INTEREST_TAGS = [
-  { id: 'unesco', label: 'UNESCO Sites' },
-  { id: 'history', label: 'Historic Forts' },
-  { id: 'royal', label: 'Royal Palaces' },
-  { id: 'museum', label: 'Museums' },
-  { id: 'food', label: 'Street Food & Bazaars' },
-  { id: 'sunset', label: 'Golden Hour Photography' },
-];
-
-const getFutureDate = (daysAhead: number): string => {
-  const d = new Date();
-  d.setDate(d.getDate() + daysAhead);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
-
-export default function TripForm({ onSubmit, isLoading, initialValues }: TripFormProps) {
+const futureDate = (offset: number) => { const date = new Date(); date.setDate(date.getDate() + offset); return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`; };
+const steps = ['Journey', 'Travel style', 'Places & food', 'Review'];
+const titleCase = (value: string) => value.replace(/_/g, ' ').replace(/\b\w/g, letter => letter.toUpperCase());
+const defaults: TripFormData = { destination: 'hyderabad', origin_city: '', start_date: '', end_date: '', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', group_profile: 'default', origin_type: 'center', interests: [], locked_activities: [], food_preference: 'any' };
+export default function TripForm({ onSubmit, isLoading, initialValues }: { onSubmit: (data: TripFormData) => void; isLoading: boolean; initialValues?: TripFormData | null }) {
+  const [form, setForm] = useState<TripFormData>(defaults);
   const [step, setStep] = useState(0);
-  const formRef = React.useRef<HTMLFormElement>(null);
-  const previousStep = React.useRef(step);
-  React.useEffect(() => {
-    if (previousStep.current !== step) {
-      formRef.current?.querySelector<HTMLElement>('section:not([hidden])')?.focus({ preventScroll: true });
-      previousStep.current = step;
+  const [catalog, setCatalog] = useState<Catalog | null>(null);
+  const [catalogError, setCatalogError] = useState('');
+  const [retry, setRetry] = useState(0);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [surprise, setSurprise] = useState(false);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const update = <K extends keyof TripFormData>(key: K, value: TripFormData[K]) => setForm(previous => ({ ...previous, [key]: value }));
+  useEffect(() => { setForm(initialValues ? { ...defaults, ...initialValues } : { ...defaults, start_date: futureDate(7), end_date: futureDate(9) }); }, [initialValues]);
+  useEffect(() => {
+    const controller = new AbortController();
+    setCatalog(null); setCatalogError('');
+    async function load() {
+      try {
+        const response = await boundedFetch(`${apiBaseUrl()}/api/planner/catalog?destination=${encodeURIComponent(form.destination)}`, { signal: controller.signal });
+        await requireApiSuccess(response);
+        const data = await response.json() as Catalog;
+        if (!Array.isArray(data.cities) || !Array.isArray(data.places) || !Array.isArray(data.interests)) throw new Error('The place catalog could not be read. Please retry.');
+        if (!controller.signal.aborted) setCatalog(data);
+      } catch (failure) { if (!controller.signal.aborted) setCatalogError(failure instanceof Error ? failure.message : 'Could not load places.'); }
     }
-  }, [step]);
-  const [validationError, setValidationError] = useState('');
-  const [destination, setDestination] = useState<string>('hyderabad');
-  const [originCity, setOriginCity] = useState<string>('');
-  const [originType, setOriginType] = useState<'center' | 'station' | 'airport'>('center');
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [budget, setBudget] = useState<number>(15000);
-  const [peopleCount, setPeopleCount] = useState<number>(2);
-  const [lockedActivities, setLockedActivities] = useState<string[]>([]);
-  const [groupProfile, setGroupProfile] = useState<'default' | 'young_solo' | 'family' | 'elderly'>('default');
-  const [pace, setPace] = useState<'relaxed' | 'balanced' | 'intensive'>('balanced');
-  const [transportMode, setTransportMode] = useState<'cab' | 'auto' | 'metro' | 'walk'>('cab');
-  const [interests, setInterests] = useState<string[]>(['unesco', 'history', 'sunset']);
-
-  // Sync form inputs when initialValues are passed (from URL share link or parent state)
-  React.useEffect(() => {
-    if (initialValues) {
-      if (initialValues.destination) setDestination(initialValues.destination.toLowerCase());
-      if (initialValues.origin_city !== undefined) setOriginCity(initialValues.origin_city ? initialValues.origin_city.toLowerCase() : '');
-      if (initialValues.origin_type && ['center', 'station', 'airport'].includes(initialValues.origin_type)) {
-        setOriginType(initialValues.origin_type as 'center' | 'station' | 'airport');
-      }
-      if (initialValues.start_date) setStartDate(initialValues.start_date);
-      if (initialValues.end_date) setEndDate(initialValues.end_date);
-      if (initialValues.budget_inr) setBudget(initialValues.budget_inr);
-      if (initialValues.people_count) setPeopleCount(initialValues.people_count);
-      if (initialValues.group_profile) setGroupProfile(initialValues.group_profile);
-      if (initialValues.pace) setPace(initialValues.pace);
-      if (initialValues.transport_mode) setTransportMode(initialValues.transport_mode);
-      setInterests(initialValues.interests || []);
-      setLockedActivities(initialValues.locked_activities || []);
-    } else {
-      setStartDate(prev => prev || getFutureDate(7));
-      setEndDate(prev => prev || getFutureDate(9));
-    }
-  }, [initialValues]);
-
-  const toggleInterest = (tag: string) => {
-    setInterests(prev =>
-      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-    );
+    void load(); return () => controller.abort();
+  }, [form.destination, retry]);
+  const move = (next: number) => { setStep(next); setError(''); requestAnimationFrame(() => heading.current?.focus({ preventScroll: true })); };
+  const validate = () => {
+    if (!catalog) return 'Wait for the destination catalog, or retry loading it.';
+    if (!catalog.cities.some(city => city.value === form.destination) || (form.origin_city && !catalog.cities.some(city => city.value === form.origin_city))) return 'Choose a supported city from the suggestions.';
+    if (!form.start_date || !form.end_date || form.start_date < futureDate(0) || form.end_date < form.start_date) return 'Choose valid dates, starting today or later.';
+    if ((Date.parse(form.end_date) - Date.parse(form.start_date)) / 86400000 >= 14) return 'Plan up to 14 days at a time.';
+    if (!Number.isInteger(form.people_count) || form.people_count < 1 || form.people_count > 20) return 'Enter between 1 and 20 travelers.';
+    if (!Number.isInteger(form.budget_inr) || form.budget_inr < 1 || form.budget_inr > 5000000) return 'Enter a group budget between ₹1 and ₹50,00,000.';
+    if ((form.locked_activities?.length || 0) > 15) return 'Choose up to 15 must-visit places.';
+    return '';
   };
-
-  const togglePin = (placeName: string) => {
-    setLockedActivities(prev =>
-      prev.includes(placeName) ? prev.filter(p => p !== placeName) : [...prev, placeName]
-    );
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault(); if (isLoading) return;
+    const problem = validate(); if (problem) { setError(problem); return; }
+    if (step < 3) { move(step + 1); return; }
+    onSubmit({ ...form, origin_city: form.origin_city === form.destination ? undefined : form.origin_city || undefined });
   };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isLoading) return;
-    if (!startDate || !endDate || endDate < startDate) { setStep(0); setValidationError('Choose an end date on or after the start date.'); return; }
-    if (startDate < getFutureDate(0)) { setStep(0); setValidationError('Choose today or a future start date.'); return; }
-    setValidationError('');
-    if (step < 2) { setStep(step + 1); return; }
-    onSubmit({
-      origin_city: originCity && originCity !== destination ? originCity : undefined,
-      destination,
-      origin_type: originType,
-      start_date: startDate,
-      end_date: endDate,
-      budget_inr: budget,
-      people_count: peopleCount,
-      group_profile: groupProfile,
-      locked_activities: lockedActivities,
-      pace,
-      transport_mode: transportMode,
-      interests
-    });
+  const pins = form.locked_activities || [];
+  const changeDestination = (destination: string) => {
+    if (destination === form.destination) return;
+    setForm(previous => ({ ...previous, destination, locked_activities: [], interests: [], max_visit_minutes: undefined, avoid_climbing: false, food_preference: 'any' }));
+    setNotice('Destination changed. Place selections and destination preferences have been reset.'); setSurprise(false);
   };
-
-  return (
-    <form ref={formRef} noValidate onSubmit={handleSubmit} className="trip-form bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-6 shadow-xl">
-      <div className="flex items-center space-x-2 pb-4 border-b border-[#d6dfd0] mb-6">
-        <Sparkles className="w-5 h-5 text-[#89532d]" />
-        <h2 className="text-lg font-bold text-[#243e33] tracking-tight">Your trip, your way</h2>
+  const pinLabel = (value: string) => catalog?.places.find(place => place.value === value || place.label === value)?.label || value;
+  const remaining = catalog?.places.filter(place => !pins.includes(place.value) && !pins.includes(place.label)) || [];
+  return <form noValidate onSubmit={submit} className="trip-form booking-form bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-6 shadow-xl">
+    <header className="booking-header"><div><p className="booking-eyebrow">YOUR JOURNEY, THOUGHTFULLY PLANNED</p><h2>Your trip, your way</h2></div><span>Step {step + 1} of 4</span></header>
+    <nav className="trip-stepper" aria-label="Trip setup steps">{steps.map((label, index) => <button key={label} type="button" disabled={isLoading} aria-current={step === index ? 'step' : undefined} onClick={() => move(index)}><span>{index + 1}</span>{label}</button>)}</nav>
+    <h3 ref={heading} tabIndex={-1} className="booking-step-title">{['Where will the journey take you?', 'Find your group’s rhythm', 'Make room for your favorites', 'A quick check before we plan'][step]}</h3>
+    {error && <p role="alert" className="booking-error">{error}</p>}
+    {notice && <p role="status" className="step-note">{notice}</p>}
+    {catalogError ? <div role="alert" className="booking-error">{catalogError} <button type="button" onClick={() => setRetry(value => value + 1)}>Retry catalog</button></div> : !catalog && <p role="status" className="step-note">Finding supported cities and places… The service may take a minute to wake up.</p>}
+    <fieldset disabled={isLoading} className="booking-fields">
+    {step === 0 && <section className="trip-step booking-section" aria-label="Journey details">
+      <p className="step-note">Start with the essentials. Choose a suggestion to confirm each city.</p>
+      <div className="booking-grid">
+        <PlaceSearch label="From" value={form.origin_city || ''} options={[{ value: '', label: 'Already at the destination' }, ...(catalog?.cities || [])]} onChange={value => update('origin_city', value)} disabled={!catalog} />
+        <PlaceSearch label="To" value={form.destination} options={catalog?.cities || []} onChange={changeDestination} disabled={!catalog} />
+        <label>Start date<input type="date" value={form.start_date} min={futureDate(0)} onChange={event => update('start_date', event.target.value)} /></label>
+        <label>End date<input type="date" value={form.end_date} min={form.start_date || futureDate(0)} onChange={event => update('end_date', event.target.value)} /></label>
+        <label>Travelers<input type="number" min={1} max={20} value={form.people_count || ''} onChange={event => update('people_count', Number(event.target.value))} /></label>
+        <label>Whole-group destination budget (₹)<input type="number" min={1} max={5000000} value={form.budget_inr || ''} onChange={event => update('budget_inr', Number(event.target.value))} /></label>
       </div>
-
-      <nav className="trip-stepper" aria-label="Trip setup steps">{['Where & when', 'Your travel style', 'Arrival & create'].map((label, index) => <button type="button" key={label} aria-current={step === index ? 'step' : undefined} disabled={isLoading} onClick={() => setStep(index)}><span>{index + 1}</span>{label}</button>)}</nav>
-      {validationError && <p role="alert" className="mb-4 text-sm text-red-800">{validationError}</p>}
-      <div className="space-y-6">
-        <section tabIndex={-1} hidden={step !== 0} className="trip-step trip-basics" aria-label="Where and when">
-        {/* City Destination */}
-        <div>
-          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2">
-            Where are you going?
-          </div><InfoTip title="Destination">Choose the city you want to explore. Changing it clears must-visit selections for the previous city.</InfoTip></div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {CITIES.map(c => {
-              const isSelected = destination === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => setDestination(c.id)}
-                  className={`p-3 text-left rounded-xl border transition-all ${
-                    isSelected
-                      ? 'bg-amber-500/10 border-amber-500/50 text-[#243e33] ring-1 ring-amber-500/30'
-                      : 'bg-[#eef1e5] border-[#c6d2c0] text-[#425d4c] hover:border-gray-600'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-semibold text-sm">{c.name}</span>
-                    {isSelected && <Check className="w-4 h-4 text-[#89532d]" />}
-                  </div>
-                  <p className="text-[11px] text-[#526653] line-clamp-1">{c.tagline}</p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Date Range */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <div className="trip-field-heading"><label htmlFor="trip-start" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Start Date</span>
-            </label><InfoTip title="Start date">First sightseeing day. For a full day, arrive beforehand. Choose dates with enough time for your must-sees.</InfoTip></div>
-            <input
-              type="date"
-              id="trip-start"
-              min={getFutureDate(0)}
-              value={startDate}
-              onChange={e => setStartDate(e.target.value)}
-              className="w-full bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-3.5 py-2.5 text-sm text-[#243e33] focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-              required
-            />
-          </div>
-          <div>
-            <div className="trip-field-heading"><label htmlFor="trip-end" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-              <Calendar className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>End Date</span>
-            </label><InfoTip title="End date">Last sightseeing day, including this date. It cannot be before the start date.</InfoTip></div>
-            <input
-              type="date"
-              id="trip-end"
-              min={startDate || getFutureDate(0)}
-              value={endDate}
-              onChange={e => setEndDate(e.target.value)}
-              className="w-full bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-3.5 py-2.5 text-sm text-[#243e33] focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Travelers & Budget */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <div className="trip-field-heading"><label htmlFor="trip-people" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-              <Users className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Travelers ({peopleCount})</span>
-            </label><InfoTip title="Travelers">People sharing the trip. This changes tickets, transport capacity, rooms and the group cost estimate.</InfoTip></div>
-            <input
-              type="range"
-              min={1}
-              max={6}
-              id="trip-people"
-              value={peopleCount}
-              onChange={e => setPeopleCount(parseInt(e.target.value))}
-              className="w-full accent-amber-500 cursor-pointer"
-            />
-            <div className="flex justify-between text-[11px] text-[#596b57] mt-1">
-              <span>Solo</span>
-              <span>2 Guests</span>
-              <span>4+ Group</span>
-            </div>
-          </div>
-
-          <div>
-            <div className="trip-field-heading"><label htmlFor="trip-budget" className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center justify-between">
-              <span className="flex items-center space-x-1.5">
-                <IndianRupee className="w-3.5 h-3.5 text-[#89532d]" />
-                <span>On-Ground Budget: ₹{budget.toLocaleString('en-IN')}</span>
-              </span>
-
-            </label><InfoTip title="Destination budget">Total on-ground budget for the whole group, not per person. Extra meals and intercity travel are estimated separately. Review the final total before booking.</InfoTip></div>
-            <input
-              type="range"
-              min={4000}
-              max={50000}
-              step={1000}
-              id="trip-budget"
-              value={budget}
-              onChange={e => setBudget(parseInt(e.target.value))}
-              className="w-full accent-amber-500 cursor-pointer"
-            />
-            <div className="flex justify-between text-[11px] text-[#596b57] mt-1">
-              <span>₹4k (Shoestring)</span>
-              <span>₹25k</span>
-              <span>₹50k (Luxury)</span>
-            </div>
-            <p className="text-[10px] text-[#596b57] mt-1.5 leading-tight">
-              Covers destination lodging, local transport, sightseeing and scheduled dining. Extra meals and inter-city travel are estimated separately and may exceed this cap.
-            </p>
-          </div>
-        </div>
-
-        </section><section tabIndex={-1} hidden={step !== 1} className="trip-step" aria-label="Travel style"><p className="step-note">Your defaults are ready. Adjust anything you like, or continue.</p><div className="space-y-5">        {/* Traveler Group Profile */}
-        <div>
-          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-            <Users className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Who’s coming along?</span>
-          </div><InfoTip title="Travel group">Adjusts fatigue assumptions. Family and senior profiles favor a gentler day; this is not an accessibility guarantee.</InfoTip></div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {GROUP_PROFILES.map(gp => {
-              const active = groupProfile === gp.id;
-              return (
-                <button
-                  type="button"
-                  key={gp.id}
-                  aria-pressed={active}
-                  onClick={() => setGroupProfile(gp.id as 'default' | 'young_solo' | 'family' | 'elderly')}
-                  className={`p-2.5 rounded-xl border text-left transition-all ${
-                    active
-                      ? 'bg-amber-500/10 border-amber-500/60 text-[#243e33] shadow-sm'
-                      : 'bg-[#eef1e5] border-[#c6d2c0] text-[#526653] hover:border-gray-700'
-                  }`}
-                >
-                  <div className="text-xs font-semibold text-[#243e33]">{gp.label}</div>
-                  <div className="text-[10px] text-[#596b57] line-clamp-1 mt-0.5">{gp.desc}</div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Pace & Transport Mode */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-              <Gauge className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Sightseeing Pace</span>
-            </div><InfoTip title="Pace">Relaxed allows up to 2 visits a day, balanced 3, intensive 4. Actual visits also depend on hours, journey time and budget.</InfoTip></div>
-            <ThemedSelect label="Sightseeing pace" value={pace} disabled={isLoading} onChange={value => setPace(value as typeof pace)} options={PACES.map(p => ({ value: p.id, label: `${p.label} — ${p.desc}` }))} />
-          </div>
-
-          <div>
-            <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-              <Car className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Transit Preference</span>
-            </div><InfoTip title="Local transport">Preferred travel mode between stops. Metro availability and walking feasibility can limit your options. Fares and durations are estimates.</InfoTip></div>
-            <ThemedSelect label="Local transport" value={transportMode} disabled={isLoading} onChange={value => setTransportMode(value as typeof transportMode)} options={MODES.map(m => ({ value: m.id, label: m.label }))} />
-          </div>
-        </div>
-
-        {/* Must-Visit Pins (Strict In-Solver Constraint) */}
-        <div>
-          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-            <Pin className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Must-see places</span>
-          </div><InfoTip title="Must-visit places">Select essential stops only. Too many pins can make the plan impossible; reduce them or add days if that happens.</InfoTip></div>
-          <div className="flex flex-wrap gap-2">
-            {(CITY_MUST_VISIT_PINS[destination] || []).map(placeName => {
-              const active = lockedActivities.includes(placeName);
-              return (
-                <button
-                  type="button"
-                  key={placeName}
-                  aria-pressed={lockedActivities.includes(placeName)}
-                  onClick={() => togglePin(placeName)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors flex items-center space-x-1.5 ${
-                    active
-                      ? 'bg-amber-500/20 border-amber-500/60 text-[#89532d] font-semibold shadow-sm'
-                      : 'bg-[#eef1e5] border-[#c6d2c0] text-[#526653] hover:text-[#243e33]'
-                  }`}
-                >
-                  <Pin className={`w-3 h-3 ${active ? 'text-[#89532d]' : 'text-[#596b57]'}`} />
-                  <span>{placeName}</span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[11px] text-[#596b57] mt-1.5">
-            These places must fit your trip. Pick only your essentials.
-          </p>
-        </div>
-
-        {/* Interests & Themes */}
-        <div>
-          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2">
-            What do you enjoy?
-          </div><InfoTip title="Interests">Select the kinds of places you enjoy. These preferences guide selection; a matching attraction may still be omitted when constraints do not fit.</InfoTip></div>
-          <div className="flex flex-wrap gap-2">
-            {INTEREST_TAGS.map(tag => {
-              const active = interests.includes(tag.id);
-              return (
-                <button
-                  type="button"
-                  key={tag.id}
-                  aria-pressed={interests.includes(tag.id)}
-                  onClick={() => toggleInterest(tag.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
-                    active
-                      ? 'bg-amber-500/20 border-amber-500/50 text-[#89532d]'
-                      : 'bg-[#eef1e5] border-[#c6d2c0] text-[#526653] hover:text-[#243e33]'
-                  }`}
-                >
-                  {tag.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Submit CTA */}
-        </div></section>
-        <section tabIndex={-1} hidden={step !== 2} className="trip-step" aria-label="Arrival"><p className="step-note">Already in the city? Keep the defaults, then create your trip.</p><div className="space-y-5">        {/* Departure City (Inter-City Routing) */}
-        <div>
-          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center justify-between">
-            <span className="flex items-center space-x-1.5">
-              <Train className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Traveling From (Departure City)</span>
-            </span>
-            <span className="text-[11px] text-[#596b57] font-normal lowercase">Optional</span>
-          </div><InfoTip title="Departure city">Already there? Keep Local / Same City. Otherwise select your departure city to compare estimated intercity travel; it is priced separately.</InfoTip></div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            <button
-              type="button"
-              aria-pressed={!originCity}
-              onClick={() => setOriginCity('')}
-              className={`p-2.5 text-left rounded-xl border text-xs font-medium transition-all ${
-                !originCity
-                  ? 'bg-amber-500/10 border-amber-500/50 text-[#243e33] ring-1 ring-amber-500/30'
-                  : 'bg-[#eef1e5] border-[#c6d2c0] text-[#526653] hover:border-gray-600'
-              }`}
-            >
-              <span className="font-semibold block text-[#243e33]">Local / Same City</span>
-              <span className="text-[10px] text-[#596b57]">Already in destination</span>
-            </button>
-            {CITIES.map(c => {
-              const isSelected = originCity === c.id;
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => setOriginCity(c.id)}
-                  className={`p-2.5 text-left rounded-xl border text-xs font-medium transition-all ${
-                    isSelected
-                      ? 'bg-amber-500/10 border-amber-500/50 text-[#243e33] ring-1 ring-amber-500/30'
-                      : 'bg-[#eef1e5] border-[#c6d2c0] text-[#526653] hover:border-gray-600'
-                  }`}
-                >
-                  <span className="font-semibold block text-[#243e33]">{c.name}</span>
-                  <span className="text-[10px] text-[#596b57] truncate block">Hub terminal link</span>
-                </button>
-              );
-            })}
-          </div>
-          {originCity && originCity !== destination && (
-            <p className="text-[11px] text-[#89532d]/90 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2 mt-2 leading-relaxed">
-              🚄 <strong>Inter-City Transit Enabled:</strong> Comparing Vande Bharat trains, sleeper buses & direct flights from {originCity.toUpperCase()} to {destination.toUpperCase()} with terminal-to-hotel last-mile transfers.
-            </p>
-          )}
-        </div>
-
-        {/* Starting Origin Hub */}
-        <div>
-          <div className="trip-field-heading"><div className="block text-xs font-semibold uppercase tracking-wider text-[#526653] mb-2 flex items-center space-x-1.5">
-            <MapPin className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Trip Starting Location / Origin</span>
-          </div><InfoTip title="Starting location">Choose where each day begins. Station and airport use representative city hubs; they are estimates, not your live location.</InfoTip></div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {ORIGIN_HUBS.map(hub => {
-              const isSelected = originType === hub.id;
-              const IconComp = hub.icon;
-              return (
-                <button
-                  key={hub.id}
-                  type="button"
-                  aria-pressed={isSelected}
-                  onClick={() => setOriginType(hub.id as 'center' | 'station' | 'airport')}
-                  className={`p-2.5 text-left rounded-xl border transition-all ${
-                    isSelected
-                      ? 'bg-amber-500/10 border-amber-500/50 text-[#243e33] ring-1 ring-amber-500/30'
-                      : 'bg-[#eef1e5] border-[#c6d2c0] text-[#425d4c] hover:border-gray-600'
-                  }`}
-                >
-                  <div className="flex items-center space-x-2 mb-1">
-                    <IconComp className={`w-3.5 h-3.5 ${isSelected ? 'text-[#89532d]' : 'text-[#526653]'}`} />
-                    <span className="font-semibold text-xs">{hub.label}</span>
-                  </div>
-                  <p className="text-[10px] text-[#526653] line-clamp-1">{hub.desc}</p>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[11px] text-[#596b57] mt-2">
-            * Day trips start and finish at this origin hub. Multi-day trips base overnight stays at an optimal centroid hotel.
-          </p>
-        </div>
-
-        </div></section>
-        <div className="trip-step-actions">{step > 0 && <button type="button" className="step-back" onClick={() => setStep(step - 1)}>Back</button>}<button
-          type="submit"
-          disabled={isLoading}
-          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold text-sm tracking-wide shadow-lg shadow-amber-500/25 transition-all transform active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-        >
-          {isLoading ? (
-            <>
-              <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-              <span>Creating your trip…</span>
-            </>
-          ) : (
-            <>
-              <Compass className="w-4 h-4" />
-              <span>{step < 2 ? 'Continue' : 'Create my trip'}</span>
-            </>
-          )}
-        </button>
-
-        </div>
-        {/* Blueprint Stage 1-10 Progressive Engine Telemetry (Shows while calculating) */}
-        {isLoading && <p role="status" className="mt-4 text-sm">Comparing routes and estimates. The service may take about a minute to wake up. Keep this page open.</p>}
+      <p className="step-note">Includes lodging, local travel, entry fees and scheduled dining. Travel to the city and extra meals are estimated separately. Dates are sightseeing days; allow for your arrival journey.</p>
+      <p className="catalog-caption">{catalog?.source}. Search currently covers supported cities only.</p>
+    </section>}
+    {step === 1 && <section className="trip-step booking-section" aria-label="Travel style">
+      <div className="booking-grid">
+        <div><div className="trip-field-heading">Travel style<InfoTip title="Group style">Adjusts pacing and fatigue assumptions. It does not certify step-free access.</InfoTip></div><ThemedSelect label="Travel style" value={form.group_profile || 'default'} onChange={value => update('group_profile', value as TripFormData['group_profile'])} options={[{ value: 'default', label: 'A little of everything' }, { value: 'young_solo', label: 'Active explorers' }, { value: 'family', label: 'Family with children' }, { value: 'elderly', label: 'Gentler group travel' }]} /></div>
+        <div><div className="trip-field-heading">Sightseeing pace<InfoTip title="Pace">Sets the preferred maximum stops per day. Alternative plans may propose a different pace.</InfoTip></div><ThemedSelect label="Sightseeing pace" value={form.pace} onChange={value => update('pace', value as TripFormData['pace'])} options={[{value:'relaxed',label:'Relaxed · up to 2 visits/day'},{value:'balanced',label:'Balanced · up to 3 visits/day'},{value:'intensive',label:'Full days · up to 4 visits/day'}]} /></div>
+        <div><div className="trip-field-heading">Preferred local transport<InfoTip title="Transport">Travel estimates depend on the mode. Alternative plans may suggest a different mode.</InfoTip></div><ThemedSelect label="Local transport" value={form.transport_mode} onChange={value => update('transport_mode', value as TripFormData['transport_mode'])} options={[{value:'cab',label:'Cab / Taxi'},{value:'auto',label:'Auto-rickshaw'},{value:'metro',label:'Metro'},{value:'walk',label:'Walking'}]} /></div>
       </div>
-    </form>
-  );
+      <details className="booking-more"><summary>More about your group’s comfort</summary>
+        {catalog?.long_visits && <div><label>How long is your group comfortable spending at one stop?</label><ThemedSelect label="Maximum visit length" value={String(form.max_visit_minutes || '')} onChange={value => update('max_visit_minutes', value ? Number(value) : undefined)} options={[{value:'',label:'No limit'},{value:'90',label:'Up to 90 minutes'},{value:'120',label:'Up to 2 hours'},{value:'180',label:'Up to 3 hours'}]} /><p className="step-note">Based on this destination’s catalog visit lengths. Longer stops will be excluded.</p></div>}
+        {catalog?.climbing_known ? <label className="booking-check"><input type="checkbox" checked={form.avoid_climbing || false} onChange={event => update('avoid_climbing', event.target.checked)} />Avoid climbs and stops with unknown climbing requirements</label> : <p className="step-note">Climbing and step-free access have not been verified for this catalog. Check directly with venues if your group needs accessible routes.</p>}
+      </details>
+    </section>}
+    {step === 2 && <section className="trip-step booking-section" aria-label="Places and food">
+      <div className="trip-field-heading"><h4>Places you don’t want to miss</h4><InfoTip title="Must-visits">Pinned places are required. If your dates, budget or preferences cannot fit them, we explain the conflict.</InfoTip></div>
+      <PlaceSearch label="Search and pin a place" value="" placeholder="Start typing a place name…" options={remaining} disabled={!catalog || pins.length >= 15} onChange={value => update('locked_activities', [...pins, value])} />
+      <div className="booking-chips">{pins.map(pin => <button type="button" key={pin} onClick={() => update('locked_activities', pins.filter(item => item !== pin))} aria-label={`Remove ${pinLabel(pin)}`}><Pin size={14} />{pinLabel(pin)}<X size={14} /></button>)}</div>
+      <button type="button" className="surprise-choice" aria-pressed={surprise} onClick={() => { setSurprise(!surprise); if (!surprise) update('interests', []); }}><Sparkles size={18} />{surprise ? 'Surprise me is on · your pins stay' : 'Surprise me with the remaining stops'}</button>
+      <p className="step-note">{surprise ? 'No interest ranking: the planner chooses from feasible catalog stops. Your budget, comfort preferences and pins still apply.' : 'Pins are optional. The planner fills the remaining time around your interests.'}</p>
+      <div><h4>What do you enjoy?</h4><div className="booking-chips">{(catalog?.interests || []).slice(0, 6).map(tag => <button type="button" key={tag} aria-pressed={form.interests.includes(tag)} onClick={() => { setSurprise(false); update('interests', form.interests.includes(tag) ? form.interests.filter(item => item !== tag) : [...form.interests, tag].slice(0,20)); }}>{titleCase(tag)}</button>)}</div>
+      {(catalog?.interests.length || 0) > 6 && <details className="booking-more"><summary>View more interests</summary><div className="booking-chips">{catalog?.interests.slice(6).map(tag => <button type="button" key={tag} aria-pressed={form.interests.includes(tag)} onClick={() => { setSurprise(false); update('interests', form.interests.includes(tag) ? form.interests.filter(item => item !== tag) : [...form.interests, tag].slice(0,20)); }}>{titleCase(tag)}</button>)}</div></details>}</div>
+      {catalog?.food_available && <div><div className="trip-field-heading">Food plans<InfoTip title="Food preferences">Only catalog restaurants with explicit dietary evidence can match a dietary preference. Confirm allergies directly with the restaurant.</InfoTip></div><ThemedSelect label="Food plans" value={form.food_preference || 'any'} onChange={value => update('food_preference', value as TripFormData['food_preference'])} options={[{value:'any',label:'Open to catalog dining suggestions'},...catalog.dietary_options.map(value => ({value,label:titleCase(value)})),{value:'own_meals',label:'I’ll arrange meals myself'}]} /><p className="step-note">{catalog.dietary_options.length ? 'Only documented dietary choices are listed.' : 'Dietary suitability is not verified yet. Arrange your own meals if you have specific dietary needs.'} Meal stops are subject to time and budget.</p></div>}
+    </section>}
+    {step === 3 && <section className="trip-step booking-section" aria-label="Review your trip">
+      <div className="booking-summary"><h4>{titleCase(form.origin_city || 'Already there')} → {titleCase(form.destination)}</h4><p>{form.start_date} to {form.end_date} · {form.people_count} travelers · ₹{form.budget_inr.toLocaleString('en-IN')} destination budget</p><p>{titleCase(form.pace)} pace · {titleCase(form.transport_mode)} · {pins.length} must-visits</p><p>{pins.map(pinLabel).join(' · ') || 'Let the planner select the stops'}</p><p>Interests: {form.interests.map(titleCase).join(', ') || 'Open to discovery'} · Food: {titleCase(form.food_preference || 'any')}</p>{form.max_visit_minutes && <p>Maximum {form.max_visit_minutes} minutes per stop</p>}{form.avoid_climbing && <p>Only stops documented as not requiring climbing</p>}</div>
+      <details className="booking-more"><summary>Arrival and starting point</summary><ThemedSelect label="Starting point" value={form.origin_type || 'center'} onChange={value => update('origin_type', value as TripFormData['origin_type'])} options={[{value:'center',label:'City center'},{value:'station',label:'Railway station'},{value:'airport',label:'Airport'},{value:'hotel',label:'Hotel'}]} /><p className="step-note">Day trips start at a representative hub. Overnight trips start from the selected hotel. These are estimated locations.</p></details>
+      <p className="step-note">We’ll compare up to three feasible options. Prices, venue hours and travel times use the listed data sources; check current conditions before booking.</p>
+    </section>}
+    <div className="trip-step-actions">{step > 0 && <button type="button" className="step-back" onClick={() => move(step - 1)}>Back</button>}<button type="submit" disabled={isLoading || !catalog} className="booking-submit"><Compass size={18} />{isLoading ? 'Creating your trip…' : step < 3 ? 'Continue' : 'Create my trip'}</button></div>
+    </fieldset>
+    {isLoading && <p role="status" className="step-note">Checking routes, opening hours and the group budget. Your results will appear below.</p>}
+  </form>;
 }

@@ -127,6 +127,9 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if (!['relaxed', 'balanced', 'intensive'].includes(form.pace) || !['cab', 'auto', 'metro', 'walk'].includes(form.transport_mode)) invalid('preferences');
   if (form.group_profile && !['default', 'young_solo', 'family', 'elderly'].includes(form.group_profile)) invalid('group profile');
   if (form.origin_type && !['hotel', 'center', 'station', 'airport'].includes(form.origin_type)) invalid('origin');
+  if (form.max_visit_minutes !== undefined) integer(form.max_visit_minutes, 'visit length', 30, 480);
+  if (form.avoid_climbing !== undefined && typeof form.avoid_climbing !== 'boolean') invalid('climbing preference');
+  if (form.food_preference !== undefined && !['any', 'vegetarian', 'vegan', 'halal', 'own_meals'].includes(form.food_preference)) invalid('food preference');
   strings(form.interests, 'interests'); strings(form.locked_activities || [], 'pins');
   if (form.interests.length > 20) invalid('too many interests');
   if (form.start_location !== undefined && (typeof form.start_location !== 'string' || form.start_location.length > 160)) invalid('starting location');

@@ -160,6 +160,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         const fallbackStart = fallbackPlanDays[0]?.date || '';
         const fallbackEnd = fallbackPlanDays[fallbackPlanDays.length - 1]?.date || fallbackStart;
         setActiveFormData({
+          max_visit_minutes: req.max_visit_minutes,
+          avoid_climbing: req.avoid_climbing,
+          food_preference: req.food_preference,
           origin_city: req.origin_city || undefined,
           destination: (req.destination || trip.destination || 'hyderabad').toLowerCase(),
           origin_type: req.origin_type || 'hotel',
@@ -215,6 +218,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          max_visit_minutes: formData.max_visit_minutes,
+          avoid_climbing: formData.avoid_climbing,
+          food_preference: formData.food_preference,
           origin_city: formData.origin_city,
           destination: formData.destination,
           origin_type: formData.origin_type,
