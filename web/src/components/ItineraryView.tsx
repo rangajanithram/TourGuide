@@ -355,15 +355,15 @@ export default function ItineraryView({
     : currentPlan.days.filter(d => d.day_number === selectedDay);
 
   return (
-    <div className="space-y-6">
+    <div className="itinerary-reader space-y-6">
       {/* Modification & Version History Banner */}
       {planHistory.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 shadow-lg text-xs text-amber-200 animate-fade-in">
+        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 shadow-lg text-sm text-amber-200 animate-fade-in">
           <div className="flex items-center space-x-2.5">
             <Sparkles className="w-4 h-4 text-[#89532d] shrink-0" />
             <div>
               <span className="font-bold text-[#243e33] block">Customized Itinerary State</span>
-              <span className="text-[11px] text-[#89532d]/80">
+              <span className="text-sm text-[#89532d]/80">
                 You have made {planHistory.length} local edit(s). Updated on-ground subtotal: <strong>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</strong>
               </span>
             </div>
@@ -372,7 +372,7 @@ export default function ItineraryView({
             <button
               type="button"
               onClick={handleUndo}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#294333] text-xs font-semibold transition-all active:scale-95 shadow-sm"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#294333] text-sm font-semibold transition-all active:scale-95 shadow-sm"
               title="Undo last customizer action"
             >
               <RotateCcw className="w-3.5 h-3.5 text-[#89532d]" />
@@ -390,7 +390,7 @@ export default function ItineraryView({
                   });
                   onReoptimize(pinnedNames);
                 }}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
                 title="Send pinned constraints back to OR-Tools solver for a globally reconciled plan"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -408,9 +408,9 @@ export default function ItineraryView({
             <Compass className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-[#243e33]">{currentPlan.plan_name}</h3>
-            <p className="text-[11px] text-[#526653]">
-              {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Local On-Ground Subtotal
+            <h3 className="font-bold text-base text-[#243e33]">{currentPlan.plan_name}</h3>
+            <p className="text-sm text-[#526653]">
+              {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Estimated destination cost
               {currentPlan.fatigue_report?.overall_pace && ` • ${currentPlan.fatigue_report.overall_pace}`}
             </p>
           </div>
@@ -420,7 +420,7 @@ export default function ItineraryView({
           <button
             type="button"
             onClick={handleExportIcs}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-[#294333] text-xs font-semibold transition-all shadow-sm active:scale-95"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-[#294333] text-sm font-semibold transition-all shadow-sm active:scale-95"
             title="Download standard .ics file for Google Calendar, Apple Calendar, or Outlook"
           >
             <Calendar className="w-3.5 h-3.5 text-[#89532d]" />
@@ -430,7 +430,7 @@ export default function ItineraryView({
           <button
             type="button"
             onClick={handleCopyLink}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
             title="Copies URL query parameters to re-run the planner with these settings (does not share your private saved snapshot)"
           >
             {copiedLink ? (
@@ -449,7 +449,7 @@ export default function ItineraryView({
           <button
             type="button"
             onClick={handleCopyText}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-[#294333] text-xs font-semibold transition-all shadow-sm active:scale-95"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] hover:border-gray-500 text-[#294333] text-sm font-semibold transition-all shadow-sm active:scale-95"
             title="Copy formatted text itinerary to clipboard"
           >
             {copiedText ? (
@@ -471,13 +471,13 @@ export default function ItineraryView({
               setInitialExpenseToAdd(null);
               setIsExpenseModalOpen(true);
             }}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-amber-500/30 hover:border-amber-500/60 text-[#89532d] text-xs font-semibold transition-all shadow-sm active:scale-95"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-amber-500/30 hover:border-amber-500/60 text-[#89532d] text-sm font-semibold transition-all shadow-sm active:scale-95"
             title="Open Browser-Local Group Expense Ledger & UPI Split Tracker (stored in this browser only)"
           >
             <Wallet className="w-3.5 h-3.5 text-[#89532d]" />
             <span>Group Splits (Browser-Local)</span>
             {ledger.expenses.length > 0 && (
-              <span className="ml-1 text-[10px] bg-amber-500/20 text-[#89532d] px-1.5 py-0.2 rounded-full font-bold">
+              <span className="ml-1 text-sm bg-amber-500/20 text-[#89532d] px-1.5 py-0.2 rounded-full font-bold">
                 {ledger.expenses.length}
               </span>
             )}
@@ -489,29 +489,29 @@ export default function ItineraryView({
       </div>
 
       {/* Stat Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="itinerary-totals grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-[11px] font-semibold text-[#526653] uppercase tracking-wider block">Local On-Ground Subtotal</span>
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Estimated destination cost</span>
           <span className="text-xl font-extrabold text-[#89532d]">₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-[10px] text-[#596b57] block mt-0.5">Lodging, city transit & stops (excl. intercity & taxes)</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">Lodging, city transit & stops (excl. intercity & taxes)</span>
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-[11px] font-semibold text-[#526653] uppercase tracking-wider block">Total Sightseeing</span>
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Stops & scheduled meals</span>
           <span className="text-xl font-extrabold text-[#243e33]">₹{totalActivitiesCost.toLocaleString('en-IN')}</span>
-          <span className="text-[10px] text-[#596b57] block mt-0.5">{totalStops} scheduled attractions</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">{totalStops} scheduled attractions</span>
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-[11px] font-semibold text-[#526653] uppercase tracking-wider block">Transit Matrix</span>
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Local travel</span>
           <span className="text-xl font-extrabold text-[#243e33]">₹{currentPlan.estimated_transport_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-[10px] text-[#596b57] block mt-0.5 capitalize">{currentPlan.transport_mode} routes</span>
+          <span className="text-sm text-[#596b57] block mt-0.5 capitalize">{currentPlan.transport_mode} routes</span>
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-[11px] font-semibold text-[#526653] uppercase tracking-wider block">Lodging</span>
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Lodging</span>
           <span className="text-xl font-extrabold text-[#243e33]">₹{(hotel?.total_cost_inr || 0).toLocaleString('en-IN')}</span>
-          <span className="text-[10px] text-[#596b57] block mt-0.5">{hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">{hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
         </div>
       </div>
 
@@ -530,7 +530,7 @@ export default function ItineraryView({
                 )}
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#89532d]">
+                <span className="text-sm font-bold uppercase tracking-widest text-[#89532d]">
                   Inter-City Transit Intelligence
                 </span>
                 <h3 className="text-base font-bold text-[#243e33] flex items-center space-x-2">
@@ -542,7 +542,7 @@ export default function ItineraryView({
             </div>
 
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold text-[#89532d] bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
+              <span className="text-sm font-bold text-[#89532d] bg-amber-500/10 border border-amber-500/30 px-2.5 py-1 rounded-lg">
                 {plan.intercity_transport.recommended_option.recommendation_badge || 'Recommended Option'}
               </span>
             </div>
@@ -553,22 +553,22 @@ export default function ItineraryView({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#89532d] bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  <span className="text-sm font-bold uppercase tracking-wider text-[#89532d] bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
                     Outbound
                   </span>
-                  <span className="font-bold text-sm text-[#243e33]">
+                  <span className="font-bold text-base text-[#243e33]">
                     {plan.intercity_transport.recommended_option.operator_name}
                   </span>
                   {plan.intercity_transport.recommended_option.service_number && (
-                    <span className="text-[11px] text-[#526653] bg-[#fffdf5] px-1.5 py-0.5 rounded border border-[#c6d2c0]">
+                    <span className="text-sm text-[#526653] bg-[#fffdf5] px-1.5 py-0.5 rounded border border-[#c6d2c0]">
                       #{plan.intercity_transport.recommended_option.service_number}
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-[#526653] mt-1">
+                <p className="text-sm text-[#526653] mt-1">
                   {plan.intercity_transport.recommended_option.departure_station} ➔ {plan.intercity_transport.recommended_option.arrival_station}
                 </p>
-                <p className="text-[11px] text-[#596b57] mt-0.5">
+                <p className="text-sm text-[#596b57] mt-0.5">
                   Schedule Window: {plan.intercity_transport.recommended_option.departure_window}
                 </p>
               </div>
@@ -577,7 +577,7 @@ export default function ItineraryView({
                 <span className="text-base font-extrabold text-[#89532d] block">
                   ₹{plan.intercity_transport.recommended_option.typical_fare_min.toLocaleString('en-IN')} - ₹{plan.intercity_transport.recommended_option.typical_fare_max.toLocaleString('en-IN')}
                 </span>
-                <span className="text-[11px] text-[#526653] block">
+                <span className="text-sm text-[#526653] block">
                   {plan.intercity_transport.recommended_option.fare_class} • {Math.floor(plan.intercity_transport.recommended_option.typical_duration_min / 60)}h {plan.intercity_transport.recommended_option.typical_duration_min % 60 > 0 ? `${plan.intercity_transport.recommended_option.typical_duration_min % 60}m` : ''}
                 </span>
               </div>
@@ -588,25 +588,25 @@ export default function ItineraryView({
               <div className="pt-3 border-t border-[#c6d2c0] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-700 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+                    <span className="text-sm font-bold uppercase tracking-wider text-cyan-700 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
                       Return Leg
                     </span>
-                    <span className="font-bold text-sm text-[#243e33]">
+                    <span className="font-bold text-base text-[#243e33]">
                       {plan.intercity_transport.return_option.operator_name}
                     </span>
                     {plan.intercity_transport.return_option.service_number && (
-                      <span className="text-[11px] text-[#526653] bg-[#fffdf5] px-1.5 py-0.5 rounded border border-[#c6d2c0]">
+                      <span className="text-sm text-[#526653] bg-[#fffdf5] px-1.5 py-0.5 rounded border border-[#c6d2c0]">
                         #{plan.intercity_transport.return_option.service_number}
                       </span>
                     )}
-                    <span className="text-[10px] text-[#526653] bg-[#fffdf5] px-1.5 py-0.5 rounded border border-[#c6d2c0]">
+                    <span className="text-sm text-[#526653] bg-[#fffdf5] px-1.5 py-0.5 rounded border border-[#c6d2c0]">
                       Indicative Schedule Benchmark
                     </span>
                   </div>
-                  <p className="text-xs text-[#526653] mt-1">
+                  <p className="text-sm text-[#526653] mt-1">
                     {plan.intercity_transport.return_option.departure_station} ➔ {plan.intercity_transport.return_option.arrival_station}
                   </p>
-                  <p className="text-[11px] text-[#596b57] mt-0.5">
+                  <p className="text-sm text-[#596b57] mt-0.5">
                     Schedule Window: {plan.intercity_transport.return_option.departure_window}
                   </p>
                 </div>
@@ -615,21 +615,21 @@ export default function ItineraryView({
                   <span className="text-base font-extrabold text-cyan-700 block">
                     ₹{plan.intercity_transport.return_option.typical_fare_min.toLocaleString('en-IN')} - ₹{plan.intercity_transport.return_option.typical_fare_max.toLocaleString('en-IN')}
                   </span>
-                  <span className="text-[11px] text-[#526653] block">
+                  <span className="text-sm text-[#526653] block">
                     {plan.intercity_transport.return_option.fare_class} • {Math.floor(plan.intercity_transport.return_option.typical_duration_min / 60)}h {plan.intercity_transport.return_option.typical_duration_min % 60 > 0 ? `${plan.intercity_transport.return_option.typical_duration_min % 60}m` : ''}
                   </span>
                 </div>
               </div>
             )}
 
-            <div className="text-xs text-[#425d4c] leading-relaxed bg-[#fffdf5] p-3 rounded-lg border border-[#d6dfd0]">
+            <div className="text-sm text-[#425d4c] leading-relaxed bg-[#fffdf5] p-3 rounded-lg border border-[#d6dfd0]">
               {plan.intercity_transport.transit_advice}
             </div>
 
             {/* Inbound & Return Destination Last-Mile Transfers */}
             <div className="space-y-2">
               {plan.intercity_transport.last_mile && (
-                <div className="flex items-start space-x-2.5 text-xs text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
+                <div className="flex items-start space-x-2.5 text-sm text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-emerald-700 block mb-0.5">Arrival Transfer (Inbound Terminal ➔ Hotel):</span>
@@ -639,7 +639,7 @@ export default function ItineraryView({
               )}
 
               {plan.intercity_transport.return_last_mile && (
-                <div className="flex items-start space-x-2.5 text-xs text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-lg">
+                <div className="flex items-start space-x-2.5 text-sm text-cyan-800 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4 text-cyan-700 shrink-0 mt-0.5" />
                   <div>
                     <span className="font-bold text-cyan-700 block mb-0.5">Departure Transfer (Hotel ➔ Return Terminal):</span>
@@ -648,7 +648,7 @@ export default function ItineraryView({
                 </div>
               )}
 
-              <p className="text-[10px] text-[#596b57] italic px-1">
+              <p className="text-sm text-[#596b57] italic px-1">
                 * Note: Destination transfers only. Home-city local transfers between traveler origin residence and departure terminal are excluded.
               </p>
             </div>
@@ -689,59 +689,59 @@ export default function ItineraryView({
               const projectedTotalMax = baseDirectMax + mealAllowance;
 
               return (
-                <div className="bg-[#fffdf5] border border-amber-500/20 rounded-lg p-3.5 text-xs space-y-3 mt-2">
+                <div className="bg-[#fffdf5] border border-amber-500/20 rounded-lg p-3.5 text-sm space-y-3 mt-2">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center space-x-2 flex-wrap">
                         <span className="font-bold text-[#89532d]">Indicative Roundtrip Outlay (Party of {party})</span>
-                        <span className="text-[10px] bg-amber-500/10 text-[#89532d] border border-amber-500/30 px-2 py-0.5 rounded font-medium">
+                        <span className="text-sm bg-amber-500/10 text-[#89532d] border border-amber-500/30 px-2 py-0.5 rounded font-medium">
                           Curated Non-Live Baseline
                         </span>
                       </div>
-                      <span className="text-[11px] text-[#526653] block mt-1">
+                      <span className="text-sm text-[#526653] block mt-1">
                         Outbound: {outbound.operator_name} (₹{outbound.typical_fare_min.toLocaleString('en-IN')})
                         {returnOpt ? ` • Return: ${returnOpt.operator_name} (₹${retFareMin.toLocaleString('en-IN')})` : ' • Return leg mirrors outbound'}
                       </span>
                     </div>
                     <div className="text-left sm:text-right shrink-0">
-                      <span className="text-sm font-extrabold text-[#243e33] block">
+                      <span className="text-base font-extrabold text-[#243e33] block">
                         ₹{projectedTotalMin.toLocaleString('en-IN')} - ₹{projectedTotalMax.toLocaleString('en-IN')}
                       </span>
-                      <span className="text-[10px] text-[#89532d]/90 block font-semibold">
+                      <span className="text-sm text-[#89532d]/90 block font-semibold">
                         Total Projected Outlay (incl. Meals)
                       </span>
-                      <span className="text-[10px] text-[#596b57] block">
+                      <span className="text-sm text-[#596b57] block">
                         Base Direct Outlay: ₹{baseDirectMin.toLocaleString('en-IN')} - ₹{baseDirectMax.toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>
 
                   {/* 4-Column Breakdown Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#d6dfd0] text-[10px] text-[#526653]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#d6dfd0] text-sm text-[#526653]">
                     <div>
                       <span className="text-[#596b57] block">On-Ground Subtotal</span>
                       <span className="font-semibold text-[#294333]">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-[#596b57] block">Sightseeing & Hotel</span>
+                      <span className="text-sm text-[#596b57] block">Sightseeing & Hotel</span>
                     </div>
                     <div>
                       <span className="text-[#596b57] block">Roundtrip Transit (x{party})</span>
                       <span className="font-semibold text-[#294333]">₹{roundtripTransitMin.toLocaleString('en-IN')} - ₹{roundtripTransitMax.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-[#596b57] block">2-way {outbound.mode.toUpperCase()}</span>
+                      <span className="text-sm text-[#596b57] block">2-way {outbound.mode.toUpperCase()}</span>
                     </div>
                     <div>
                       <span className="text-[#596b57] block">Destination Transfers</span>
                       <span className="font-semibold text-[#294333]">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-[#596b57] block">Inbound (₹{outboundLastMileCost}) + Return ({returnLastMileCost === undefined ? 'unavailable' : `₹${returnLastMileCost}`})</span>
+                      <span className="text-sm text-[#596b57] block">Inbound (₹{outboundLastMileCost}) + Return ({returnLastMileCost === undefined ? 'unavailable' : `₹${returnLastMileCost}`})</span>
                     </div>
                     <div>
                       <span className="text-[#596b57] block">Estimated Meals Buffer</span>
                       <span className="font-semibold text-[#89532d]">~₹{mealAllowance.toLocaleString('en-IN')}</span>
-                      <span className="text-[9px] text-[#596b57] block">Additional allowance after itinerary dining</span>
+                      <span className="text-sm text-[#596b57] block">Additional allowance after itinerary dining</span>
                     </div>
                   </div>
 
                   {/* Static Data & Rate Variability Disclaimer */}
-                  <div className="text-[10px] text-[#526653]/80 bg-[#eef1e5] p-2.5 rounded-lg border border-[#c6d2c0] leading-relaxed space-y-1">
+                  <div className="text-sm text-[#526653]/80 bg-[#eef1e5] p-2.5 rounded-lg border border-[#c6d2c0] leading-relaxed space-y-1">
                     <p>
                       ⚠️ <span className="font-semibold text-[#425d4c]">Rate & Availability Notice:</span> Transit fares and operator schedules are derived from curated standard timetable benchmarks (status: <em>indicative_schedule</em>). Actual prices depend on live booking windows, IRCTC Tatkal / airline dynamic surge pricing, peak seasonal dates, and local government taxes. Ticket availability is subject to booking at operator portals.
                     </p>
@@ -760,7 +760,7 @@ export default function ItineraryView({
               <button
                 type="button"
                 onClick={() => setShowAllTransit(!showAllTransit)}
-                className="text-xs font-semibold text-[#89532d] hover:text-[#89532d] inline-flex items-center space-x-1.5 transition-colors"
+                className="text-sm font-semibold text-[#89532d] hover:text-[#89532d] inline-flex items-center space-x-1.5 transition-colors"
               >
                 <span>{showAllTransit ? 'Hide' : 'Compare All'} {plan.intercity_transport.all_options.length} Inter-City Options (Train, Bus, Flight)</span>
                 {showAllTransit ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
@@ -769,15 +769,15 @@ export default function ItineraryView({
               {showAllTransit && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-3">
                   {plan.intercity_transport.all_options.map((opt, idx) => (
-                    <div key={idx} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-xs space-y-1.5">
+                    <div key={idx} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-sm space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="font-bold text-[#243e33]">{opt.operator_name}</span>
-                        <span className="text-[10px] uppercase font-bold text-[#89532d] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                        <span className="text-sm uppercase font-bold text-[#89532d] bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                           {opt.mode}
                         </span>
                       </div>
-                      <p className="text-[11px] text-[#526653]">{opt.departure_station} ➔ {opt.arrival_station}</p>
-                      <div className="flex items-center justify-between text-[11px] pt-1 border-t border-[#c6d2c0]">
+                      <p className="text-sm text-[#526653]">{opt.departure_station} ➔ {opt.arrival_station}</p>
+                      <div className="flex items-center justify-between text-sm pt-1 border-t border-[#c6d2c0]">
                         <span className="text-[#425d4c]">
                           {Math.floor(opt.typical_duration_min / 60)}h {opt.typical_duration_min % 60}m • {opt.fare_class}
                         </span>
@@ -803,22 +803,22 @@ export default function ItineraryView({
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#89532d]">Centroid-Optimized Base</span>
+                <span className="text-sm font-bold uppercase tracking-widest text-[#89532d]">Your stay</span>
                 <h3 className="text-base font-bold text-[#243e33]">{hotel.hotel_name}</h3>
               </div>
             </div>
 
             <div className="flex items-baseline space-x-2 text-right">
-              <span className="text-sm font-bold text-[#243e33]">
+              <span className="text-base font-bold text-[#243e33]">
                 ₹{(hotel.price_per_night_per_room || hotel.cost_per_night_inr || 0).toLocaleString('en-IN')}
               </span>
-              <span className="text-xs text-[#526653]">/ room / night</span>
-              <span className="text-xs text-[#596b57]">• {hotel.rooms_needed} room(s)</span>
+              <span className="text-sm text-[#526653]">/ room / night</span>
+              <span className="text-sm text-[#596b57]">• {hotel.rooms_needed} room(s)</span>
             </div>
           </div>
 
           {hotel.why_this_hotel && (
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3.5 text-xs text-[#425d4c] flex items-start space-x-2.5">
+            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3.5 text-sm text-[#425d4c] flex items-start space-x-2.5">
               <Sparkles className="w-4 h-4 text-[#89532d] shrink-0 mt-0.5" />
               <div>
                 <span className="font-semibold text-[#89532d]">Why this hotel was selected: </span>
@@ -829,134 +829,17 @@ export default function ItineraryView({
         </div>
       )}
 
-      {/* Stage 8: Independent Verification & Real-World Physics Audit */}
-      {plan.verification_report && (
-        <div className="bg-[#fffdf5] border border-emerald-500/20 rounded-2xl p-5 shadow-xl">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2 mb-3">
-            <div className="flex items-center space-x-2.5">
-              <ShieldCheck className="w-5 h-5 text-emerald-700" />
-              <div>
-                <h4 className="font-bold text-sm text-[#243e33]">Independent Schedule & Budget Audit (Curated Baseline)</h4>
-                <p className="text-[11px] text-[#526653]">Audits internal schedule math, opening windows, straight-line road estimates & local budget caps against curated seed data (not live ticket inventory)</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                Audit Score: {plan.verification_report.audit_score}/100 (Seed Baseline)
-              </span>
-            </div>
-          </div>
-
-          {/* Operational Metrics */}
-          {plan.verification_report.metrics && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-              {Object.entries(plan.verification_report.metrics).map(([key, val]) => (
-                <div key={key} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-lg p-2 text-center">
-                  <span className="text-[10px] uppercase font-semibold text-[#526653] block tracking-wider">
-                    {key.replace(/_/g, ' ')}
-                  </span>
-                  <span className="text-xs font-bold text-[#243e33] mt-0.5 block">{val}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Checks Passed Pills */}
-          <div className="flex flex-wrap gap-1.5">
-            {plan.verification_report.checks_passed.map((chk, idx) => (
-              <span key={idx} className="inline-flex items-center space-x-1 text-[11px] text-emerald-800 bg-emerald-500/5 border border-emerald-500/20 px-2 py-0.5 rounded-md">
-                <CheckCircle2 className="w-3 h-3 text-emerald-700 shrink-0" />
-                <span>{chk}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Feature 2: Smart Expense Simulator & Category Allocation */}
-      {plan.expense_breakdown && (
-        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2">
-            <div className="flex items-center space-x-2.5">
-              <Wallet className="w-5 h-5 text-[#89532d]" />
-              <div>
-                <h4 className="font-bold text-sm text-[#243e33]">Smart On-Ground Budget Allocation & Expense Reconciliation</h4>
-                <p className="text-[11px] text-[#526653]">Reconciled on-ground plan: Direct Subtotal + Unallocated Amount = Target On-Ground Budget</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-xs text-[#526653]">On-Ground Budget: </span>
-              <span className="text-sm font-bold text-[#89532d]">₹{plan.expense_breakdown.total_inr.toLocaleString('en-IN')}</span>
-              <span className="text-[10px] text-[#596b57] block">₹{plan.expense_breakdown.per_person_inr.toLocaleString('en-IN')} / traveler</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-[10px] uppercase font-semibold text-[#526653] block tracking-wider">Lodging</span>
-              <span className="text-sm font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.lodging_inr.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-[10px] uppercase font-semibold text-[#526653] block tracking-wider">Local Transit</span>
-              <span className="text-sm font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.transit_inr.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-[10px] uppercase font-semibold text-[#526653] block tracking-wider">Sightseeing</span>
-              <span className="text-sm font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.activities_inr.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-[10px] uppercase font-semibold text-[#526653] block tracking-wider">
-                {plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0 ? 'Dining (Itinerary)' : 'Est. Dining'}
-              </span>
-              <span className="text-sm font-bold text-[#243e33] mt-0.5 block">
-                ₹{((plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0) ? plan.expense_breakdown.dining_inr : plan.expense_breakdown.suggested_meals_inr || plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}
-              </span>
-            </div>
-            <div className="bg-[#eef1e5] border border-emerald-500/20 bg-emerald-500/5 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
-              <span className="text-[10px] uppercase font-semibold text-emerald-700 block tracking-wider">Unallocated</span>
-              <span className="text-sm font-bold text-emerald-800 mt-0.5 block">₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-
-          {/* Reconciled Accounting Status Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-4 py-2.5 text-xs gap-2">
-            <div className="flex items-center space-x-2 text-[#425d4c]">
-              <span className="font-semibold text-[#243e33]">Direct Subtotal:</span>
-              <span className="text-[#89532d] font-bold">₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')}</span>
-              <span className="text-[#596b57]">•</span>
-              <span className="text-[#526653]">Meals Guidance:</span>
-              <span className="text-[#294333]">₹{(plan.expense_breakdown.suggested_meals_inr ?? plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}</span>
-            </div>
-            {plan.expense_breakdown.meal_buffer_status && (
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${
-                plan.expense_breakdown.meal_buffer_status.toLowerCase().includes('sufficient')
-                  ? 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/30'
-                  : 'bg-amber-500/10 text-[#89532d] border border-amber-500/30'
-              }`}>
-                {plan.expense_breakdown.meal_buffer_status}
-              </span>
-            )}
-          </div>
-
-          {plan.intercity_transport && (
-            <div className="text-[11px] text-[#89532d]/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 leading-relaxed flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <span className="font-semibold text-[#243e33]">On-Ground Budget Scope:</span> Your ₹{(formData?.budget_inr ?? plan.expense_breakdown.budget_limit_inr ?? (plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr)).toLocaleString('en-IN')} cap constrains the on-ground subtotal, including scheduled dining. The remaining buffer is ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}; extra meal estimates are advisory and may exceed it.
-              </div>
-              <span className="text-[10px] bg-[#fffdf5] px-2 py-0.5 rounded border border-amber-500/30 text-[#89532d] font-medium">
-                Inter-City Travel is Additive
-              </span>
-            </div>
-          )}
-        </div>
-      )}
-
+      {currentPlan.verification_report && <div className="itinerary-check-summary" role="status">
+        <ShieldCheck size={20} aria-hidden="true" /><span>{currentPlan.verification_report.is_valid ? 'Schedule checks passed using the listed data and assumptions.' : 'This plan needs attention. Review the schedule checks below.'} Current venue prices and conditions still need confirmation.</span>
+      </div>}
+      {currentPlan.verification_report?.warnings?.map((warning, index) => <p key={`warning-${index}`} className="itinerary-warning">{warning}</p>)}
+      {currentPlan.verification_report?.errors?.map((error, index) => <p key={`error-${index}`} role="alert" className="itinerary-warning">{error}</p>)}
       {/* Day by Day Itinerary */}
-      <div className="space-y-5">
+      <div className="itinerary-schedule space-y-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-base font-bold text-[#243e33] tracking-tight flex items-center space-x-2">
             <Compass className="w-5 h-5 text-[#89532d]" />
-            <span>Optimized Daily Schedule</span>
+            <span>Your day-by-day plan</span>
           </h3>
 
           {/* Day Filter Pills */}
@@ -964,7 +847,7 @@ export default function ItineraryView({
             <button
               type="button"
               onClick={() => onSelectDay?.('all')}
-              className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+              className={`px-2.5 py-1 text-sm font-semibold rounded-lg transition-colors ${
                 selectedDay === 'all'
                   ? 'bg-amber-500 text-black'
                   : 'text-[#526653] hover:text-[#243e33]'
@@ -977,7 +860,7 @@ export default function ItineraryView({
                 key={d.day_number}
                 type="button"
                 onClick={() => onSelectDay?.(d.day_number)}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-colors ${
+                className={`px-2.5 py-1 text-sm font-semibold rounded-lg transition-colors ${
                   selectedDay === d.day_number
                     ? 'bg-amber-500 text-black'
                     : 'text-[#526653] hover:text-[#243e33]'
@@ -992,22 +875,22 @@ export default function ItineraryView({
         {visibleDays.map(day => (
           <div
             key={day.day_number}
-            className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-lg space-y-4"
+            className="itinerary-day bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 space-y-4"
           >
             {/* Day Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2">
               <div className="flex items-center space-x-3">
-                <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[#89532d] font-bold text-sm">
+                <div className="px-3 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[#89532d] font-bold text-base">
                   Day {day.day_number}
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-[#243e33]">
+                  <h4 className="font-bold text-base text-[#243e33]">
                     {day.day_of_week ? `${day.day_of_week} • ${day.date}` : `Day ${day.day_number} Route`}
                   </h4>
                   {day.cluster_name && (
-                    <div className="flex items-center space-x-1.5 text-[11px] text-[#526653] mt-0.5">
-                      <Layers className="w-3.5 h-3.5 text-sky-400" />
-                      <span className="text-sky-400 font-medium">Cluster: {day.cluster_name}</span>
+                    <div className="flex items-center space-x-1.5 text-sm text-[#526653] mt-0.5">
+                      <Layers className="w-3.5 h-3.5 text-sky-800" />
+                      <span className="text-sky-800 font-medium">Area: {day.cluster_name}</span>
                     </div>
                   )}
                 </div>
@@ -1017,17 +900,17 @@ export default function ItineraryView({
                 {/* Weather Pill */}
                 {day.weather && (
                   <div
-                    className={`inline-flex items-center space-x-1.5 text-[11px] px-2.5 py-1 rounded-lg border font-medium ${
+                    className={`inline-flex items-center space-x-1.5 text-sm px-2.5 py-1 rounded-lg border font-medium ${
                       day.weather.heat_advisory
-                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                        ? 'bg-rose-500/10 border-rose-500/30 text-rose-800'
                         : day.weather.precipitation_probability_pct > 30
-                        ? 'bg-sky-500/10 border-sky-500/30 text-sky-300'
+                        ? 'bg-sky-500/10 border-sky-500/30 text-sky-800'
                         : 'bg-[#eef1e5] border-[#c6d2c0] text-[#425d4c]'
                     }`}
                     title={day.weather.advisory_text}
                   >
                     {day.weather.precipitation_probability_pct > 30 ? (
-                      <CloudRain className="w-3.5 h-3.5 text-sky-400" />
+                      <CloudRain className="w-3.5 h-3.5 text-sky-800" />
                     ) : day.weather.heat_advisory ? (
                       <Flame className="w-3.5 h-3.5 text-rose-700" />
                     ) : (
@@ -1035,9 +918,9 @@ export default function ItineraryView({
                     )}
                     <span>{day.weather.max_temp_c.toFixed(0)}°C • {day.weather.condition}</span>
                     {day.weather.precipitation_probability_pct > 0 && (
-                      <span className="text-[10px] text-[#526653]">({day.weather.precipitation_probability_pct}% rain)</span>
+                      <span className="text-sm text-[#526653]">({day.weather.precipitation_probability_pct}% rain)</span>
                     )}
-                    <span className={`text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded font-bold ${
+                    <span className={`text-sm uppercase tracking-wider px-1.5 py-0.5 rounded font-bold ${
                       day.weather.is_forecast
                         ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30'
                         : 'bg-gray-500/20 text-[#526653] border border-gray-500/30'
@@ -1048,20 +931,20 @@ export default function ItineraryView({
                 )}
 
                 {day.fatigue_level && (
-                  <span className="inline-flex items-center space-x-1 text-[11px] text-[#89532d] bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                  <span className="inline-flex items-center space-x-1 text-sm text-[#89532d] bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
                     <Activity className="w-3 h-3 text-[#89532d]" />
                     <span>{day.fatigue_level} ({day.fatigue_score}/100)</span>
                   </span>
                 )}
-                <div className="text-xs font-semibold text-[#526653]">
-                  Day Tickets: <span className="text-[#243e33]">₹{day.day_cost_inr.toLocaleString('en-IN')}</span>
+                <div className="text-sm font-semibold text-[#526653]">
+                  Stops & meals: <span className="text-[#243e33]">₹{day.day_cost_inr.toLocaleString('en-IN')}</span>
                 </div>
 
                 {/* Live In-Trip Rebalancer Trigger Button */}
                 <button
                   type="button"
                   onClick={() => setRebalanceDayNumber(day.day_number)}
-                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#89532d] border border-amber-500/40 text-[11px] font-bold transition-all active:scale-95 shadow-sm hover:border-amber-400"
+                  className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#89532d] border border-amber-500/40 text-sm font-bold transition-all active:scale-95 shadow-sm hover:border-amber-400"
                   title="Feeling fatigued, running late, or heat exhausted? Dynamically rebalance remaining stops with rest buffers."
                 >
                   <Zap className="w-3.5 h-3.5 text-[#89532d] fill-amber-400/20" />
@@ -1072,7 +955,7 @@ export default function ItineraryView({
 
             {/* Activities Timeline */}
             <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#c6d2c0]">
-              {day.activities.length === 0 && <p className="rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-sm text-[#304c3b]">Free time — no visits scheduled for this date. No activity or local route costs are included for this day; meals and personal expenses may still apply.</p>}
+              {day.activities.length === 0 && <p className="rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-base text-[#304c3b]">Free time — no visits scheduled for this date. No activity or local route costs are included for this day; meals and personal expenses may still apply.</p>}
               {day.activities.map((act, actIdx) => {
                 const actKey = `${day.day_number}:${act.place_id || act.place_name}:${actIdx}`;
                 const visitInfo = visitedActivities[actKey];
@@ -1080,7 +963,7 @@ export default function ItineraryView({
                 const actSpend = visitInfo?.actualCost ?? act.estimated_cost_inr;
 
                 return (
-                <div key={actIdx} className="relative group">
+                <div key={actIdx} className="itinerary-stop relative group">
                   {/* Timeline Dot */}
                   <div className={`absolute -left-[27px] top-1 w-3 h-3 rounded-full border-2 border-[#fffdf5] transition-transform ${
                     isVisited ? 'bg-emerald-400 scale-125' : 'bg-amber-500 group-hover:scale-125'
@@ -1105,33 +988,33 @@ export default function ItineraryView({
                           {isVisited ? <CheckSquare className="w-3.5 h-3.5 text-emerald-700" /> : <Square className="w-3.5 h-3.5" />}
                         </button>
 
-                        <span className="text-xs font-bold text-[#89532d] bg-amber-500/10 px-2 py-0.5 rounded">
+                        <span className="text-sm font-bold text-[#89532d] bg-amber-500/10 px-2 py-0.5 rounded">
                           {act.start_time} - {act.end_time}
                         </span>
-                        <h5 className={`font-bold text-sm ${isVisited ? 'text-[#425d4c] line-through' : 'text-[#243e33]'}`}>
+                        <h5 className={`font-bold text-base ${isVisited ? 'text-[#425d4c] line-through' : 'text-[#243e33]'}`}>
                           {act.place_name}
                         </h5>
                         {act.is_locked && (
-                          <span className="text-[10px] text-[#89532d] bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded font-semibold inline-flex items-center space-x-0.5">
+                          <span className="text-sm text-[#89532d] bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded font-semibold inline-flex items-center space-x-0.5">
                             <Pin className="w-2.5 h-2.5 mr-0.5" />
                             <span>Pinned</span>
                           </span>
                         )}
                         {act.place_type === 'restaurant' && (
-                          <span className="text-[10px] text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5">
+                          <span className="text-sm text-orange-400 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5">
                             <Utensils className="w-2.5 h-2.5 mr-0.5" />
                             <span>Dining</span>
                           </span>
                         )}
                         {act.verification_status && (
-                          <span className="text-[10px] text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={`Audited: ${act.last_verified_date || '2026'}`}>
+                          <span className="text-sm text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={act.last_verified_date ? `Listed review date: ${act.last_verified_date}` : 'No verified review date is available'}>
                             <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
-                            <span>Verified</span>
+                            <span>{act.verification_status === 'verified' ? 'Reviewed data' : act.verification_status === 'curated_seed' ? 'Curated estimate' : 'Estimated data'}</span>
                           </span>
                         )}
                         {act.crowd_forecast && (
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-1 ${
+                            className={`text-sm px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-1 ${
                               act.crowd_forecast.level === 'Low'
                                 ? 'text-emerald-700 bg-emerald-500/10 border border-emerald-500/20'
                                 : act.crowd_forecast.level === 'Moderate'
@@ -1145,24 +1028,24 @@ export default function ItineraryView({
                           </span>
                         )}
                         {act.detour_cost_inr !== undefined && act.detour_cost_inr !== null && (
-                          <span className="text-[10px] text-sky-400 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title="Blueprint Section 6: Evaluated route detour penalty in rupees">
+                          <span className="text-sm text-sky-800 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title="Blueprint Section 6: Evaluated route detour penalty in rupees">
                             <span>Detour: +₹{act.detour_cost_inr}</span>
                           </span>
                         )}
                         {act.depends_on && act.depends_on.length > 0 && (
-                          <span className="text-[10px] text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={`Prerequisite: Requires visiting ${act.depends_on.join(', ')} first`}>
+                          <span className="text-sm text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={`Prerequisite: Requires visiting ${act.depends_on.join(', ')} first`}>
                             <span>Sequence Linked</span>
                           </span>
                         )}
                       </div>
-                      <span className="text-xs font-semibold text-[#425d4c]">
+                      <span className="text-sm font-semibold text-[#425d4c]">
                         {act.estimated_cost_inr > 0 ? `₹${act.estimated_cost_inr}` : 'Free Entry'}
                       </span>
                     </div>
 
                     {/* Special Experiences & Golden Hour Badges */}
                     {act.experience_tag && (
-                      <div className="mb-2 inline-flex items-center space-x-1.5 text-xs font-medium text-[#89532d] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
+                      <div className="mb-2 inline-flex items-center space-x-1.5 text-sm font-medium text-[#89532d] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
                         <Sparkles className="w-3.5 h-3.5 text-[#89532d]" />
                         <span>{act.experience_tag}</span>
                       </div>
@@ -1170,23 +1053,23 @@ export default function ItineraryView({
 
                     {/* Recommended Viewpoint Pro-Tip */}
                     {act.recommended_viewpoint && (
-                      <div className="text-xs bg-[#fffdf5] border border-[#d6dfd0] rounded-lg p-2.5 text-[#425d4c] mt-2">
+                      <div className="text-sm bg-[#fffdf5] border border-[#d6dfd0] rounded-lg p-2.5 text-[#425d4c] mt-2">
                         <div className="flex items-center space-x-1.5 text-[#89532d] font-semibold mb-0.5">
                           <Camera className="w-3.5 h-3.5" />
-                          <span>Pro-Tip Vantage Point: {act.recommended_viewpoint.viewpoint_name || act.recommended_viewpoint.name}</span>
+                          <span>Viewpoint: {act.recommended_viewpoint.viewpoint_name || act.recommended_viewpoint.name}</span>
                         </div>
-                        <p className="text-[11px] text-[#526653] pl-5">{act.recommended_viewpoint.description}</p>
+                        <p className="text-sm text-[#526653] pl-5">{act.recommended_viewpoint.description}</p>
                       </div>
                     )}
 
                     {/* Interactive Customizer Action Bar */}
-                    <div className="mt-3 pt-2.5 border-t border-[#c6d2c0] flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <div className="mt-3 pt-2.5 border-t border-[#c6d2c0] flex flex-wrap items-center justify-between gap-2 text-sm">
                       <div className="flex items-center space-x-1 sm:space-x-1.5 flex-wrap">
                         {/* Pin / Lock Button */}
                         <button
                           type="button"
                           onClick={() => handleTogglePin(day.day_number, actIdx)}
-                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all ${
+                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-sm font-medium border transition-all ${
                             act.is_locked
                               ? 'bg-amber-500/20 text-[#89532d] border-amber-500/40 shadow-sm'
                               : 'bg-[#fffdf5] text-[#526653] border-[#c6d2c0] hover:text-[#243e33] hover:border-gray-600'
@@ -1206,7 +1089,7 @@ export default function ItineraryView({
                             activityIndex: actIdx,
                             initialAction: 'swap'
                           })}
-                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#fffdf5] text-[#425d4c] border border-[#c6d2c0] hover:border-amber-500/40 hover:text-[#89532d] transition-all"
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-sm font-medium bg-[#fffdf5] text-[#425d4c] border border-[#c6d2c0] hover:border-amber-500/40 hover:text-[#89532d] transition-all"
                           title="Swap with candidate place"
                         >
                           <ArrowRightLeft className="w-3 h-3 text-[#89532d]" />
@@ -1222,7 +1105,7 @@ export default function ItineraryView({
                             activityIndex: actIdx,
                             initialAction: 'move_to_sunset'
                           })}
-                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#fffdf5] text-[#425d4c] border border-[#c6d2c0] hover:border-orange-500/40 hover:text-orange-300 transition-all"
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-sm font-medium bg-[#fffdf5] text-[#425d4c] border border-[#c6d2c0] hover:border-orange-500/40 hover:text-orange-300 transition-all"
                           title="Schedule for astronomical golden hour"
                         >
                           <Sun className="w-3 h-3 text-orange-400" />
@@ -1238,7 +1121,7 @@ export default function ItineraryView({
                             activityIndex: actIdx,
                             initialAction: 'remove'
                           })}
-                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-medium bg-[#fffdf5] text-[#526653] border border-[#c6d2c0] hover:border-rose-500/40 hover:text-rose-700 transition-all"
+                          className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-sm font-medium bg-[#fffdf5] text-[#526653] border border-[#c6d2c0] hover:border-rose-500/40 hover:text-rose-700 transition-all"
                           title="Drop stop from day schedule"
                         >
                           <Trash2 className="w-3 h-3 text-rose-700" />
@@ -1246,14 +1129,14 @@ export default function ItineraryView({
                         </button>
                       </div>
 
-                      <div className="text-[11px] text-[#596b57] font-mono">
+                      <div className="text-sm text-[#596b57] font-mono">
                         Stop #{actIdx + 1}
                       </div>
                     </div>
 
                     {/* Feature 2: Smart Interactive Expense Logging per Activity */}
                     {isVisited && (
-                      <div className="mt-3 pt-2.5 border-t border-[#c6d2c0] flex flex-wrap items-center justify-between gap-2 text-xs bg-[#fffdf5]/60 px-3 py-2 rounded-lg">
+                      <div className="mt-3 pt-2.5 border-t border-[#c6d2c0] flex flex-wrap items-center justify-between gap-2 text-sm bg-[#fffdf5]/60 px-3 py-2 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
                           <span className="font-semibold text-emerald-700">Visited</span>
@@ -1279,10 +1162,10 @@ export default function ItineraryView({
                                 type="number"
                                 value={spendInput}
                                 onChange={(e) => setSpendInput(e.target.value)}
-                                className="w-20 px-2 py-0.5 text-xs bg-[#eef1e5] border border-amber-500/50 rounded text-[#243e33] font-bold"
+                                className="w-20 px-2 py-0.5 text-sm bg-[#eef1e5] border border-amber-500/50 rounded text-[#243e33] font-bold"
                                 autoFocus
                               />
-                              <button type="submit" className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-black text-[11px] font-bold rounded">
+                              <button type="submit" className="px-2 py-0.5 bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold rounded">
                                 Save
                               </button>
                             </form>
@@ -1297,11 +1180,11 @@ export default function ItineraryView({
                               title="Click to edit actual spend"
                             >
                               <span>₹{actSpend.toLocaleString('en-IN')}</span>
-                              <span className="text-[10px] text-[#596b57] font-normal">(Edit)</span>
+                              <span className="text-sm text-[#596b57] font-normal">(Edit)</span>
                             </button>
                           )}
                         </div>
-                        <div className="flex items-center space-x-2 text-[11px] text-[#526653]">
+                        <div className="flex items-center space-x-2 text-sm text-[#526653]">
                           <span>
                             Budgeted: ₹{act.estimated_cost_inr} •
                             <span className={actSpend <= act.estimated_cost_inr ? 'text-emerald-700 ml-1' : 'text-rose-700 ml-1'}>
@@ -1319,7 +1202,7 @@ export default function ItineraryView({
                               });
                               setIsExpenseModalOpen(true);
                             }}
-                            className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-[#89532d] border border-amber-500/30 transition-colors"
+                            className="inline-flex items-center space-x-1 px-2 py-0.5 rounded text-sm font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-[#89532d] border border-amber-500/30 transition-colors"
                             title="Log to Group Ledger and split among travelers"
                           >
                             <Wallet className="w-3 h-3 text-[#89532d]" />
@@ -1337,6 +1220,132 @@ export default function ItineraryView({
         ))}
       </div>
 
+      <details className="itinerary-disclosure"><summary>Budget breakdown <span>See lodging, transport, meals and remaining budget</span></summary><div className="disclosure-body">
+      {/* Feature 2: Smart Expense Simulator & Category Allocation */}
+      {plan.expense_breakdown && (
+        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2">
+            <div className="flex items-center space-x-2.5">
+              <Wallet className="w-5 h-5 text-[#89532d]" />
+              <div>
+                <h4 className="font-bold text-base text-[#243e33]">Where your budget goes</h4>
+                <p className="text-sm text-[#526653]">Reconciled on-ground plan: Direct Subtotal + Unallocated Amount = Target On-Ground Budget</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-sm text-[#526653]">On-Ground Budget: </span>
+              <span className="text-base font-bold text-[#89532d]">₹{plan.expense_breakdown.total_inr.toLocaleString('en-IN')}</span>
+              <span className="text-sm text-[#596b57] block">₹{plan.expense_breakdown.per_person_inr.toLocaleString('en-IN')} / traveler</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
+              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Lodging</span>
+              <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.lodging_inr.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
+              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Local Transit</span>
+              <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.transit_inr.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
+              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Sightseeing</span>
+              <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.activities_inr.toLocaleString('en-IN')}</span>
+            </div>
+            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
+              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">
+                {plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0 ? 'Dining (Itinerary)' : 'Est. Dining'}
+              </span>
+              <span className="text-base font-bold text-[#243e33] mt-0.5 block">
+                ₹{((plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0) ? plan.expense_breakdown.dining_inr : plan.expense_breakdown.suggested_meals_inr || plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}
+              </span>
+            </div>
+            <div className="bg-[#eef1e5] border border-emerald-500/20 bg-emerald-500/5 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
+              <span className="text-sm uppercase font-semibold text-emerald-700 block tracking-wider">Unallocated</span>
+              <span className="text-base font-bold text-emerald-800 mt-0.5 block">₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+
+          {/* Reconciled Accounting Status Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-4 py-2.5 text-sm gap-2">
+            <div className="flex items-center space-x-2 text-[#425d4c]">
+              <span className="font-semibold text-[#243e33]">Direct Subtotal:</span>
+              <span className="text-[#89532d] font-bold">₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')}</span>
+              <span className="text-[#596b57]">•</span>
+              <span className="text-[#526653]">Meals Guidance:</span>
+              <span className="text-[#294333]">₹{(plan.expense_breakdown.suggested_meals_inr ?? plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}</span>
+            </div>
+            {plan.expense_breakdown.meal_buffer_status && (
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold ${
+                plan.expense_breakdown.meal_buffer_status.toLowerCase().includes('sufficient')
+                  ? 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/30'
+                  : 'bg-amber-500/10 text-[#89532d] border border-amber-500/30'
+              }`}>
+                {plan.expense_breakdown.meal_buffer_status}
+              </span>
+            )}
+          </div>
+
+          {plan.intercity_transport && (
+            <div className="text-sm text-[#89532d]/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 leading-relaxed flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <span className="font-semibold text-[#243e33]">On-Ground Budget Scope:</span> Your ₹{(formData?.budget_inr ?? plan.expense_breakdown.budget_limit_inr ?? (plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr)).toLocaleString('en-IN')} cap constrains the on-ground subtotal, including scheduled dining. The remaining buffer is ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}; extra meal estimates are advisory and may exceed it.
+              </div>
+              <span className="text-sm bg-[#fffdf5] px-2 py-0.5 rounded border border-amber-500/30 text-[#89532d] font-medium">
+                Inter-City Travel is Additive
+              </span>
+            </div>
+          )}
+        </div>
+      )}
+
+      </div></details>
+      <details className="itinerary-disclosure"><summary>Schedule checks & data assumptions <span>View the calculations and evidence behind this plan</span></summary><div className="disclosure-body">
+      {/* Stage 8: Independent Verification & Real-World Physics Audit */}
+      {plan.verification_report && (
+        <div className="bg-[#fffdf5] border border-emerald-500/20 rounded-2xl p-5 shadow-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2 mb-3">
+            <div className="flex items-center space-x-2.5">
+              <ShieldCheck className="w-5 h-5 text-emerald-700" />
+              <div>
+                <h4 className="font-bold text-base text-[#243e33]">Schedule & budget checks</h4>
+                <p className="text-sm text-[#526653]">Audits internal schedule math, opening windows, straight-line road estimates & local budget caps against curated seed data (not live ticket inventory)</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
+                Audit Score: {plan.verification_report.audit_score}/100 (Seed Baseline)
+              </span>
+            </div>
+          </div>
+
+          {/* Operational Metrics */}
+          {plan.verification_report.metrics && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+              {Object.entries(plan.verification_report.metrics).map(([key, val]) => (
+                <div key={key} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-lg p-2 text-center">
+                  <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">
+                    {key.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-sm font-bold text-[#243e33] mt-0.5 block">{val}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Checks Passed Pills */}
+          <div className="flex flex-wrap gap-1.5">
+            {plan.verification_report.checks_passed.map((chk, idx) => (
+              <span key={idx} className="inline-flex items-center space-x-1 text-sm text-emerald-800 bg-emerald-500/5 border border-emerald-500/20 px-2 py-0.5 rounded-md">
+                <CheckCircle2 className="w-3 h-3 text-emerald-700 shrink-0" />
+                <span>{chk}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      </div></details>
       {/* Blueprint Stage 10 & Spec Feature 1: Why Not X? Candidate Omission Audit */}
       {currentPlan.decision_trace?.excluded_places && currentPlan.decision_trace.excluded_places.length > 0 && (
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl">
@@ -1348,8 +1357,8 @@ export default function ItineraryView({
             <div className="flex items-center space-x-2.5">
               <HelpCircle className="w-5 h-5 text-[#89532d]" />
               <div>
-                <h4 className="font-bold text-sm text-[#243e33]">Why Not X? Candidate Omission Audit</h4>
-                <p className="text-[11px] text-[#526653]">
+                <h4 className="font-bold text-base text-[#243e33]">Why Not X? Candidate Omission Audit</h4>
+                <p className="text-sm text-[#526653]">
                   {currentPlan.decision_trace.excluded_places.length} attractions evaluated but omitted from this itinerary
                 </p>
               </div>
@@ -1362,12 +1371,12 @@ export default function ItineraryView({
           {showWhyNot && (
             <div className="mt-4 pt-4 border-t border-[#d6dfd0] space-y-3">
               {currentPlan.decision_trace.excluded_places.map((item, idx) => (
-                <div key={idx} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3.5 text-xs space-y-1.5">
+                <div key={idx} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3.5 text-sm space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span className="font-bold text-[#243e33] text-sm">{item.place_name}</span>
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider ${
+                    <span className="font-bold text-[#243e33] text-base">{item.place_name}</span>
+                    <span className={`text-sm font-semibold px-2 py-0.5 rounded uppercase tracking-wider ${
                       item.category === 'closed_on_day'
-                        ? 'bg-rose-500/10 text-rose-300 border border-rose-500/20'
+                        ? 'bg-rose-500/10 text-rose-800 border border-rose-500/20'
                         : item.category === 'budget_limit'
                         ? 'bg-amber-500/10 text-[#89532d] border border-amber-500/20'
                         : item.category === 'pace_limit'
@@ -1379,7 +1388,7 @@ export default function ItineraryView({
                   </div>
                   <p className="text-[#425d4c] leading-relaxed">{item.reason}</p>
                   {item.suggested_action && (
-                    <div className="text-[11px] text-[#89532d]/90 pt-1 font-medium">
+                    <div className="text-sm text-[#89532d]/90 pt-1 font-medium">
                       💡 Tip: {item.suggested_action}
                     </div>
                   )}
@@ -1392,7 +1401,7 @@ export default function ItineraryView({
 
       {/* Transparency Disclaimer */}
       {currentPlan.disclaimer && (
-        <div className="text-center text-xs text-[#596b57] pt-4 border-t border-[#d6dfd0]">
+        <div className="text-center text-sm text-[#596b57] pt-4 border-t border-[#d6dfd0]">
           {currentPlan.disclaimer}
         </div>
       )}
@@ -1406,22 +1415,22 @@ export default function ItineraryView({
             </div>
             <div>
               <div className="flex items-center space-x-2 flex-wrap">
-                <h4 className="text-xs font-bold text-[#243e33] uppercase tracking-wider">Browser-Local Expense & UPI Split Tracker</h4>
-                <span className="text-[10px] bg-[#eef1e5] text-[#526653] border border-[#c6d2c0] px-2 py-0.5 rounded-full font-medium">
+                <h4 className="text-sm font-bold text-[#243e33] uppercase tracking-wider">Browser-Local Expense & UPI Split Tracker</h4>
+                <span className="text-sm bg-[#eef1e5] text-[#526653] border border-[#c6d2c0] px-2 py-0.5 rounded-full font-medium">
                   Stored in this browser only
                 </span>
                 {totalVisitedCount > 0 && (
-                  <span className="text-[10px] bg-emerald-500/20 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-sm bg-emerald-500/20 text-emerald-700 px-2 py-0.5 rounded-full font-bold">
                     {totalVisitedCount} of {totalStops} Stops Visited
                   </span>
                 )}
                 {ledger.expenses.length > 0 && (
-                  <span className="text-[10px] bg-amber-500/20 text-[#89532d] px-2 py-0.5 rounded-full font-bold">
+                  <span className="text-sm bg-amber-500/20 text-[#89532d] px-2 py-0.5 rounded-full font-bold">
                     {ledger.expenses.length} Group Spends
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-[#526653] mt-0.5">
+              <p className="text-sm text-[#526653] mt-0.5">
                 Logged Spend: <span className="text-[#243e33] font-bold">₹{Math.max(totalActualSpent, totalLedgerSpent).toLocaleString('en-IN')}</span> • Est for visited: <span className="text-[#425d4c]">₹{totalEstimatedForVisited.toLocaleString('en-IN')}</span> • {pendingSettlements.length > 0 ? (
                   <span className="text-rose-700 font-semibold">{pendingSettlements.length} UPI transfer(s) due</span>
                 ) : (
@@ -1433,8 +1442,8 @@ export default function ItineraryView({
 
           <div className="flex items-center space-x-2 sm:space-x-3">
             <div className="text-right">
-              <span className="text-[10px] text-[#526653] block uppercase font-semibold">Remaining Local Budget</span>
-              <span className={`text-sm font-extrabold ${remainingBudget >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
+              <span className="text-sm text-[#526653] block uppercase font-semibold">Remaining Local Budget</span>
+              <span className={`text-base font-extrabold ${remainingBudget >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
                 ₹{remainingBudget.toLocaleString('en-IN')}
               </span>
             </div>
@@ -1444,7 +1453,7 @@ export default function ItineraryView({
                 setInitialExpenseToAdd(null);
                 setIsExpenseModalOpen(true);
               }}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-black shadow-md transition-all active:scale-95 flex items-center space-x-1"
+              className="px-3 py-1.5 text-sm font-bold rounded-lg bg-amber-500 hover:bg-amber-400 text-black shadow-md transition-all active:scale-95 flex items-center space-x-1"
             >
               <Wallet className="w-3.5 h-3.5" />
               <span>UPI Split & Ledger</span>
@@ -1455,7 +1464,7 @@ export default function ItineraryView({
                 setVisitedActivities({});
                 handleUpdateLedger({ ...ledger, expenses: [], settlements: [] });
               }}
-              className="px-2.5 py-1 text-[11px] rounded-lg bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#526653] hover:text-[#243e33] transition-colors"
+              className="px-2.5 py-1 text-sm rounded-lg bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#526653] hover:text-[#243e33] transition-colors"
               title="Reset logged expenses"
             >
               Reset

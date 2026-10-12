@@ -234,3 +234,29 @@ body { font-family: var(--font-geist-sans),Arial,sans-serif; }
  .planner-theme>main.planner-canvas { padding-top:24px; }
 }
 @media(max-width:600px) { .planner-canvas .trip-stepper button { flex-direction:column; } .planner-canvas .booking-grid { grid-template-columns:1fr; } }
+/* Result reading hierarchy: compact horizontal groups, generous readable text. */
+.itinerary-reader { width:100%; max-width:1320px; margin-inline:auto; font-size:16px; line-height:1.65; }
+.itinerary-reader p { max-width:75ch; }
+.itinerary-reader h3 { font-size:22px; line-height:1.3; }
+.itinerary-reader h4 { font-size:18px; line-height:1.4; }
+.itinerary-reader button { min-height:44px; white-space:normal; }
+.itinerary-reader .shadow-xl,.itinerary-reader .shadow-lg,.itinerary-reader .shadow-md { box-shadow:none; }
+.itinerary-totals>div { padding:18px; border-radius:10px; }
+.itinerary-totals .text-xl { display:block; font-size:28px; line-height:1.4; margin-block:6px; }
+.itinerary-day { padding:24px; }
+.itinerary-day>div:first-child { align-items:flex-start; justify-content:flex-start; gap:20px; flex-wrap:wrap; }
+.itinerary-day>div:first-child>div:last-child { max-width:100%; }
+.itinerary-stop { max-width:1000px; }
+.itinerary-stop h4 { font-size:20px; }
+.itinerary-stop>div { padding:18px; }
+.itinerary-disclosure { border-block:1px solid #bdcbb5; padding:18px 0; }
+.itinerary-disclosure>summary { cursor:pointer; font-size:18px; font-weight:650; color:#294333; min-height:44px; }
+.itinerary-disclosure>summary>span { display:block; font-size:14px; font-weight:400; margin-top:4px; color:#526653; }
+.disclosure-body { margin-top:20px; }
+.itinerary-check-summary { display:flex; align-items:flex-start; gap:12px; color:#294333; font-size:15px; padding:16px 0; border-bottom:1px solid #bdcbb5; }
+.itinerary-check-summary svg { flex-shrink:0; margin-top:3px; }
+.itinerary-warning { color:#7e321c; background:#fff1df; padding:14px; border-left:3px solid #a66b36; }
+.itinerary-reader .grid { min-width:0; }
+.itinerary-reader span,.itinerary-reader p { overflow-wrap:anywhere; }
+.itinerary-schedule>div:first-child>div { flex-wrap:wrap; }
+@media(max-width:640px) { .itinerary-day { padding:16px; } .itinerary-stop>div { padding:14px; } .itinerary-reader h3 { font-size:20px; } .itinerary-totals { gap:10px; } .itinerary-totals>div { padding:12px; } .itinerary-totals .text-xl { font-size:24px; } }
