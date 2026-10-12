@@ -102,7 +102,7 @@ export default function SharedTripOverview({
   };
 
   return (
-    <div className="bg-[#fffdf5] border border-amber-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+    <div className="result-overview bg-[#fffdf5] border border-amber-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Background Accent Glow */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 

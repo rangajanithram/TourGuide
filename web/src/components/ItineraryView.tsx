@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Building2, Camera, Compass, Sparkles, Layers,
   ShieldCheck, CheckCircle2, Calendar,
@@ -18,6 +19,7 @@ import LiveRebalanceModal from './LiveRebalanceModal';
 import GroupExpenseModal from './GroupExpenseModal';
 
 interface ItineraryViewProps {
+  actionsTargetId?: string;
   plan: TripPlan;
   destination?: string;
   selectedDay?: number | 'all';
@@ -29,6 +31,7 @@ interface ItineraryViewProps {
 
 export default function ItineraryView({
   plan,
+  actionsTargetId,
   destination = 'City',
   selectedDay = 'all',
   onSelectDay,
@@ -36,6 +39,8 @@ export default function ItineraryView({
   onUpdatePlan,
   onReoptimize
 }: ItineraryViewProps) {
+  const [actionsTarget, setActionsTarget] = useState<HTMLElement | null>(null);
+  useEffect(() => { setActionsTarget(actionsTargetId ? document.getElementById(actionsTargetId) : null); }, [actionsTargetId]);
   const [activePlan, setActivePlan] = useState<TripPlan>(plan);
   const [planHistory, setPlanHistory] = useState<TripPlan[]>([]);
   const [modalConfig, setModalConfig] = useState<{
@@ -354,68 +359,7 @@ export default function ItineraryView({
     ? currentPlan.days
     : currentPlan.days.filter(d => d.day_number === selectedDay);
 
-  return (
-    <div className="itinerary-reader space-y-6">
-      {/* Modification & Version History Banner */}
-      {planHistory.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 shadow-lg text-sm text-amber-200 animate-fade-in">
-          <div className="flex items-center space-x-2.5">
-            <Sparkles className="w-4 h-4 text-[#89532d] shrink-0" />
-            <div>
-              <span className="font-bold text-[#243e33] block">Customized Itinerary State</span>
-              <span className="text-sm text-[#89532d]/80">
-                You have made {planHistory.length} local edit(s). Updated on-ground subtotal: <strong>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</strong>
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={handleUndo}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#294333] text-sm font-semibold transition-all active:scale-95 shadow-sm"
-              title="Undo last customizer action"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Undo ({planHistory.length})</span>
-            </button>
-            {onReoptimize && (
-              <button
-                type="button"
-                onClick={() => {
-                  const pinnedNames: string[] = [];
-                  currentPlan.days.forEach(d => {
-                    d.activities.forEach(a => {
-                      if (a.is_locked) pinnedNames.push(a.place_id || a.place_name);
-                    });
-                  });
-                  onReoptimize(pinnedNames);
-                }}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
-                title="Send pinned constraints back to OR-Tools solver for a globally reconciled plan"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Re-solve with Pinned</span>
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Action Toolbar: Calendar Export & Share */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-4 shadow-lg">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[#89532d]">
-            <Compass className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="font-bold text-base text-[#243e33]">{currentPlan.plan_name}</h3>
-            <p className="text-sm text-[#526653]">
-              {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Estimated destination cost
-              {currentPlan.fatigue_report?.overall_pace && ` • ${currentPlan.fatigue_report.overall_pace}`}
-            </p>
-          </div>
-        </div>
-
+  const tripActions = (
         <div className="flex items-center space-x-2 flex-wrap gap-y-2">
           <button
             type="button"
@@ -486,6 +430,71 @@ export default function ItineraryView({
             )}
           </button>
         </div>
+  );
+
+  return (
+    <div className="itinerary-reader space-y-6">
+      {/* Modification & Version History Banner */}
+      {planHistory.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 shadow-lg text-sm text-amber-200 animate-fade-in">
+          <div className="flex items-center space-x-2.5">
+            <Sparkles className="w-4 h-4 text-[#89532d] shrink-0" />
+            <div>
+              <span className="font-bold text-[#243e33] block">Customized Itinerary State</span>
+              <span className="text-sm text-[#89532d]/80">
+                You have made {planHistory.length} local edit(s). Updated on-ground subtotal: <strong>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</strong>
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-[#c6d2c0] text-[#294333] text-sm font-semibold transition-all active:scale-95 shadow-sm"
+              title="Undo last customizer action"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-[#89532d]" />
+              <span>Undo ({planHistory.length})</span>
+            </button>
+            {onReoptimize && (
+              <button
+                type="button"
+                onClick={() => {
+                  const pinnedNames: string[] = [];
+                  currentPlan.days.forEach(d => {
+                    d.activities.forEach(a => {
+                      if (a.is_locked) pinnedNames.push(a.place_id || a.place_name);
+                    });
+                  });
+                  onReoptimize(pinnedNames);
+                }}
+                className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
+                title="Send pinned constraints back to OR-Tools solver for a globally reconciled plan"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Re-solve with Pinned</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Action Toolbar: Calendar Export & Share */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-4 shadow-lg">
+        <div className="flex items-center space-x-2">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[#89532d]">
+            <Compass className="w-4 h-4" />
+          </div>
+          <div>
+            <h3 className="font-bold text-base text-[#243e33]">{currentPlan.plan_name}</h3>
+            <p className="text-sm text-[#526653]">
+              {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Estimated destination cost
+              {currentPlan.fatigue_report?.overall_pace && ` • ${currentPlan.fatigue_report.overall_pace}`}
+            </p>
+          </div>
+        </div>
+
+        {actionsTarget ? createPortal(tripActions, actionsTarget) : tripActions}
       </div>
 
       {/* Stat Bar */}

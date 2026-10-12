@@ -911,7 +911,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
 
         {isSharedView ? (
           /* Parameter-Generated View: Full width presentation focusing on the itinerary & overview */
-          <div className="space-y-6">
+          <div className="result-board">
             <SharedTripOverview
               formData={activeFormData}
               currentPlan={currentPlan}
@@ -967,7 +967,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
             {currentPlan ? (
               <>
                 {/* Interactive Leaflet Map */}
-                <div className="w-full h-[460px]">
+                <div className="result-map">
                   <MapComponent
                     plan={currentPlan}
                     selectedDay={selectedDay}
@@ -975,9 +975,11 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                   />
                 </div>
 
+                <aside className="result-tools" aria-label="Trip sharing and export"><h2>Take your trip with you</h2><p>Share, export or track group expenses.</p><div id="itinerary-actions" /></aside>
                 {/* Itinerary Schedule and Hotel Details */}
                 <fieldset disabled={isSavingTrip || restoringVersion !== null} className="min-w-0">
                 <ItineraryView
+                  actionsTargetId="itinerary-actions"
                   key={`${savedTrip?.id || 'new'}:${resolvedVariant}:${planEpoch}`}
                   plan={currentPlan}
                   destination={multiPlan?.destination || 'City'}
@@ -1004,7 +1006,8 @@ export default function Home({ preferences }: { preferences?: unknown }) {
             </div>
 
             {/* Interactive map, variants and schedule */}
-            <div className="planner-results space-y-6" aria-busy={isLoading || isLoadingSavedTrip}>
+            <div className={`planner-results ${currentPlan ? 'result-board' : 'space-y-6'}`} aria-busy={isLoading || isLoadingSavedTrip}>
+              {currentPlan && <section className="result-overview result-compact"><h2>{multiPlan?.destination || activeFormData?.destination || 'Your trip'}</h2><p>{activeFormData?.start_date} — {activeFormData?.end_date}</p><div><span>{currentPlan.days.length} days</span><span>{activeFormData?.people_count || currentPlan.hotel_summary?.people_accommodated || 1} travelers</span><span>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} estimated</span></div><p>Compare options, explore the map, then read your daily plan.</p></section>}
               {isLoading && <PlanningScene phase={planningPhase} />}
               {renderSavedTripPersistenceBar()}
               {multiPlan && (
@@ -1029,7 +1032,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               {currentPlan ? (
                 <>
                   {/* Interactive Leaflet Map */}
-                  <div className="w-full h-[460px]">
+                  <div className="result-map">
                     <MapComponent
                       plan={currentPlan}
                       selectedDay={selectedDay}
@@ -1037,9 +1040,11 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                     />
                   </div>
 
-                  {/* Itinerary Schedule and Hotel Details */}
+                  <aside className="result-tools" aria-label="Trip sharing and export"><h2>Take your trip with you</h2><p>Share, export or track group expenses.</p><div id="itinerary-actions" /></aside>
+                {/* Itinerary Schedule and Hotel Details */}
                   <fieldset disabled={isSavingTrip || restoringVersion !== null} className="min-w-0">
                 <ItineraryView
+                  actionsTargetId="itinerary-actions"
                   key={`${savedTrip?.id || 'new'}:${resolvedVariant}:${planEpoch}`}
                     plan={currentPlan}
                     destination={multiPlan?.destination || 'City'}

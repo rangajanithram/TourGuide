@@ -54,10 +54,10 @@ export default function VariantSwitcher({
   ];
 
   return (
-    <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-4 shadow-xl mb-6">
+    <div className="result-variants bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-4 shadow-xl mb-6">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3 px-1">
         <div>
-          <h3 className="text-sm font-bold text-[#243e33] tracking-tight">Stage 9 Multi-Variant Synthesizer</h3>
+          <h3 className="text-sm font-bold text-[#243e33] tracking-tight">Choose your travel option</h3>
           <p className="text-xs text-[#526653]">
             Only genuinely distinct, constraint-verified alternatives are shown (local on-ground budget)
           </p>
