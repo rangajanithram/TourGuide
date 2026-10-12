@@ -450,7 +450,7 @@ def planner_catalog(destination: str = "hyderabad"):
         "climbing_known": any(p.requires_climbing is not None for p in places),
         "food_available": any(p.place_type == "restaurant" for p in places),
         "dietary_options": sorted({diet for p in places for diet in p.dietary_options}),
-        "source": "Curated destination catalog; not live availability",
+        "source": "Database curated catalog; not live availability" if any(p.catalog_origin == "supabase_curated" for p in places) else "Curated destination catalog; not live availability",
     }
 
 

@@ -172,6 +172,9 @@ class Place(BaseModel):
     last_verified_date: Optional[str] = Field(default="2026-09-01", description="Last date ticket rates and hours were audited")
     source_reference: Optional[str] = Field(default="Curated City Seed Dataset", description="Source of opening hours and fees")
     
+    source_urls: List[str] = Field(default_factory=list, max_length=10)
+    catalog_origin: str = "curated_seed"
+
     # Hotel specific fields
     price_per_night_inr: Optional[int] = Field(None, ge=0)
     max_guests_per_room: int = Field(default=2, ge=1, le=10)

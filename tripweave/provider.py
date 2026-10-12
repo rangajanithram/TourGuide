@@ -4,6 +4,11 @@ Abstracts data storage (JSON files, Postgres, Google Places API, etc.) behind a 
 """
 import os
 import json
+import time
+import threading
+from urllib.request import Request, urlopen
+from urllib.parse import urlencode
+from pydantic import ValidationError
 from typing import List, Protocol, Dict
 from tripweave.models import Place
 from tripweave.config import settings
@@ -59,11 +64,69 @@ class JsonFilePlacesProvider:
         self._cache[city_key] = places
         return [p.model_copy(deep=True) for p in places]
 
+class DatabaseCatalogUnavailable(OSError):
+    """A database failure must never silently become stale seed data."""
+
+
+class SupabasePlacesProvider:
+    """Read-only public catalog; Hyderabad moves first, other cities retain seeds."""
+    def __init__(self, url, key, seed=None, opener=urlopen, clock=time.monotonic):
+        if not url or not key or not url.startswith("https://"):
+            raise ValueError("Supabase catalog requires an HTTPS URL and a publishable key")
+        self.url, self.key = url.rstrip("/"), key
+        self.seed = seed or JsonFilePlacesProvider()
+        self.opener, self.clock = opener, clock
+        self._cached = None
+        self._lock = threading.Lock()
+
+    def get_supported_cities(self):
+        return self.seed.get_supported_cities()
+
+    def get_places(self, destination):
+        city = destination.strip().lower()
+        if city != "hyderabad":
+            return self.seed.get_places(city)
+        with self._lock:
+            now = self.clock()
+            if self._cached and now < self._cached[0]:
+                return [p.model_copy(deep=True) for p in self._cached[1]]
+            query = urlencode({"city": "eq.hyderabad", "published": "eq.true", "select": "place_id,payload,source_urls,reviewed_at", "order": "place_id.asc", "limit": "501"})
+            request = Request(f"{self.url}/rest/v1/places?{query}", headers={"apikey": self.key})
+            try:
+                with self.opener(request, timeout=8) as response:
+                    raw = response.read(2_000_001)
+                if len(raw) > 2_000_000:
+                    raise ValueError("Catalog exceeds response limit")
+                rows = json.loads(raw)
+                if not isinstance(rows, list) or not rows or len(rows) > 500:
+                    raise ValueError("Catalog empty or exceeds supported size")
+                places = []
+                for row in rows:
+                    payload = dict(row["payload"])
+                    if payload.get("place_id") != row["place_id"]:
+                        raise ValueError("Catalog identity mismatch")
+                    payload.update(catalog_origin="supabase_curated", source_urls=row["source_urls"], last_verified_date=row["reviewed_at"])
+                    places.append(Place.model_validate(payload))
+                ids = [p.place_id for p in places]
+                if len(ids) != len(set(ids)) or not any(p.place_type == "hotel" for p in places) or not any(p.place_type == "attraction" for p in places):
+                    raise ValueError("Incomplete destination catalog")
+            except Exception as error:
+                # Do not include URLs, credentials, response bodies or provider errors.
+                raise DatabaseCatalogUnavailable("Destination catalog is temporarily unavailable") from error
+            self._cached = (self.clock() + 60, places)
+            return [p.model_copy(deep=True) for p in places]
+
+
 # Global singleton provider instance
 _provider_instance = None
 
 def get_places_provider() -> PlacesDataProvider:
     global _provider_instance
     if _provider_instance is None:
-        _provider_instance = JsonFilePlacesProvider()
+        if settings.place_catalog_provider == "supabase":
+            _provider_instance = SupabasePlacesProvider(settings.supabase_url, settings.supabase_publishable_key)
+        elif settings.place_catalog_provider == "json":
+            _provider_instance = JsonFilePlacesProvider()
+        else:
+            raise ValueError("Unknown PLACE_CATALOG_PROVIDER")
     return _provider_instance

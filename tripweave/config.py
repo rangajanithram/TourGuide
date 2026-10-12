@@ -27,6 +27,7 @@ class Settings(BaseModel):
     ])
 
     supported_cities: List[str] = Field(default_factory=lambda: ["hyderabad", "delhi", "jaipur", "bengaluru", "mumbai"])
+    place_catalog_provider: str = Field(default_factory=lambda: os.getenv("PLACE_CATALOG_PROVIDER", "json"))
     data_dir: str = Field(default_factory=lambda: os.getenv("DATA_DIR", "data"))
 
     # Browser public key is sufficient; never use a service-role key for identity validation.
