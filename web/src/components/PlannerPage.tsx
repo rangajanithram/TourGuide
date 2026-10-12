@@ -861,10 +861,10 @@ export default function Home({ preferences }: { preferences?: unknown }) {
       <PlannerLandscape />
       <Header />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="planner-canvas flex-1 w-full">
         {/* Hero Section (Only in standard builder view) */}
         {!isSharedView && (
-          <div className="mb-8 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div className="planner-intro flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
               <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[#89532d] text-xs font-semibold mb-3">
                 <Sparkles className="w-3.5 h-3.5" />
@@ -1053,7 +1053,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                 </>
               ) : (
                 !isLoading && !isLoadingSavedTrip && (
-                  <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-12 text-center text-[#596b57] space-y-3">
+                  <div className="planner-empty text-[#596b57] space-y-3">
                     <Compass className="w-10 h-10 text-gray-600 mx-auto" />
                     <h3 className="text-base font-bold text-[#425d4c]">Your journey starts here</h3>
                     <p className="text-xs text-[#596b57] max-w-sm mx-auto">
