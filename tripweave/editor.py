@@ -235,6 +235,7 @@ class ItineraryEditor:
 
         catalog_places = all_places if all_places is not None else get_places_provider().get_places(destination)
         synthetic_req = TripRequest.model_construct(
+            **plan.planning_preferences.model_dump(),
             destination=destination.lower().strip(),
             days=max(1, len(updated_days)),
             budget_inr=resolved_budget_limit if resolved_budget_limit is not None else max(500, new_total_cost),
@@ -1118,6 +1119,7 @@ class ItineraryEditor:
         )
 
         synthetic_req = TripRequest.model_construct(
+            **plan.planning_preferences.model_dump(),
             destination=request.destination.lower().strip(),
             days=max(1, len(updated_days)),
             budget_inr=budget_limit if budget_limit is not None else max(500, new_total_cost),

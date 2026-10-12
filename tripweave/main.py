@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 logger = logging.getLogger("tripweave")
 
 from tripweave.config import settings
+from tripweave.preferences import preference_conflict
 from tripweave.provider import get_places_provider
 from tripweave.verifier import ItineraryVerifier
 from tripweave.models import (
@@ -226,6 +227,11 @@ def _build_single_plan(
                     status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                     detail=f"Unknown pinned attraction '{pin}'. Not found in {request.destination.capitalize()} attraction catalog."
                 )
+    pins = {pin.strip().lower() for pin in request.locked_activities}
+    for place in all_places:
+        conflict = preference_conflict(place, request)
+        if conflict and (place.place_id.lower() in pins or place.name.lower() in pins):
+            raise HTTPException(status_code=422, detail=f"Must-visit conflict: {conflict} Remove the pin or change the preference.")
     timings[1] = round((time.perf_counter() - t_stage1) * 1000, 2)
 
     filter_engine = FeasibilityFilter()
@@ -259,7 +265,7 @@ def _build_single_plan(
     for place in sightseeing:
         cost_per_person = place.estimated_cost_per_person_inr or place.entry_fee_inr or 0
         total_place_cost = cost_per_person * request.people_count
-        if total_place_cost <= max_activity_budget:
+        if total_place_cost <= max_activity_budget and not preference_conflict(place, request):
             viable_candidates.append(place)
     viable_candidates.append(selected_hotel_place)
     valid_places = viable_candidates
@@ -314,6 +320,9 @@ def _build_single_plan(
 
     try:
         itinerary = optimizer.generate_plan()
+        itinerary.planning_preferences.max_visit_minutes = request.max_visit_minutes
+        itinerary.planning_preferences.avoid_climbing = request.avoid_climbing
+        itinerary.planning_preferences.food_preference = request.food_preference
     except (InfeasibleItineraryError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -428,6 +437,22 @@ def root():
 @app.get("/health", tags=["Health"])
 def health_check():
     return {"status": "healthy", "service": "tripweave-engine"}
+
+@app.get("/api/planner/catalog", tags=["Places Database"])
+def planner_catalog(destination: str = "hyderabad"):
+    places = [p for p in get_database_places(destination) if p.place_type not in {"hotel", "rest_break"}]
+    return {
+        "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
+        "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,
+                    "duration": p.duration_minutes} for p in places],
+        "interests": sorted({tag for p in places for tag in p.tags}),
+        "long_visits": any(p.duration_minutes > 90 for p in places),
+        "climbing_known": any(p.requires_climbing is not None for p in places),
+        "food_available": any(p.place_type == "restaurant" for p in places),
+        "dietary_options": sorted({diet for p in places for diet in p.dietary_options}),
+        "source": "Curated destination catalog; not live availability",
+    }
+
 
 @app.get("/api/places", response_model=List[Place], tags=["Places Database"])
 def list_places(destination: str = "hyderabad"):

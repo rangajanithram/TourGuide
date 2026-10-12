@@ -1,6 +1,6 @@
 from enum import Enum
 from datetime import date, datetime, timedelta
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
 from tripweave.crowd import CrowdForecast
 from tripweave.transport import InterCityTransportSummary
@@ -41,7 +41,13 @@ class TransportPreference(BaseModel):
     mode: TransportMode = Field(default=TransportMode.CAB, description="Primary mode of transportation")
     max_budget_inr: Optional[int] = Field(None, gt=0, description="Capped budget reserved strictly for travel")
 
-class TripRequest(BaseModel):
+class PlanningPreferences(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    max_visit_minutes: Optional[int] = Field(None, ge=30, le=480)
+    avoid_climbing: bool = False
+    food_preference: Literal["any", "vegetarian", "vegan", "halal", "own_meals"] = "any"
+
+class TripRequest(PlanningPreferences):
     model_config = ConfigDict(extra="forbid")
     origin_city: Optional[str] = Field(None, max_length=80, description="Optional departure city for inter-city travel recommendations (e.g. 'Bengaluru', 'Mumbai', 'Delhi')")
     destination: str = Field(..., min_length=2, max_length=80, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
@@ -171,6 +177,10 @@ class Place(BaseModel):
     max_guests_per_room: int = Field(default=2, ge=1, le=10)
     data_source: Optional[str] = Field(None, description="Data provenance note")
     
+    # Optional evidence: unknown is not a claim of accessibility or dietary suitability.
+    requires_climbing: Optional[bool] = None
+    dietary_options: List[Literal["vegetarian", "vegan", "halal"]] = Field(default_factory=list)
+
     # Experience Intelligence
     golden_hour_recommended: bool = False
     night_view_recommended: bool = False
@@ -272,6 +282,7 @@ class VerificationReport(BaseModel):
     metrics: Dict[str, str] = Field(default_factory=dict, description="Operational physics metrics")
 
 class TripPlan(BaseModel):
+    planning_preferences: PlanningPreferences = Field(default_factory=PlanningPreferences)
     plan_name: str = Field(..., min_length=1, max_length=200)
     variant_type: PlanVariantType = PlanVariantType.BALANCED
     hotel_summary: Optional[HotelStaySummary] = None

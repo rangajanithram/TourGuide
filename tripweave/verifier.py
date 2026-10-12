@@ -3,6 +3,7 @@ Independent Schedule, Physics, and Budget Verifier (Stage 8 of Engineering Bluep
 Audits itineraries independently of the solver to guarantee physical realism,
 accurate time windows, valid opening days, and strict budget conservation.
 """
+from tripweave.preferences import preference_conflict
 from datetime import datetime
 from typing import List, Tuple, Dict, Any, Optional
 from tripweave.models import TripPlan, TripRequest, Place, VerificationReport
@@ -150,6 +151,10 @@ class ItineraryVerifier:
                     prev_lng = act.lng
                     prev_end_minute = end_min
                     continue
+
+                conflict = preference_conflict(place, request)
+                if conflict:
+                    errors.append(f"Preference violation: {conflict}")
 
                 # Dining vs Sightseeing Cost Categorization
                 if act.place_type == "restaurant" or getattr(place, "place_type", "") == "restaurant":
