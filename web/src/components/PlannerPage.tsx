@@ -563,7 +563,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
     return (
       <section
         aria-label="Trip persistence and version history"
-        className="bg-[#fffdf5] border border-[#c6d2c0] rounded-2xl p-4 sm:p-5 shadow-md space-y-3"
+        className="trip-persistence space-y-3"
       >
         {!savedTrip ? (
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
@@ -912,6 +912,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         {isSharedView ? (
           /* Parameter-Generated View: Full width presentation focusing on the itinerary & overview */
           <div className="result-board">
+            <section className="result-overview">
+              {renderSavedTripPersistenceBar()}
+              <details className="result-trip-settings"><summary>Trip preferences</summary>
             <SharedTripOverview
               formData={activeFormData}
               currentPlan={currentPlan}
@@ -919,6 +922,8 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               onToggleEditor={() => setShowEditor(prev => !prev)}
               showEditor={showEditor}
             />
+              </details>
+            </section>
 
             {showEditor && (
               <div className="bg-[#fffdf5] border border-amber-500/30 rounded-2xl p-6 shadow-xl animate-in fade-in duration-200">
@@ -943,7 +948,6 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               </div>
             )}
 
-            {renderSavedTripPersistenceBar()}
 
             {multiPlan && (
               <VariantSwitcher
@@ -1007,9 +1011,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
 
             {/* Interactive map, variants and schedule */}
             <div className={`planner-results ${currentPlan ? 'result-board' : 'space-y-6'}`} aria-busy={isLoading || isLoadingSavedTrip}>
-              {currentPlan && <section className="result-overview result-compact"><h2>{multiPlan?.destination || activeFormData?.destination || 'Your trip'}</h2><p>{activeFormData?.start_date} — {activeFormData?.end_date}</p><div><span>{currentPlan.days.length} days</span><span>{activeFormData?.people_count || currentPlan.hotel_summary?.people_accommodated || 1} travelers</span><span>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} estimated</span></div><p>Compare options, explore the map, then read your daily plan.</p></section>}
+
               {isLoading && <PlanningScene phase={planningPhase} />}
-              {renderSavedTripPersistenceBar()}
+              {currentPlan && <section className="result-overview">{renderSavedTripPersistenceBar()}</section>}
               {multiPlan && (
                 <VariantSwitcher
                   multiPlan={multiPlan}

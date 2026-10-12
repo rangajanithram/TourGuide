@@ -96,7 +96,7 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
   return (
     <div className="relative isolate z-0 w-full h-full rounded-2xl overflow-hidden border border-[#d6dfd0] shadow-2xl bg-[#f3f4ea]">
       {/* Day Filter Toolbar Overlay */}
-      <div className="absolute top-3 left-3 z-[1000] flex items-center space-x-1.5 bg-[#fffdf5]/90 backdrop-blur-md border border-[#d6dfd0] rounded-xl p-1 shadow-lg">
+      <div className="map-day-filters absolute top-3 left-14 z-[1000] flex items-center space-x-1.5 bg-[#fffdf5]/90 backdrop-blur-md border border-[#d6dfd0] rounded-xl p-1 shadow-lg">
         <button
           type="button"
           onClick={() => onSelectDay?.('all')}
@@ -132,7 +132,7 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
       </div>
 
       {/* Legend Overlay */}
-      <div className="absolute top-3 right-3 z-[1000] bg-[#fffdf5]/90 backdrop-blur-md border border-[#d6dfd0] rounded-xl px-3 py-2 text-xs shadow-lg space-y-1.5 hidden sm:block">
+      <div className="absolute bottom-7 right-3 z-[1000] bg-[#fffdf5]/90 backdrop-blur-md border border-[#d6dfd0] rounded-xl px-3 py-2 text-xs shadow-lg space-y-1.5 hidden sm:block">
         <div className="flex items-center space-x-2">
           <span className="w-3 h-3 rounded-full bg-amber-500 border border-white"></span>
           <span className="text-[#425d4c] font-semibold">Centroid Base / Hotel</span>

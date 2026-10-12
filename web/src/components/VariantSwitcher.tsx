@@ -41,7 +41,7 @@ export default function VariantSwitcher({
       badge: 'Recommended',
       icon: Sparkles,
       plan: multiPlan.variants.balanced,
-      desc: 'Balanced pace, golden-hour highlights, and centroid-scored lodging'
+      desc: 'Balanced pace, golden-hour highlights, and centrally located lodging'
     },
     {
       id: 'comfort',
@@ -59,15 +59,15 @@ export default function VariantSwitcher({
         <div>
           <h3 className="text-sm font-bold text-[#243e33] tracking-tight">Choose your travel option</h3>
           <p className="text-xs text-[#526653]">
-            Only genuinely distinct, constraint-verified alternatives are shown (local on-ground budget)
+            Compare estimated destination costs. Select an option to update your plan.
           </p>
         </div>
         <span className="text-[11px] font-semibold text-[#89532d] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
-          {availableKeys.length} Distinct {availableKeys.length === 1 ? 'Variant' : 'Variants'} Synthesized
+          {availableKeys.length} {availableKeys.length === 1 ? 'option' : 'options'} available
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="variant-options">
         {variants.map(v => {
           const isAvailable = Boolean(v.plan && v.plan.days && v.plan.days.length > 0);
           const isSelected = isAvailable && activeVariant === v.id;
@@ -110,6 +110,7 @@ export default function VariantSwitcher({
               key={v.id}
               type="button"
               onClick={() => onSelectVariant(v.id)}
+              aria-pressed={isSelected}
               className={`p-4 rounded-xl border text-left transition-all ${
                 isSelected
                   ? 'bg-amber-500/10 border-amber-500/60 ring-1 ring-amber-500/30'
@@ -143,7 +144,7 @@ export default function VariantSwitcher({
                 <span>{v.plan?.days.length || 0} Days</span>
               </div>
 
-              <p className="text-[11px] text-[#526653] line-clamp-2 leading-relaxed">{v.desc}</p>
+              <p className="text-[11px] text-[#526653] leading-relaxed">{v.desc}</p>
             </button>
           );
         })}

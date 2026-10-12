@@ -480,7 +480,7 @@ export default function ItineraryView({
       )}
 
       {/* Action Toolbar: Calendar Export & Share */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-4 shadow-lg">
+      <div className="itinerary-toolbar flex flex-wrap items-center justify-between gap-3 bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-4 shadow-lg">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-[#89532d]">
             <Compass className="w-4 h-4" />
@@ -495,33 +495,6 @@ export default function ItineraryView({
         </div>
 
         {actionsTarget ? createPortal(tripActions, actionsTarget) : tripActions}
-      </div>
-
-      {/* Stat Bar */}
-      <div className="itinerary-totals grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Estimated destination cost</span>
-          <span className="text-xl font-extrabold text-[#89532d]">₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5">Lodging, city transit & stops (excl. intercity & taxes)</span>
-        </div>
-
-        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Stops & scheduled meals</span>
-          <span className="text-xl font-extrabold text-[#243e33]">₹{totalActivitiesCost.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5">{totalStops} scheduled attractions</span>
-        </div>
-
-        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Local travel</span>
-          <span className="text-xl font-extrabold text-[#243e33]">₹{currentPlan.estimated_transport_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5 capitalize">{currentPlan.transport_mode} routes</span>
-        </div>
-
-        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Lodging</span>
-          <span className="text-xl font-extrabold text-[#243e33]">₹{(hotel?.total_cost_inr || 0).toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5">{hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
-        </div>
       </div>
 
       {/* Blueprint Section 1 & Product Spec Feature 1: Inter-City Transit Intelligence */}
@@ -801,9 +774,10 @@ export default function ItineraryView({
         </div>
       )}
 
+      <section className="itinerary-stay-costs" aria-label="Stay and estimated costs">
       {/* Hotel Centroid Decision Card */}
       {hotel && (
-        <div className="bg-[#fffdf5] border border-amber-500/20 rounded-2xl p-5 shadow-xl relative overflow-hidden">
+        <div className="itinerary-stay bg-[#fffdf5] border border-amber-500/20 rounded-2xl p-5 shadow-xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none"></div>
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-[#d6dfd0] mb-4 gap-2">
@@ -837,6 +811,35 @@ export default function ItineraryView({
           )}
         </div>
       )}
+
+      {/* Stat Bar */}
+      <div className="itinerary-totals grid grid-cols-2 gap-3">
+        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Estimated destination cost</span>
+          <span className="text-xl font-extrabold text-[#89532d]">₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">Lodging, city transit & stops (excl. intercity & taxes)</span>
+        </div>
+
+        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Stops & scheduled meals</span>
+          <span className="text-xl font-extrabold text-[#243e33]">₹{totalActivitiesCost.toLocaleString('en-IN')}</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">{totalStops} scheduled attractions</span>
+        </div>
+
+        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Local travel</span>
+          <span className="text-xl font-extrabold text-[#243e33]">₹{currentPlan.estimated_transport_cost_inr.toLocaleString('en-IN')}</span>
+          <span className="text-sm text-[#596b57] block mt-0.5 capitalize">{currentPlan.transport_mode} routes</span>
+        </div>
+
+        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Lodging</span>
+          <span className="text-xl font-extrabold text-[#243e33]">₹{(hotel?.total_cost_inr || 0).toLocaleString('en-IN')}</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">{hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
+        </div>
+      </div>
+
+      </section>
 
       {currentPlan.verification_report && <div className="itinerary-check-summary" role="status">
         <ShieldCheck size={20} aria-hidden="true" /><span>{currentPlan.verification_report.is_valid ? 'Schedule checks passed using the listed data and assumptions.' : 'This plan needs attention. Review the schedule checks below.'} Current venue prices and conditions still need confirmation.</span>
@@ -881,6 +884,7 @@ export default function ItineraryView({
           </div>
         </div>
 
+        <div className="itinerary-days-grid">
         {visibleDays.map(day => (
           <div
             key={day.day_number}
@@ -1227,6 +1231,7 @@ export default function ItineraryView({
             </div>
           </div>
         ))}
+        </div>
       </div>
 
       <details className="itinerary-disclosure"><summary>Budget breakdown <span>See lodging, transport, meals and remaining budget</span></summary><div className="disclosure-body">
