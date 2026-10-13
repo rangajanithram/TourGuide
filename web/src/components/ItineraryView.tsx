@@ -8,7 +8,7 @@ import {
   Copy, Check, Activity, CloudSun,
   CloudRain, Flame, Utensils, Wallet,
   HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users,
-  Train, Plane, Car, ArrowRight, CheckSquare, Square,
+  Train, Plane, Car, ArrowRight, CheckSquare,
   ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw, Zap
 } from 'lucide-react';
 import { TripPlan, TripFormData, DayPlan, EditActionType, GroupMember, TripExpenseLedger, ExpenseCategory } from '../types/trip';
@@ -966,8 +966,12 @@ export default function ItineraryView({
               </div>
             </div>
 
+            {day.activities.length > 0 && <p className="day-progress" aria-live="polite">
+              {day.activities.filter((act, index) => visitedActivities[`${day.day_number}:${act.place_id || act.place_name}:${index}`]?.visited).length} of {day.activities.length} stops visited
+              <span>Tap a numbered circle as you go.</span>
+            </p>}
             {/* Activities Timeline */}
-            <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-[#c6d2c0]">
+            <div className="day-timeline">
               {day.activities.length === 0 && <p className="rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-base text-[#304c3b]">Free time — no visits scheduled for this date. No activity or local route costs are included for this day; meals and personal expenses may still apply.</p>}
               {day.activities.map((act, actIdx) => {
                 const actKey = `${day.day_number}:${act.place_id || act.place_name}:${actIdx}`;
@@ -976,30 +980,23 @@ export default function ItineraryView({
                 const actSpend = visitInfo?.actualCost ?? act.estimated_cost_inr;
 
                 return (
-                <div key={actIdx} className="itinerary-stop relative group">
-                  {/* Timeline Dot */}
-                  <div className={`absolute -left-[27px] top-1 w-3 h-3 rounded-full border-2 border-[#fffdf5] transition-transform ${
-                    isVisited ? 'bg-emerald-400 scale-125' : 'bg-amber-500 group-hover:scale-125'
-                  }`}></div>
+                <div key={actIdx} className="itinerary-stop relative group" data-visited={isVisited}>
+                  <button
+                    type="button"
+                    className="stop-completion"
+                    aria-pressed={isVisited}
+                    aria-label={`${isVisited ? 'Mark unvisited' : 'Mark visited'}: ${act.place_name}`}
+                    title={isVisited ? 'Mark as unvisited' : 'Mark as visited and log spend'}
+                    onClick={() => toggleActivityVisited(actKey, act.estimated_cost_inr)}
+                  >
+                    {isVisited ? <CheckSquare size={20} aria-hidden="true" /> : <span>{actIdx + 1}</span>}
+                  </button>
 
                   <div className={`border rounded-xl p-4 transition-colors ${
                     isVisited ? 'bg-[#eef1e5] border-emerald-500/40' : 'bg-[#eef1e5] border-[#c6d2c0] hover:border-gray-600'
                   }`}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
-                      <div className="flex items-center space-x-2 flex-wrap">
-                        {/* Check-off Button */}
-                        <button
-                          type="button"
-                          onClick={() => toggleActivityVisited(actKey, act.estimated_cost_inr)}
-                          className={`p-1 rounded-md border transition-all ${
-                            isVisited
-                              ? 'bg-emerald-500/20 text-emerald-700 border-emerald-500/40 shadow-sm'
-                              : 'bg-[#fffdf5] text-[#596b57] border-[#c6d2c0] hover:text-[#425d4c]'
-                          }`}
-                          title={isVisited ? "Mark as unvisited" : "Check off activity & log actual spend"}
-                        >
-                          {isVisited ? <CheckSquare className="w-3.5 h-3.5 text-emerald-700" /> : <Square className="w-3.5 h-3.5" />}
-                        </button>
+                    <div className="stop-heading">
+                      <div className="stop-identity">
 
                         <span className="text-sm font-bold text-[#89532d] bg-amber-500/10 px-2 py-0.5 rounded">
                           {act.start_time} - {act.end_time}
@@ -1076,8 +1073,8 @@ export default function ItineraryView({
                     )}
 
                     {/* Interactive Customizer Action Bar */}
-                    <div className="mt-3 pt-2.5 border-t border-[#c6d2c0] flex flex-wrap items-center justify-between gap-2 text-sm">
-                      <div className="flex items-center space-x-1 sm:space-x-1.5 flex-wrap">
+                    <div className="stop-action-bar">
+                      <div className="stop-actions">
                         {/* Pin / Lock Button */}
                         <button
                           type="button"

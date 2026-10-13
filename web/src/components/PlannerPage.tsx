@@ -566,7 +566,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         className="trip-persistence space-y-3"
       >
         {!savedTrip ? (
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="trip-save-layout">
             <div className="space-y-1 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#89532d] bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
@@ -593,7 +593,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap shrink-0">
+            <div className="trip-save-actions">
               <button
                 type="button"
                 onClick={handleSaveNewTrip}
@@ -624,7 +624,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div className="trip-save-layout">
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
@@ -646,7 +646,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                 </h2>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap shrink-0">
+              <div className="trip-save-actions">
                 <button
                   type="button"
                   onClick={handleCommitRevision}
@@ -1005,9 +1005,10 @@ export default function Home({ preferences }: { preferences?: unknown }) {
           /* Guided setup followed by full-width results */
           <div className="planner-workspace grid grid-cols-1 gap-6 items-start">
             {/* Trip setup */}
-            <div className="planner-settings">
+            <details className="planner-settings" open={!currentPlan}>
+              <summary className={currentPlan ? 'planner-settings-toggle' : 'hidden'}>Adjust trip preferences <span>Change dates, travelers, budget or places</span></summary>
               <TripForm onSubmit={(fd) => void fetchTripPlan(fd)} isLoading={isLoading || isSavingTrip || restoringVersion !== null} initialValues={activeFormData} />
-            </div>
+            </details>
 
             {/* Interactive map, variants and schedule */}
             <div className={`planner-results ${currentPlan ? 'result-board' : 'space-y-6'}`} aria-busy={isLoading || isLoadingSavedTrip}>
