@@ -74,9 +74,15 @@ class DiscoveryProvider:
             if not isinstance(props, dict):
                 continue
             name = props.get("name")
-            if not isinstance(name, str) or not name.strip():
+            if not isinstance(name, str) or not name.strip() or not props.get("place_id"):
                 continue
-            places.append({"id": str(props.get("place_id", ""))[:512], "name": name[:250],
+            try:
+                lat, lng = float(props["lat"]), float(props["lon"])
+                if not (-90 <= lat <= 90 and -180 <= lng <= 180):
+                    continue
+            except (KeyError, TypeError, ValueError):
+                continue
+            places.append({"lat": lat, "lng": lng,"id": str(props.get("place_id", ""))[:512], "name": name[:250],
                 "address": str(props.get("formatted", ""))[:600], "category": category})
         return {"location": str(center.get("formatted", location))[:600], "places": places,
             "fetched_at": datetime.now(timezone.utc).isoformat()}

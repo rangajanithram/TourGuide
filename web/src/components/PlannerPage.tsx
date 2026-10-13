@@ -160,6 +160,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         const fallbackStart = fallbackPlanDays[0]?.date || '';
         const fallbackEnd = fallbackPlanDays[fallbackPlanDays.length - 1]?.date || fallbackStart;
         setActiveFormData({
+          meal_budget_per_person:req.meal_budget_per_person,
+          external_stops: req.external_stops,
+          arrival_available_mins:req.arrival_available_mins, departure_deadline_mins:req.departure_deadline_mins,
           max_visit_minutes: req.max_visit_minutes,
           avoid_climbing: req.avoid_climbing,
           food_preference: req.food_preference,
@@ -218,6 +221,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          meal_budget_per_person:formData.meal_budget_per_person,
+          external_stops: formData.external_stops,
+          arrival_available_mins:formData.arrival_available_mins, departure_deadline_mins:formData.departure_deadline_mins,
           max_visit_minutes: formData.max_visit_minutes,
           avoid_climbing: formData.avoid_climbing,
           food_preference: formData.food_preference,

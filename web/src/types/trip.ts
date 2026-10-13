@@ -256,7 +256,14 @@ export type PlanVersionSummary = Pick<PlanVersionRecord,
   'id' | 'trip_id' | 'version_number' | 'change_type' | 'change_summary' |
   'selected_variant' | 'restored_from_version' | 'created_at'>;
 
+export interface ConfirmedDiscoveryStop {
+ place_id:string; name:string; lat:number; lng:number; place_type:'attraction'|'restaurant';
+ duration_minutes:number; estimated_cost_per_person_inr:number; open_time_mins:number; close_time_mins:number;
+}
 export interface TripFormData {
+ external_stops?:ConfirmedDiscoveryStop[];
+ meal_budget_per_person?:number;
+ arrival_available_mins?:number; departure_deadline_mins?:number;
   max_visit_minutes?: number;
   avoid_climbing?: boolean;
   food_preference?: 'any' | 'vegetarian' | 'vegan' | 'halal' | 'own_meals';

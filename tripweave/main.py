@@ -14,7 +14,7 @@ logger = logging.getLogger("tripweave")
 
 from tripweave.config import settings
 from tripweave.preferences import preference_conflict
-from tripweave.provider import get_places_provider
+from tripweave.provider import get_places_provider, merge_confirmed_stops
 from tripweave.verifier import ItineraryVerifier
 from tripweave.models import (
     TripRequest, TripPlan, Place, MultiVariantTripPlan,
@@ -218,7 +218,7 @@ def _build_single_plan(
 
     # Stage 1: Candidate Generation
     t_stage1 = time.perf_counter()
-    all_places = get_database_places(request.destination)
+    all_places = merge_confirmed_stops(get_database_places(request.destination), request.external_stops)
     if request.locked_activities:
         catalog_names_ids = {p.place_id.lower() for p in all_places} | {p.name.lower() for p in all_places}
         for pin in request.locked_activities:
@@ -253,6 +253,23 @@ def _build_single_plan(
         )
     timings[5] = round(max(0.01, (time.perf_counter() - t_stage5) * 1000), 2)
 
+    meal_places = []
+    if request.meal_budget_per_person is not None and request.food_preference != "own_meals":
+        for day in range(request.days):
+            earliest = request.arrival_available_mins if day == 0 else 60
+            latest = request.departure_deadline_mins if day == request.days - 1 else 720
+            for meal, start, end in [("breakfast", 60, 180), ("lunch", 240, 420), ("dinner", 630, 720)]:
+                start, end = max(start, earliest), min(end, latest)
+                if end - start < 30:
+                    continue
+                meal_places.append(Place(place_id=f"meal:{day}:{meal}", name=f"{meal.title()} - arrange venue",
+                    place_type="restaurant", lat=selected_hotel_place.lat, lng=selected_hotel_place.lng,
+                    duration_minutes=30, estimated_cost_per_person_inr=request.meal_budget_per_person,
+                    open_time_mins=start, close_time_mins=end, planning_day=day, meal_type=meal,
+                    verification_status="estimated", last_verified_date=None,
+                    source_reference="Reserved meal time at base; user-confirmed budget; restaurant not selected"))
+        all_places.extend(meal_places)
+
     # Stage 2: Hard Feasibility Filter (Budget & Operational Feasibility)
     t_stage2 = time.perf_counter()
     sightseeing = [p for p in all_places if p.place_type != "hotel"]
@@ -265,7 +282,7 @@ def _build_single_plan(
     for place in sightseeing:
         cost_per_person = place.estimated_cost_per_person_inr or place.entry_fee_inr or 0
         total_place_cost = cost_per_person * request.people_count
-        if total_place_cost <= max_activity_budget and not preference_conflict(place, request):
+        if (place.meal_type or total_place_cost <= max_activity_budget) and not preference_conflict(place, request):
             viable_candidates.append(place)
     viable_candidates.append(selected_hotel_place)
     valid_places = viable_candidates
@@ -315,11 +332,18 @@ def _build_single_plan(
         variant_type=variant,
         locked_activities=request.locked_activities,
         group_profile=request.group_profile,
+        arrival_available_mins=request.arrival_available_mins,
+        departure_deadline_mins=request.departure_deadline_mins,
         preferred_day_by_place=preferred_day_by_place
     )
 
     try:
         itinerary = optimizer.generate_plan()
+        itinerary.meal_places = meal_places
+        itinerary.planning_preferences.meal_budget_per_person = request.meal_budget_per_person
+        itinerary.planning_preferences.arrival_available_mins = request.arrival_available_mins
+        itinerary.planning_preferences.departure_deadline_mins = request.departure_deadline_mins
+        itinerary.planning_preferences.external_stops = request.external_stops
         itinerary.planning_preferences.max_visit_minutes = request.max_visit_minutes
         itinerary.planning_preferences.avoid_climbing = request.avoid_climbing
         itinerary.planning_preferences.food_preference = request.food_preference

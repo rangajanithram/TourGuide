@@ -127,6 +127,21 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if (!['relaxed', 'balanced', 'intensive'].includes(form.pace) || !['cab', 'auto', 'metro', 'walk'].includes(form.transport_mode)) invalid('preferences');
   if (form.group_profile && !['default', 'young_solo', 'family', 'elderly'].includes(form.group_profile)) invalid('group profile');
   if (form.origin_type && !['hotel', 'center', 'station', 'airport'].includes(form.origin_type)) invalid('origin');
+  if (form.arrival_available_mins !== undefined) integer(form.arrival_available_mins, 'arrival availability', 0, 719);
+  if (form.departure_deadline_mins !== undefined) integer(form.departure_deadline_mins, 'departure deadline', 1, 720);
+  if (form.meal_budget_per_person !== undefined) integer(form.meal_budget_per_person, 'meal estimate', 0, 10000);
+  if (form.external_stops !== undefined) {
+    if (!Array.isArray(form.external_stops) || form.external_stops.length > 15) invalid('external stops');
+    const ids = new Set<string>();
+    for (const stop of form.external_stops) {
+      text(stop.place_id, 'external place ID', 512); text(stop.name, 'external place name', 250); coordinates(record(stop));
+      if (ids.has(stop.place_id)) invalid('duplicate external stop'); ids.add(stop.place_id);
+      if (!['attraction','restaurant'].includes(stop.place_type)) invalid('external place type');
+      integer(stop.duration_minutes,'confirmed visit length',15,480); integer(stop.estimated_cost_per_person_inr,'confirmed cost',0,100000);
+      integer(stop.open_time_mins,'confirmed start',0,720); integer(stop.close_time_mins,'confirmed end',0,720);
+      if (stop.close_time_mins-stop.open_time_mins<stop.duration_minutes) invalid('confirmed time window');
+    }
+  }
   if (form.max_visit_minutes !== undefined) integer(form.max_visit_minutes, 'visit length', 30, 480);
   if (form.avoid_climbing !== undefined && typeof form.avoid_climbing !== 'boolean') invalid('climbing preference');
   if (form.food_preference !== undefined && !['any', 'vegetarian', 'vegan', 'halal', 'own_meals'].includes(form.food_preference)) invalid('food preference');

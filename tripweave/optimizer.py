@@ -29,8 +29,12 @@ class TripOptimizer:
         variant_type: PlanVariantType = PlanVariantType.BALANCED,
         locked_activities: Optional[List[str]] = None,
         group_profile: Optional[GroupProfile] = None,
+        arrival_available_mins: int = 60,
+        departure_deadline_mins: int = 720,
         preferred_day_by_place: Optional[dict[str, int]] = None
     ):
+        self.arrival_available_mins = arrival_available_mins
+        self.departure_deadline_mins = departure_deadline_mins
         self.places = places
         self.days = days
         self.hotel_summary = hotel_summary
@@ -159,10 +163,18 @@ class TripOptimizer:
             time_callback_index,
             120,    # MAXIMUM SLACK: Up to 120 minutes waiting allowed
             720,    # Max 720 minutes (8:00 AM to 8:00 PM)
-            True,   # Start at 0
+            False,  # Allow actual first-day availability
             "Time"
         )
         time_dimension = routing.GetDimensionOrDie("Time")
+
+        for day in range(self.days):
+            earliest = self.arrival_available_mins if day == 0 else 60
+            latest = self.departure_deadline_mins if day == self.days - 1 else 720
+            if latest <= earliest:
+                raise InfeasibleItineraryError("Arrival/departure times leave no planning window.")
+            time_dimension.CumulVar(routing.Start(day)).SetRange(earliest, earliest)
+            time_dimension.CumulVar(routing.End(day)).SetRange(earliest, latest)
 
         # --- Enforce Time Windows & Disjunctions (Drop Penalties) ---
         for i in range(len(self.places)):
@@ -180,6 +192,10 @@ class TripOptimizer:
             else:
                 max_arrival = 720
             time_var.SetRange(min_arrival, max_arrival)
+            if place.planning_day is not None:
+                routing.SetAllowedVehiclesForIndex([place.planning_day], index)
+                routing.solver().Add(routing.ActiveVar(index) == 1)
+
 
             # --- Weekly Closure Constraint (e.g. Closed on Fridays / Mondays) ---
             if place.closed_days and self.start_date:
@@ -258,12 +274,10 @@ class TripOptimizer:
             # Senior travelers: reduce max stops to build in rest buffers (min 2: 1 activity + return depot)
             max_stops_per_day = max(2, max_stops_per_day - 1)
             
-        routing.AddConstantDimension(
-            1,
-            max_stops_per_day,
-            True,
-            "ActivityCount"
-        )
+        def sightseeing_count(index):
+            return 0 if self.places[manager.IndexToNode(index)].meal_type else 1
+        count_callback = routing.RegisterUnaryTransitCallback(sightseeing_count)
+        routing.AddDimension(count_callback, 0, max_stops_per_day, True, "ActivityCount")
 
         # --- In-Solver Budget Dimension ---
         # Direct constraint: OR-Tools drops costly or out-of-reach stops during search

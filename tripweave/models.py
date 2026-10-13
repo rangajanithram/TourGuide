@@ -41,8 +41,30 @@ class TransportPreference(BaseModel):
     mode: TransportMode = Field(default=TransportMode.CAB, description="Primary mode of transportation")
     max_budget_inr: Optional[int] = Field(None, gt=0, description="Capped budget reserved strictly for travel")
 
+class ConfirmedDiscoveryStop(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    place_id: str = Field(min_length=1, max_length=512)
+    name: str = Field(min_length=1, max_length=250)
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    place_type: Literal["attraction", "restaurant"] = "attraction"
+    duration_minutes: int = Field(ge=15, le=480)
+    estimated_cost_per_person_inr: int = Field(ge=0, le=100000)
+    open_time_mins: int = Field(ge=0, le=720)
+    close_time_mins: int = Field(ge=0, le=720)
+
+    @model_validator(mode="after")
+    def check_window(self):
+        if self.close_time_mins - self.open_time_mins < self.duration_minutes:
+            raise ValueError("The confirmed time window must fit the visit duration.")
+        return self
+
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    meal_budget_per_person: Optional[int] = Field(default=None, ge=0, le=10000)
+    arrival_available_mins: int = Field(default=60, ge=0, le=719)
+    departure_deadline_mins: int = Field(default=720, ge=1, le=720)
+    external_stops: List[ConfirmedDiscoveryStop] = Field(default_factory=list, max_length=15)
     max_visit_minutes: Optional[int] = Field(None, ge=30, le=480)
     avoid_climbing: bool = False
     food_preference: Literal["any", "vegetarian", "vegan", "halal", "own_meals"] = "any"
@@ -146,6 +168,8 @@ class ViewpointRecommendation(BaseModel):
         return data
 
 class Place(BaseModel):
+    planning_day: Optional[int] = Field(default=None, ge=0, le=13)
+    meal_type: Optional[Literal["breakfast", "lunch", "dinner"]] = None
     place_id: str
     name: str
     place_type: str  # 'attraction', 'restaurant', 'hotel'
@@ -285,6 +309,7 @@ class VerificationReport(BaseModel):
     metrics: Dict[str, str] = Field(default_factory=dict, description="Operational physics metrics")
 
 class TripPlan(BaseModel):
+    meal_places: List[Place] = Field(default_factory=list, max_length=42)
     planning_preferences: PlanningPreferences = Field(default_factory=PlanningPreferences)
     plan_name: str = Field(..., min_length=1, max_length=200)
     variant_type: PlanVariantType = PlanVariantType.BALANCED

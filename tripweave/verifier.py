@@ -89,7 +89,7 @@ class ItineraryVerifier:
         for day in plan.days:
             prev_lat = hotel_lat
             prev_lng = hotel_lng
-            prev_end_minute = 60 # 9:00 AM start
+            prev_end_minute = request.arrival_available_mins if day.day_number == 1 else 60
             day_activities_cost = 0
 
             # Day-of-week validation
@@ -106,6 +106,10 @@ class ItineraryVerifier:
                 except ValueError:
                     errors.append(f"Invalid Time Window: Day {day.day_number} stop '{act.place_name}' has malformed times.")
                     continue
+                earliest = request.arrival_available_mins if day.day_number == 1 else 60
+                latest = request.departure_deadline_mins if day.day_number == request.days else 720
+                if start_min < earliest or end_min > latest:
+                    errors.append(f"Day {day.day_number}: Stop exceeds arrival/departure availability.")
                 duration = end_min - start_min
                 if duration <= 0:
                     errors.append(
@@ -141,7 +145,7 @@ class ItineraryVerifier:
                     prev_end_minute = end_min
                     continue
 
-                place = place_lookup.get(act.place_name.lower()) or (place_lookup.get(act.place_id.lower()) if act.place_id else None)
+                place = (place_lookup.get(act.place_id.lower()) if act.place_id else None) or place_lookup.get(act.place_name.lower())
                 if not place:
                     errors.append(f"Day {day.day_number}: Place '{act.place_name}' not found in database records.")
                     if act.place_id:
@@ -152,6 +156,10 @@ class ItineraryVerifier:
                     prev_end_minute = end_min
                     continue
 
+                if place.planning_day is not None and place.planning_day != day.day_number - 1:
+                    errors.append("Reserved meal appears on the wrong day.")
+                if place.catalog_origin == "user_confirmed_discovery":
+                    warnings.append(f"{place.name}: hours, visit duration and cost use user-confirmed estimates.")
                 conflict = preference_conflict(place, request)
                 if conflict:
                     errors.append(f"Preference violation: {conflict}")
@@ -160,9 +168,9 @@ class ItineraryVerifier:
                 if act.place_type == "restaurant" or getattr(place, "place_type", "") == "restaurant":
                     total_computed_dining_cost += act.estimated_cost_inr
                     # Verify meal window: Lunch (11:30 AM - 3:30 PM: 210 to 450) or Dinner (6:30 PM - 10:30 PM: 630 to 870)
-                    if not ((210 <= start_min <= 450) or (630 <= start_min <= 870)):
+                    if not ((60 <= start_min <= 180) or (210 <= start_min <= 450) or (630 <= start_min <= 870)):
                         warnings.append(
-                            f"Off-Peak Dining: Restaurant '{act.place_name}' scheduled at {act.start_time}, outside standard lunch (11:30 AM - 3:30 PM) or dinner (6:30 PM - 10:30 PM) service."
+                            f"Off-Peak Dining: Restaurant '{act.place_name}' scheduled at {act.start_time}, outside breakfast, lunch or dinner (6:30 PM - 10:30 PM) service."
                         )
                 else:
                     total_computed_attractions_cost += act.estimated_cost_inr
@@ -258,6 +266,8 @@ class ItineraryVerifier:
 
                 # Verify full physical day schedule window
                 hotel_arrival_min = prev_end_minute + ret_mins
+                if day.day_number == request.days and hotel_arrival_min > request.departure_deadline_mins:
+                    errors.append(f"Day {day.day_number}: Return transfer exceeds departure-day deadline.")
                 # 8:00 AM is 0 min. 8:00 PM is 720 mins. 9:00 PM is 780 mins.
                 if hotel_arrival_min > 780:
                     errors.append(
@@ -334,6 +344,12 @@ class ItineraryVerifier:
                 checks_passed.append("Activity Dependencies: All prerequisite activity chains respected.")
 
         # Compute Audit Score (0 - 100)
+        scheduled_ids = {act.place_id for day in plan.days for act in day.activities}
+        for meal in plan.meal_places:
+            if meal.place_id not in scheduled_ids:
+                errors.append(f"Reserved {meal.meal_type} block missing on day {meal.planning_day + 1}.")
+        if plan.meal_places:
+            warnings.append("Meal venues are not selected. Reserved blocks use your budget estimate and base location; confirm a venue before travel.")
         score = 100 - (len(errors) * 35) - (len(warnings) * 5)
         score = max(0, min(100, score))
 

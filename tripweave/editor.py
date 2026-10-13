@@ -15,7 +15,7 @@ from tripweave.models import (
 )
 from tripweave.distance import calculate_distance_km, get_travel_metrics
 from tripweave.solar import get_golden_hour_window
-from tripweave.provider import get_places_provider
+from tripweave.provider import get_places_provider, merge_confirmed_stops
 from tripweave.fatigue import FatigueAnalyzer
 from tripweave.verifier import ItineraryVerifier
 from tripweave.route_accounting import trip_transport_cost, trip_route_metrics
@@ -233,7 +233,7 @@ class ItineraryEditor:
             ),
         })
 
-        catalog_places = all_places if all_places is not None else get_places_provider().get_places(destination)
+        catalog_places = all_places if all_places is not None else merge_confirmed_stops(get_places_provider().get_places(destination), plan.planning_preferences.external_stops) + plan.meal_places
         synthetic_req = TripRequest.model_construct(
             **plan.planning_preferences.model_dump(),
             destination=destination.lower().strip(),
@@ -392,7 +392,7 @@ class ItineraryEditor:
                 raise ValueError("replacement_place_id is required for SWAP action.")
 
             provider = get_places_provider()
-            all_places = provider.get_places(request.destination)
+            all_places = merge_confirmed_stops(provider.get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places
             repl_list = [p for p in all_places if p.place_id.lower() == request.replacement_place_id.lower()]
             if not repl_list:
                 raise ValueError(f"Replacement place '{request.replacement_place_id}' not found in {request.destination} dataset.")
@@ -729,7 +729,7 @@ class ItineraryEditor:
         """
         from datetime import date
         from tripweave.models import ExpenseBreakdown
-        from tripweave.provider import get_places_provider
+        from tripweave.provider import get_places_provider, merge_confirmed_stops
 
         plan = request.plan
         request = request.model_copy(update={"transport_mode": plan.transport_mode})
@@ -780,7 +780,7 @@ class ItineraryEditor:
                 if plan.transport_budget_limit_inr is not None else None
             )
             baseline_request = TripRequest.model_construct(destination=request.destination, days=len(plan.days), budget_inr=budget_limit or plan.total_cost_inr, people_count=people, pace=request.pace, transport_mode=plan.transport_mode, locked_activities=[a.place_id or a.place_name for d in plan.days for a in d.activities if a.is_locked and a.place_type != "rest_break"])
-            baseline_report = ItineraryVerifier.verify(plan, baseline_request, get_places_provider().get_places(request.destination))
+            baseline_report = ItineraryVerifier.verify(plan, baseline_request, merge_confirmed_stops(get_places_provider().get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places)
             plan = plan.model_copy(update={"verification_report": baseline_report})
             no_work_notes = list(baseline_report.errors)
             if is_within_budget is False:
@@ -946,7 +946,7 @@ class ItineraryEditor:
 
         # Check known calendar closures and opening windows against the curated
         # catalog. Unknown venues remain explicitly unchecked rather than assumed valid.
-        catalog = {place.place_id.casefold(): place for place in get_places_provider().get_places(request.destination)}
+        catalog = {place.place_id.casefold(): place for place in merge_confirmed_stops(get_places_provider().get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places}
         try:
             trip_date = date.fromisoformat(target_day.date) if target_day.date else None
         except ValueError:

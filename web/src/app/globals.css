@@ -402,3 +402,5 @@ body { font-family: var(--font-geist-sans),Arial,sans-serif; }
 .discovery-cards h3{font-size:22px;font-weight:650}
 .discovery-page a{text-decoration:underline;text-underline-offset:3px}
 @media(max-width:900px){.discovery-search,.discovery-cards{grid-template-columns:1fr}}
+
+.live-place-options{display:grid;gap:8px;max-height:320px;overflow:auto}.live-place-options button{padding:14px;text-align:left;background:#fffdf5;border:1px solid #bdcbb5;border-radius:10px;min-height:44px}.live-place-options small{display:block;font-size:14px;margin-top:6px}.confirmed-stop-fields{display:grid;gap:16px;margin-top:20px;padding:20px;background:#eef1e5}.booking-more select{width:100%;padding:12px;background:#fffdf5;border:1px solid #bdcbb5;color:#294333;font-size:16px;margin:12px 0}

@@ -13,7 +13,7 @@ class DiscoveryTests(unittest.TestCase):
         self.assertEqual(error.exception.status_code,503)
     def test_mapping_bounds_and_no_invented_facts(self):
         responses=iter([{'features':[{'properties':{'lat':48.8,'lon':2.3,'formatted':'Paris'}}]},
-            {'features':[{'properties':{'name':'Garden','place_id':'x','formatted':'Paris'}},None,{'properties':{}}]}])
+            {'features':[{'properties':{'name':'Garden','place_id':'x','lat':48.8,'lon':2.3,'formatted':'Paris'}},None,{'properties':{}}]}])
         urls=[]
         def opener(url,timeout):
             urls.append(url);return BytesIO(json.dumps(next(responses)).encode())

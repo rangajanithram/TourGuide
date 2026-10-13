@@ -130,3 +130,17 @@ def get_places_provider() -> PlacesDataProvider:
         else:
             raise DatabaseCatalogUnavailable("Unknown PLACE_CATALOG_PROVIDER")
     return _provider_instance
+
+
+def merge_confirmed_stops(places, stops):
+    """User-confirmed planning input, never labeled provider-verified facts."""
+    result = {p.place_id: p for p in places}
+    for stop in stops:
+        key = "discovered:" + stop.place_id
+        if key in result:
+            raise ValueError("Duplicate discovered stop")
+        result[key] = Place(**{**stop.model_dump(), "place_id": key},
+            tags=["food"] if stop.place_type == "restaurant" else ["discovery"],
+            verification_status="estimated", last_verified_date=None, source_reference="User-confirmed planning estimates; venue hours and fees unverified",
+            catalog_origin="user_confirmed_discovery")
+    return list(result.values())

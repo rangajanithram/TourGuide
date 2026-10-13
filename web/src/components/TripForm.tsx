@@ -2,6 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Compass, Pin, Sparkles, X } from 'lucide-react';
 import ThemedSelect from './ThemedSelect';
+import PlannerDiscovery from './PlannerDiscovery';
 import PlaceSearch, { SearchOption } from './PlaceSearch';
 import InfoTip from './InfoTip';
 import { TripFormData } from '../types/trip';
@@ -67,10 +68,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
   const pins = form.locked_activities || [];
   const changeDestination = (destination: string) => {
     if (destination === form.destination) return;
-    setForm(previous => ({ ...previous, destination, locked_activities: [], interests: [], max_visit_minutes: undefined, avoid_climbing: false, food_preference: 'any' }));
+    setForm(previous => ({ ...previous, destination, external_stops: [], locked_activities: [], interests: [], max_visit_minutes: undefined, avoid_climbing: false, food_preference: 'any' }));
     setNotice('Destination changed. Place selections and destination preferences have been reset.'); setSurprise(false);
   };
-  const pinLabel = (value: string) => catalog?.places.find(place => place.value === value || place.label === value)?.label || value;
+  const pinLabel = (value: string) => form.external_stops?.find(stop=>"discovered:"+stop.place_id===value)?.name || catalog?.places.find(place => place.value === value || place.label === value)?.label || value;
   const remaining = catalog?.places.filter(place => !pins.includes(place.value) && !pins.includes(place.label)) || [];
   return <form noValidate onSubmit={submit} className="trip-form booking-form bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-6 shadow-xl">
     <header className="booking-header"><div><p className="booking-eyebrow">YOUR JOURNEY, THOUGHTFULLY PLANNED</p><h2>Your trip, your way</h2></div><span>Step {step + 1} of 4</span></header>
@@ -106,8 +107,15 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     </section>}
     {step === 2 && <section className="trip-step booking-section" aria-label="Places and food">
       <div className="trip-field-heading"><h4>Places you don’t want to miss</h4><InfoTip title="Must-visits">Pinned places are required. If your dates, budget or preferences cannot fit them, we explain the conflict.</InfoTip></div>
+      <details className="booking-more"><summary>Reserve breakfast, lunch and dinner time</summary><p>Reserve 30-minute meal blocks at your base where the arrival/departure window allows. Restaurant venues are not selected; the amount below is your estimate per person per meal.</p><label><input type="checkbox" checked={form.meal_budget_per_person!==undefined} onChange={e=>update('meal_budget_per_person',e.target.checked?0:undefined)}/> Include reserved meal blocks</label>{form.meal_budget_per_person!==undefined&&<label>Estimated cost per person, per meal (INR)<input type="number" min={0} max={10000} value={form.meal_budget_per_person} onChange={e=>update('meal_budget_per_person',Number(e.target.value))}/></label>}</details>
+      <PlannerDiscovery key={form.destination} destination={form.destination} disabled={isLoading||pins.length>=15||(form.external_stops||[]).length>=15} onConfirm={(stop,mandatory)=>{
+        const id='discovered:'+stop.place_id;
+        if((form.external_stops||[]).some(item=>item.place_id===stop.place_id))return;
+        setForm(previous=>({...previous,external_stops:[...(previous.external_stops||[]),stop],locked_activities:mandatory?[...(previous.locked_activities||[]),id]:previous.locked_activities}));
+      }}/>
+      <div className="booking-chips">{(form.external_stops||[]).filter(stop=>!pins.includes('discovered:'+stop.place_id)).map(stop=><button type="button" key={stop.place_id} onClick={()=>update('external_stops',(form.external_stops||[]).filter(item=>item.place_id!==stop.place_id))}>{stop.name} (optional) <X size={14}/></button>)}</div>
       <PlaceSearch label="Search and pin a place" value="" placeholder="Start typing a place name…" options={remaining} disabled={!catalog || pins.length >= 15} onChange={value => update('locked_activities', [...pins, value])} />
-      <div className="booking-chips">{pins.map(pin => <button type="button" key={pin} onClick={() => update('locked_activities', pins.filter(item => item !== pin))} aria-label={`Remove ${pinLabel(pin)}`}><Pin size={14} />{pinLabel(pin)}<X size={14} /></button>)}</div>
+      <div className="booking-chips">{pins.map(pin => <button type="button" key={pin} onClick={() => setForm(previous=>({...previous,locked_activities:pins.filter(item=>item!==pin),external_stops:(previous.external_stops||[]).filter(stop=>'discovered:'+stop.place_id!==pin)}))} aria-label={`Remove ${pinLabel(pin)}`}><Pin size={14} />{pinLabel(pin)}<X size={14} /></button>)}</div>
       <button type="button" className="surprise-choice" aria-pressed={surprise} onClick={() => { setSurprise(!surprise); if (!surprise) update('interests', []); }}><Sparkles size={18} />{surprise ? 'Surprise me is on · your pins stay' : 'Surprise me with the remaining stops'}</button>
       <p className="step-note">{surprise ? 'No interest ranking: the planner chooses from feasible catalog stops. Your budget, comfort preferences and pins still apply.' : 'Pins are optional. The planner fills the remaining time around your interests.'}</p>
       <div><h4>What do you enjoy?</h4><div className="booking-chips">{(catalog?.interests || []).slice(0, 6).map(tag => <button type="button" key={tag} aria-pressed={form.interests.includes(tag)} onClick={() => { setSurprise(false); update('interests', form.interests.includes(tag) ? form.interests.filter(item => item !== tag) : [...form.interests, tag].slice(0,20)); }}>{titleCase(tag)}</button>)}</div>
@@ -116,7 +124,10 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     </section>}
     {step === 3 && <section className="trip-step booking-section" aria-label="Review your trip">
       <div className="booking-summary"><h4>{titleCase(form.origin_city || 'Already there')} → {titleCase(form.destination)}</h4><p>{form.start_date} to {form.end_date} · {form.people_count} travelers · ₹{form.budget_inr.toLocaleString('en-IN')} destination budget</p><p>{titleCase(form.pace)} pace · {titleCase(form.transport_mode)} · {pins.length} must-visits</p><p>{pins.map(pinLabel).join(' · ') || 'Let the planner select the stops'}</p><p>Interests: {form.interests.map(titleCase).join(', ') || 'Open to discovery'} · Food: {titleCase(form.food_preference || 'any')}</p>{form.max_visit_minutes && <p>Maximum {form.max_visit_minutes} minutes per stop</p>}{form.avoid_climbing && <p>Only stops documented as not requiring climbing</p>}</div>
-      <details className="booking-more"><summary>Arrival and starting point</summary><ThemedSelect label="Starting point" value={form.origin_type || 'center'} onChange={value => update('origin_type', value as TripFormData['origin_type'])} options={[{value:'center',label:'City center'},{value:'station',label:'Railway station'},{value:'airport',label:'Airport'},{value:'hotel',label:'Hotel'}]} /><p className="step-note">Day trips start at a representative hub. Overnight trips start from the selected hotel. These are estimated locations.</p></details>
+      <details className="booking-more"><summary>Arrival, departure and starting point</summary><div className="booking-grid">
+        <label>Ready to start on arrival day<input type="time" min="08:00" max="19:59" value={minuteTime(form.arrival_available_mins??60)} onChange={e=>update('arrival_available_mins',timeMinute(e.target.value))}/></label>
+        <label>Back at base by departure day<input type="time" min="08:01" max="20:00" value={minuteTime(form.departure_deadline_mins??720)} onChange={e=>update('departure_deadline_mins',timeMinute(e.target.value))}/></label>
+      </div><p>Include check-in and airport/station transfer buffers in these times.</p><ThemedSelect label="Starting point" value={form.origin_type || 'center'} onChange={value => update('origin_type', value as TripFormData['origin_type'])} options={[{value:'center',label:'City center'},{value:'station',label:'Railway station'},{value:'airport',label:'Airport'},{value:'hotel',label:'Hotel'}]} /><p className="step-note">Day trips start at a representative hub. Overnight trips start from the selected hotel. These are estimated locations.</p></details>
       <p className="step-note">We’ll compare up to three feasible options. Prices, venue hours and travel times use the listed data sources; check current conditions before booking.</p>
     </section>}
     <div className="trip-step-actions">{step > 0 && <button type="button" className="step-back" onClick={() => move(step - 1)}>Back</button>}<button type="submit" disabled={isLoading || !catalog} className="booking-submit"><Compass size={18} />{isLoading ? 'Creating your trip…' : step < 3 ? 'Continue' : 'Create my trip'}</button></div>
@@ -124,3 +135,6 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     {isLoading && <p role="status" className="step-note">Checking routes, opening hours and the group budget. Your results will appear below.</p>}
   </form>;
 }
+
+function minuteTime(min:number){const total=min+480;return `${Math.floor(total/60).toString().padStart(2,"0")}:${(total%60).toString().padStart(2,"0")}`;}
+function timeMinute(time:string){return Number(time.slice(0,2))*60+Number(time.slice(3))-480;}

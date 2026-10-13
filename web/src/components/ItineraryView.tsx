@@ -823,7 +823,7 @@ export default function ItineraryView({
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
           <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Stops & scheduled meals</span>
           <span className="text-xl font-extrabold text-[#243e33]">₹{totalActivitiesCost.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5">{totalStops} scheduled attractions</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">{totalStops} scheduled stops</span>
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
@@ -1017,7 +1017,7 @@ export default function ItineraryView({
                           </span>
                         )}
                         {act.verification_status && (
-                          <span className="text-sm text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={act.last_verified_date ? `Listed review date: ${act.last_verified_date}` : 'No verified review date is available'}>
+                          <span className="text-sm text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={act.source_reference?.startsWith('User-confirmed') ? act.source_reference : act.last_verified_date ? `Listed review date: ${act.last_verified_date}` : 'No verified review date is available'}>
                             <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
                             <span>{act.verification_status === 'verified' ? 'Reviewed data' : act.verification_status === 'curated_seed' ? 'Curated estimate' : 'Estimated data'}</span>
                           </span>
