@@ -369,3 +369,23 @@ body { font-family: var(--font-geist-sans),Arial,sans-serif; }
 .planner-settings-toggle span { font-size:14px; font-weight:400; margin-left:12px; color:#526653; }
 .planner-settings[open]>.planner-settings-toggle:not(.hidden) { margin-bottom:28px; }
 @media(max-width:600px) { .planner-settings-toggle span { display:block; margin:6px 0 0; } }
+
+/* Secondary evidence uses the same vertical reading rhythm as daily plans. */
+.itinerary-evidence-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; align-items:start; }
+.itinerary-evidence-grid>.itinerary-disclosure { min-width:0; margin:0; padding:20px; background:#fffdf5; border:1px solid #bdcbb5; border-radius:16px; }
+.itinerary-evidence-grid .disclosure-body>div { padding:0; background:transparent; border:0; border-radius:0; box-shadow:none; }
+.itinerary-evidence-grid .disclosure-body>div>div:first-child { flex-direction:column; align-items:flex-start; gap:16px; }
+.itinerary-evidence-grid .text-right { text-align:left; }
+.itinerary-evidence-grid p { max-width:60ch; font-size:15px; line-height:1.65; }
+.budget-category-rows,.schedule-metrics { display:grid; grid-template-columns:1fr; gap:0; }
+.budget-category-rows>div,.schedule-metrics>div { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:8px 16px; padding:14px 0; background:transparent; border:0; border-bottom:1px solid #d6dfd0; border-radius:0; text-align:left; grid-column:auto; min-width:0; }
+.budget-category-rows>div>span:first-child,.schedule-metrics>div>span:first-child { font-size:14px; letter-spacing:0; text-transform:none; }
+.budget-category-rows>div>span:last-child { font-size:20px; font-variant-numeric:tabular-nums; }
+.schedule-metrics>div>span:last-child { font-size:16px; max-width:35ch; }
+.itinerary-evidence-grid .budget-reconciliation { flex-direction:column; align-items:flex-start; padding:16px; gap:14px; }
+.budget-reconciliation>div { flex-wrap:wrap; gap:6px; }
+.budget-reconciliation>span { border-radius:8px; line-height:1.6; }
+.schedule-check-list { display:flex; flex-direction:column; gap:10px; margin-top:20px; }
+.schedule-check-list>span { display:flex; align-items:flex-start; gap:10px; padding:12px; font-size:15px; line-height:1.6; border-radius:8px; }
+.schedule-check-list svg { width:18px; height:18px; margin-top:3px; }
+@media(max-width:900px) { .itinerary-evidence-grid { grid-template-columns:1fr; } }

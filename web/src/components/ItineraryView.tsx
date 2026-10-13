@@ -1231,6 +1231,7 @@ export default function ItineraryView({
         </div>
       </div>
 
+<section className="itinerary-evidence-grid" aria-label="Budget and schedule details">
       <details className="itinerary-disclosure"><summary>Budget breakdown <span>See lodging, transport, meals and remaining budget</span></summary><div className="disclosure-body">
       {/* Feature 2: Smart Expense Simulator & Category Allocation */}
       {plan.expense_breakdown && (
@@ -1250,7 +1251,7 @@ export default function ItineraryView({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+          <div className="budget-category-rows">
             <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
               <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Lodging</span>
               <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.lodging_inr.toLocaleString('en-IN')}</span>
@@ -1278,7 +1279,7 @@ export default function ItineraryView({
           </div>
 
           {/* Reconciled Accounting Status Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-4 py-2.5 text-sm gap-2">
+          <div className="budget-reconciliation flex flex-col sm:flex-row sm:items-center justify-between bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-4 py-2.5 text-sm gap-2">
             <div className="flex items-center space-x-2 text-[#425d4c]">
               <span className="font-semibold text-[#243e33]">Direct Subtotal:</span>
               <span className="text-[#89532d] font-bold">₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')}</span>
@@ -1332,7 +1333,7 @@ export default function ItineraryView({
 
           {/* Operational Metrics */}
           {plan.verification_report.metrics && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            <div className="schedule-metrics">
               {Object.entries(plan.verification_report.metrics).map(([key, val]) => (
                 <div key={key} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-lg p-2 text-center">
                   <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">
@@ -1345,7 +1346,7 @@ export default function ItineraryView({
           )}
 
           {/* Checks Passed Pills */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="schedule-check-list">
             {plan.verification_report.checks_passed.map((chk, idx) => (
               <span key={idx} className="inline-flex items-center space-x-1 text-sm text-emerald-800 bg-emerald-500/5 border border-emerald-500/20 px-2 py-0.5 rounded-md">
                 <CheckCircle2 className="w-3 h-3 text-emerald-700 shrink-0" />
@@ -1357,6 +1358,7 @@ export default function ItineraryView({
       )}
 
       </div></details>
+      </section>
       {/* Blueprint Stage 10 & Spec Feature 1: Why Not X? Candidate Omission Audit */}
       {currentPlan.decision_trace?.excluded_places && currentPlan.decision_trace.excluded_places.length > 0 && (
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl">
