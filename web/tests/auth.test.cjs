@@ -234,7 +234,7 @@ const {
   normalizeSavedSnapshot,
   resolveSelectedVariant,
   getAvailableVariants,
-} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts') });
+} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts') }) });
 
 const sampleDay = {
   day_number: 1,
@@ -502,7 +502,7 @@ test('saved trip service blocks duplicate concurrent saves, reopens without rege
 });
 
 
-const snapshotValidator = load('lib/snapshot-validation.ts');
+const snapshotValidator = load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts') });
 test('snapshot guard rejects future schemas, broken costs, coordinates and overlapping appointments', () => {
   const original = { schema_version: 1, destination: 'Hyderabad', variants: { balanced: samplePlan } };
   assert.doesNotThrow(() => normalizeSavedSnapshot(original));
@@ -587,4 +587,31 @@ test('delete requires a returned row and releases its lock after failure', async
   await assert.rejects(service.deleteSavedTrip(id), err => err.code === 'NOT_FOUND');
   result = { data: { id }, error: null };
   await service.deleteSavedTrip(id);
+});
+
+const { journeyWindow } = load('lib/journey-timing.ts');
+const timedTrip = {
+  origin_city: 'bengaluru', destination: 'hyderabad', start_date: '2026-10-19', end_date: '2026-10-19',
+  journey_timing: { version: 1, timezone: 'Asia/Kolkata', outbound_departure: '2026-10-18T22:00+05:30', destination_arrival: '2026-10-19T10:00+05:30', destination_departure: '2026-10-19T19:00+05:30', return_arrival: '2026-10-20T07:00+05:30', arrival_buffer_minutes: 60, departure_buffer_minutes: 90 },
+};
+test('journey preflight preserves legacy requests and applies overnight transfer buffers', () => {
+  assert.deepEqual(journeyWindow({ ...timedTrip, journey_timing: undefined }), { earliest: 60, latest: 720 });
+  assert.deepEqual(journeyWindow(timedTrip), { earliest: 180, latest: 570 });
+  assert.deepEqual(journeyWindow(JSON.parse(JSON.stringify(timedTrip))), { earliest: 180, latest: 570 });
+});
+test('journey preflight rejects invalid dates, order, offsets and unavailable sightseeing dates', () => {
+  for (const changes of [{ outbound_departure: '2026-10-19T11:00+05:30' }, { destination_arrival: '2026-02-30T10:00+05:30' }, { destination_arrival: '2026-10-19T10:00' }, { arrival_buffer_minutes: 600 }, { departure_buffer_minutes: -1 }, { version: 2 }]) {
+    assert.throws(() => journeyWindow({ ...timedTrip, journey_timing: { ...timedTrip.journey_timing, ...changes } }));
+  }
+  assert.throws(() => journeyWindow({ ...timedTrip, start_date: '2026-10-18' }), /Sightseeing dates/);
+  assert.throws(() => journeyWindow({ ...timedTrip, origin_city: '' }), /origin city/);
+});
+
+test('saved request validation retains journey timing and rejects unsupported contracts', () => {
+  const snapshot = { destination: 'Hyderabad', variants: { balanced: samplePlan } };
+  const form = { destination: 'hyderabad', origin_city: 'bengaluru', start_date: '2026-10-15', end_date: '2026-10-16', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [], journey_timing: { ...timedTrip.journey_timing, outbound_departure: '2026-10-14T08:00+05:30', destination_arrival: '2026-10-14T20:00+05:30', destination_departure: '2026-10-17T08:00+05:30', return_arrival: '2026-10-17T20:00+05:30' } };
+  const saved = snapshotValidator.validateTripRequest(form, snapshot, 'balanced');
+  const reopened = snapshotValidator.validateTripRequest(JSON.parse(JSON.stringify(saved)), snapshot, 'balanced');
+  assert.deepEqual(reopened.journey_timing, form.journey_timing);
+  assert.throws(() => snapshotValidator.validateTripRequest({ ...form, journey_timing: { ...form.journey_timing, version: 2 } }, snapshot), /Unsupported journey/);
 });

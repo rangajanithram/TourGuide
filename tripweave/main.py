@@ -340,6 +340,7 @@ def _build_single_plan(
     try:
         itinerary = optimizer.generate_plan()
         itinerary.meal_places = meal_places
+        itinerary.planning_preferences.journey_timing = request.journey_timing
         itinerary.planning_preferences.meal_budget_per_person = request.meal_budget_per_person
         itinerary.planning_preferences.arrival_available_mins = request.arrival_available_mins
         itinerary.planning_preferences.departure_deadline_mins = request.departure_deadline_mins

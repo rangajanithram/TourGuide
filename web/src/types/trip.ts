@@ -260,7 +260,18 @@ export interface ConfirmedDiscoveryStop {
  place_id:string; name:string; lat:number; lng:number; place_type:'attraction'|'restaurant';
  duration_minutes:number; estimated_cost_per_person_inr:number; open_time_mins:number; close_time_mins:number;
 }
+export interface JourneyTiming {
+  version: 1;
+  timezone: 'Asia/Kolkata';
+  outbound_departure: string;
+  destination_arrival: string;
+  destination_departure: string;
+  return_arrival: string;
+  arrival_buffer_minutes: number;
+  departure_buffer_minutes: number;
+}
 export interface TripFormData {
+ journey_timing?: JourneyTiming;
  external_stops?:ConfirmedDiscoveryStop[];
  meal_budget_per_person?:number;
  arrival_available_mins?:number; departure_deadline_mins?:number;

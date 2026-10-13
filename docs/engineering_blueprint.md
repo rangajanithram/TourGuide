@@ -335,3 +335,30 @@ A feature is **not complete** until its automated tests and acceptance criteria 
 ---
 
 *Engineering Blueprint v2.0 — Reconciled and hardened for Web-First Next.js + FastAPI + Supabase production architecture.*
+
+## 2026-10-13 amendment: journey timing increment (Stage 3, first slice)
+
+The master user-flow plan is implemented in small SDLC increments, each with requirements,
+design, implementation, validation and release evidence. The first slice adds optional
+`journey_timing` version 1 to planning preferences and saved request snapshots.
+
+- Current supported cities use Asia/Kolkata. Four explicit timestamps require the +05:30
+  offset and minute precision: outbound departure, destination arrival, destination
+  departure, return arrival. They must be chronological and span at most 30 days.
+- Existing start/end dates remain **sightseeing dates**. Travel nights do not silently
+  change hotel nights or budgets. Existing destination-budget semantics are preserved.
+- User-entered arrival and departure buffers reserve transfer/luggage/rest/boarding time.
+  These values are estimates, not validated transport or hotel check-in evidence.
+- Arrival plus buffer and departure minus buffer constrain the first/last sightseeing
+  window, intersected with existing manual availability and the 08:00–20:00 solver window.
+  Conflicting sightseeing dates fail before solving. The independent verifier recomputes
+  those bounds, including during edits/rebalance.
+- Optional additive JSON fields preserve old snapshots; no schema migration is required.
+  Frontend form, review, request forwarding and reopening retain the timing contract.
+- No paid service, booking verification, road routing or whole-journey budget claim is
+  introduced. Transport summaries remain reference suggestions, not the entered bookings.
+
+Next increment: complete the journey contract with explicit budget scope and accommodation
+choices, then transport/stay scenario selection and canonical place evidence validation. The broader journey milestone remains partial:
+allowed travel modes, booked/no-hotel bases, terminal routes, check-in and full-journey pricing
+still need independent acceptance gates.

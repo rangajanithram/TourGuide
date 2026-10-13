@@ -59,8 +59,50 @@ class ConfirmedDiscoveryStop(BaseModel):
             raise ValueError("The confirmed time window must fit the visit duration.")
         return self
 
+class JourneyTiming(BaseModel):
+    """User-supplied Indian travel times, not verified transport inventory."""
+    model_config = ConfigDict(extra="forbid")
+    version: Literal[1] = 1
+    timezone: Literal["Asia/Kolkata"] = "Asia/Kolkata"
+    outbound_departure: datetime
+    destination_arrival: datetime
+    destination_departure: datetime
+    return_arrival: datetime
+    arrival_buffer_minutes: int = Field(ge=0, le=720)
+    departure_buffer_minutes: int = Field(ge=0, le=720)
+
+    @field_validator("outbound_departure", "destination_arrival", "destination_departure", "return_arrival")
+    @classmethod
+    def require_indian_offset(cls, value):
+        if value.utcoffset() != timedelta(hours=5, minutes=30) or value.second or value.microsecond:
+            raise ValueError("Travel times must use minute precision and the +05:30 India offset.")
+        return value
+
+    @model_validator(mode="after")
+    def chronological(self):
+        if not self.outbound_departure < self.destination_arrival < self.destination_departure < self.return_arrival:
+            raise ValueError("Travel times must follow departure, destination arrival, destination departure, then return arrival.")
+        if self.return_arrival - self.outbound_departure > timedelta(days=30):
+            raise ValueError("Travel timing can cover at most 30 days.")
+        return self
+
+    def local_window(self, start: date, end: date, earliest: int, latest: int):
+        ready = self.destination_arrival + timedelta(minutes=self.arrival_buffer_minutes)
+        leave = self.destination_departure - timedelta(minutes=self.departure_buffer_minutes)
+        if ready.date() > start or leave.date() < end:
+            raise ValueError("Sightseeing dates must fit between arrival plus buffer and departure minus buffer. Adjust dates or travel times.")
+        if ready.date() == start:
+            earliest = max(earliest, ready.hour * 60 + ready.minute - 480)
+        if leave.date() == end:
+            latest = min(latest, leave.hour * 60 + leave.minute - 480)
+        if earliest >= 720 or latest <= 0 or (start == end and earliest >= latest):
+            raise ValueError("Travel timing leaves no sightseeing time in the 08:00–20:00 planning window.")
+        return earliest, latest
+
+
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    journey_timing: Optional[JourneyTiming] = None
     meal_budget_per_person: Optional[int] = Field(default=None, ge=0, le=10000)
     arrival_available_mins: int = Field(default=60, ge=0, le=719)
     departure_deadline_mins: int = Field(default=720, ge=1, le=720)
@@ -92,6 +134,15 @@ class TripRequest(PlanningPreferences):
     locked_activities: List[str] = Field(default_factory=list, max_length=15, description="User-pinned activities that must be included")
     hotel_pref: Optional[HotelPreference] = None
     transport_pref: Optional[TransportPreference] = None
+
+    @model_validator(mode="after")
+    def apply_journey_timing(self):
+        if self.journey_timing:
+            if not self.origin_city or self.origin_city.strip().lower() == self.destination.strip().lower():
+                raise ValueError("Choose a different origin city to add intercity travel timing.")
+            self.arrival_available_mins, self.departure_deadline_mins = self.journey_timing.local_window(
+                self.start_date, self.end_date, self.arrival_available_mins, self.departure_deadline_mins)
+        return self
 
     @model_validator(mode="before")
     @classmethod

@@ -1,3 +1,4 @@
+import { journeyWindow } from './journey-timing';
 import type { MultiVariantTripPlan, TripFormData, TripPlan, VariantKey } from '@/types/trip';
 
 function invalid(message: string): never { throw new Error(`Invalid saved itinerary: ${message}`); }
@@ -121,6 +122,7 @@ export function validateSnapshot(raw: unknown): asserts raw is MultiVariantTripP
 
 export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTripPlan, selected?: VariantKey): TripFormData {
   if (!validDate(form.start_date) || !validDate(form.end_date)) invalid('trip dates');
+  try { journeyWindow(form); } catch (error) { invalid(error instanceof Error ? error.message : 'journey timing'); }
   const days = (Date.parse(form.end_date) - Date.parse(form.start_date)) / 86400000 + 1;
   integer(days, 'duration', 1, 14); integer(form.budget_inr, 'budget', 1, 5_000_000); integer(form.people_count, 'travelers', 1, 20);
   if (form.destination.toLowerCase() !== snapshot.destination.toLowerCase()) invalid('request destination mismatch');

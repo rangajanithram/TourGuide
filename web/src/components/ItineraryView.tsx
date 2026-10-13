@@ -434,6 +434,14 @@ export default function ItineraryView({
 
   return (
     <div className="itinerary-reader space-y-6">
+      {formData?.journey_timing && <section className="rounded-2xl border border-[#d6dfd0] bg-[#fffdf5] p-5" aria-label="Your travel timing">
+        <h2 className="text-xl font-semibold">Your travel timing</h2>
+        <p className="text-sm text-[#596b57] mt-2">User-supplied · India time (UTC+05:30). These times constrain sightseeing; transport suggestions below are separate reference options.</p>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          {([['outbound_departure', 'Leave origin'], ['destination_arrival', 'Arrive at destination'], ['destination_departure', 'Leave destination'], ['return_arrival', 'Return to origin']] as const).map(([key, label]) => <div key={key}><dt className="text-sm text-[#596b57]">{label}</dt><dd className="font-semibold">{formData.journey_timing![key].slice(0,16).replace('T', ' · ')}</dd></div>)}
+        </dl>
+        <p className="text-sm mt-4">Reserved buffers: {formData.journey_timing.arrival_buffer_minutes} minutes after arrival; {formData.journey_timing.departure_buffer_minutes} minutes before departure. Confirm transfers, tickets and hotel check-in yourself. Intercity fares are excluded from the destination budget.</p>
+      </section>}
       {/* Modification & Version History Banner */}
       {planHistory.length > 0 && (
         <div className="flex flex-wrap items-center justify-between gap-2.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4 shadow-lg text-sm text-amber-200 animate-fade-in">

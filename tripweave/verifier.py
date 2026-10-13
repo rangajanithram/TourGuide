@@ -4,9 +4,9 @@ Audits itineraries independently of the solver to guarantee physical realism,
 accurate time windows, valid opening days, and strict budget conservation.
 """
 from tripweave.preferences import preference_conflict
-from datetime import datetime
+from datetime import datetime, date
 from typing import List, Tuple, Dict, Any, Optional
-from tripweave.models import TripPlan, TripRequest, Place, VerificationReport
+from tripweave.models import TripPlan, TripRequest, Place, VerificationReport, JourneyTiming
 from tripweave.distance import calculate_distance_km, get_travel_metrics
 
 def _time_str_to_minutes(time_str: str) -> int:
@@ -59,6 +59,17 @@ class ItineraryVerifier:
         checks_passed = []
         warnings = []
         errors = []
+        earliest_bound = request.arrival_available_mins
+        latest_bound = request.departure_deadline_mins
+        if request.journey_timing:
+            try:
+                timing = JourneyTiming.model_validate(request.journey_timing)
+                earliest_bound, latest_bound = timing.local_window(
+                    date.fromisoformat(plan.days[0].date), date.fromisoformat(plan.days[-1].date), earliest_bound, latest_bound)
+                warnings.append("Travel times and transfer buffers are user-supplied. Tickets, hotel check-in and terminal routes are not verified; intercity fares are outside the destination budget.")
+            except (ValueError, TypeError, IndexError) as error:
+                errors.append(f"Journey timing conflict: {error}")
+
 
         place_lookup: Dict[str, Place] = {}
         for p in places_db:
@@ -89,7 +100,7 @@ class ItineraryVerifier:
         for day in plan.days:
             prev_lat = hotel_lat
             prev_lng = hotel_lng
-            prev_end_minute = request.arrival_available_mins if day.day_number == 1 else 60
+            prev_end_minute = earliest_bound if day.day_number == 1 else 60
             day_activities_cost = 0
 
             # Day-of-week validation
@@ -106,8 +117,8 @@ class ItineraryVerifier:
                 except ValueError:
                     errors.append(f"Invalid Time Window: Day {day.day_number} stop '{act.place_name}' has malformed times.")
                     continue
-                earliest = request.arrival_available_mins if day.day_number == 1 else 60
-                latest = request.departure_deadline_mins if day.day_number == request.days else 720
+                earliest = earliest_bound if day.day_number == 1 else 60
+                latest = latest_bound if day.day_number == request.days else 720
                 if start_min < earliest or end_min > latest:
                     errors.append(f"Day {day.day_number}: Stop exceeds arrival/departure availability.")
                 duration = end_min - start_min
@@ -266,7 +277,7 @@ class ItineraryVerifier:
 
                 # Verify full physical day schedule window
                 hotel_arrival_min = prev_end_minute + ret_mins
-                if day.day_number == request.days and hotel_arrival_min > request.departure_deadline_mins:
+                if day.day_number == request.days and hotel_arrival_min > latest_bound:
                     errors.append(f"Day {day.day_number}: Return transfer exceeds departure-day deadline.")
                 # 8:00 AM is 0 min. 8:00 PM is 720 mins. 9:00 PM is 780 mins.
                 if hotel_arrival_min > 780:
