@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { Compass, BookOpen, User, BookmarkCheck, PlusCircle } from 'lucide-react';
+import { Compass, BookOpen, User, BookmarkCheck, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import LogoutButton from '@/components/auth/LogoutButton';
 export default function Header() {
@@ -21,6 +21,7 @@ export default function Header() {
             <PlusCircle size={17} />
             <span className="hidden sm:inline">Create trip</span>
           </Link>
+          <Link href="/discover" aria-label="Discover places" className="flex items-center gap-1 px-2 py-2 text-[#243e33]"><Search size={17}/><span className="hidden md:inline">Discover</span></Link>
           <Link href="/trips" className="flex items-center gap-1.5 rounded-full border border-[#c6d2c0] bg-[#f4f7f0] px-3 py-1.5 font-medium text-[#243e33] hover:bg-[#e7efe1] transition">
             <BookmarkCheck size={17} />
             <span>My trips</span>

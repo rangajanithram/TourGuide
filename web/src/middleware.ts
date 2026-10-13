@@ -26,5 +26,5 @@ export async function middleware(request: NextRequest) {
 }
 export const config = {
   runtime: 'nodejs',
-  matcher: ['/planner/:path*', '/trips', '/trips/:path*', '/account/:path*', '/auth/:path*', '/login', '/signup', '/forgot-password', '/check-email', '/reset-password', '/verified'],
+  matcher: ['/planner/:path*', '/discover', '/trips', '/trips/:path*', '/account/:path*', '/auth/:path*', '/login', '/signup', '/forgot-password', '/check-email', '/reset-password', '/verified'],
 };

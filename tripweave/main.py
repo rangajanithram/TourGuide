@@ -710,3 +710,20 @@ def api_get_me(current_user: UserProfile = Depends(get_current_user)):
 @app.post("/api/auth/logout", tags=["Authentication"], deprecated=True)
 def retired_local_auth():
     raise HTTPException(status_code=410, detail="Use Supabase authentication through the web application.")
+
+
+# Discovery is separate from the feasibility catalog: no guessed hours or fees.
+from typing import Literal
+from fastapi import Query, Response
+from tripweave.discovery import DiscoveryProvider
+_discovery = DiscoveryProvider(settings.geoapify_api_key, settings.discovery_daily_requests)
+
+@app.get("/api/discovery", tags=["Place Discovery"])
+def discover_places(response: Response, location: str = Query(min_length=2, max_length=150),
+                    category: Literal["attractions", "restaurants", "stays", "parks", "hills"] = "attractions",
+                    current_user: UserProfile = Depends(get_current_user)):
+    _enforce_rate_limit(current_user, "discovery", limit=6)
+    response.headers["Cache-Control"] = "private, no-store"
+    if len(location.strip()) < 2:
+        raise HTTPException(422, "Enter a location of at least two characters.")
+    return _discovery.search(location.strip(), category)
