@@ -31,4 +31,26 @@ class DiscoveryTests(unittest.TestCase):
         with self.assertRaises(HTTPException) as error: DiscoveryProvider('key',opener=broken).search('Paris','parks')
         self.assertNotIn('secret',error.exception.detail)
 
+    def test_name_search_covers_categories_and_preserves_restaurant_type(self):
+        from urllib.parse import urlparse, parse_qs
+        responses = iter([{'features': [{'properties': {'lat': 17.4, 'lon': 78.5}}]},
+            {'features': [{'properties': {'name': 'Test Restaurant', 'place_id': 'restaurant',
+                'lat': 17.4, 'lon': 78.5, 'categories': ['catering.restaurant']}}]}])
+        urls = []
+        def opener(url, timeout):
+            urls.append(url)
+            return BytesIO(json.dumps(next(responses)).encode())
+        result = DiscoveryProvider('key', opener=opener).search('Hyderabad, India', 'all', 'Test Restaurant')
+        params = parse_qs(urlparse(urls[1]).query)
+        self.assertEqual(params['name'], ['Test Restaurant'])
+        self.assertIn('catering.restaurant', params['categories'][0])
+        self.assertIn('natural.mountain', params['categories'][0])
+        self.assertEqual(result['places'][0]['category'], 'restaurants')
+
+    def test_city_suggestions_do_not_depend_on_place_database(self):
+        from tripweave.main import planner_cities
+        with patch('tripweave.main.get_database_places', side_effect=RuntimeError('Database unavailable')):
+            cities = planner_cities()['cities']
+        self.assertTrue(any(city['value'] == 'hyderabad' for city in cities))
+
 if __name__=='__main__':unittest.main()

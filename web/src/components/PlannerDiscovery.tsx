@@ -1,27 +1,86 @@
 'use client';
-import {useState} from 'react';
-import {plannerFetch} from '@/lib/planner-fetch';
-import {apiBaseUrl} from '@/lib/planner-network';
-import type {ConfirmedDiscoveryStop} from '@/types/trip';
-type Result={id:string;name:string;address:string;lat:number;lng:number;category:string};
-export default function PlannerDiscovery({destination,onConfirm,disabled}:{destination:string;onConfirm:(stop:ConfirmedDiscoveryStop,mandatory:boolean)=>void;disabled:boolean}){
- const [items,setItems]=useState<Result[]>([]),[chosen,setChosen]=useState<Result|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[filter,setFilter]=useState('');
- const [category,setCategory]=useState('attractions');
- async function load(){setBusy(true);setError('');setChosen(null);try{const r=await plannerFetch(`${apiBaseUrl()}/api/discovery?${new URLSearchParams({location:destination+', India',category})}`);setItems((await r.json()).places);}catch(e){setError(e instanceof Error?e.message:'Search failed');}finally{setBusy(false);}}
- return <details className="booking-more"><summary>Find more real places in {destination}</summary><p>Choose a live listing, then confirm your planning estimates. These are not verified venue facts.</p>
- <label>Category<select value={category} onChange={e=>{setCategory(e.target.value);setItems([]);setChosen(null);}}>{[['attractions','Attractions'],['restaurants','Restaurants'],['parks','Parks'],['hills','Hills & mountains']].map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></label>
- <button type="button" className="booking-submit" disabled={busy||disabled} onClick={()=>void load()}>{busy?'Finding places...':'Load nearby places'}</button>
- {error&&<p role="alert">{error}</p>}
- {!!items.length&&<><label>Filter results<input value={filter} onChange={e=>setFilter(e.target.value)} placeholder="Type a place name"/></label><div className="live-place-options">{items.filter(p=>p.name.toLowerCase().includes(filter.toLowerCase())).map(p=><button type="button" key={p.id} onClick={()=>setChosen(p)} aria-pressed={chosen?.id===p.id}>{p.name}<small>{p.address}</small></button>)}</div></>}
- {chosen&&<div key={chosen.id} className="confirmed-stop-fields"><h4>{chosen.name}</h4><p>Confirm the time you intend to visit and your per-person cost estimate. Check the venue before travel.</p>
- <label><input id="live-mandatory" type="checkbox" defaultChecked/> Must visit this place (uncheck to let the planner decide)</label>
- <label>Visit length (minutes)<input id="live-duration" type="number" min={15} max={480}/></label><label>Estimated cost per person (INR)<input id="live-cost" type="number" min={0} max={100000}/></label><label>Earliest visit time<input id="live-open" type="time" min="08:00" max="20:00"/></label><label>Finish by<input id="live-close" type="time" min="08:00" max="20:00"/></label>
- <button type="button" disabled={disabled} className="booking-submit" onClick={()=>{
- const value=(id:string)=>(document.getElementById(id) as HTMLInputElement).value;
- const mins=(v:string)=>Number(v.slice(0,2))*60+Number(v.slice(3))-480;
- const duration=Number(value('live-duration')),cost=Number(value('live-cost')),start=value('live-open'),end=value('live-close');
- if(!value('live-cost')||!Number.isInteger(cost)||cost<0||cost>100000||!Number.isInteger(duration)||duration<15||duration>480||!start||!end||mins(start)<0||mins(end)>720||mins(end)-mins(start)<duration){setError('Enter a valid duration, cost and time window that fits the visit between 08:00 and 20:00.');return;}
- onConfirm({place_id:chosen.id,name:chosen.name,lat:chosen.lat,lng:chosen.lng,place_type:chosen.category==='restaurants'?'restaurant':'attraction',duration_minutes:duration,estimated_cost_per_person_inr:cost,open_time_mins:mins(start),close_time_mins:mins(end)},(document.getElementById("live-mandatory") as HTMLInputElement).checked);setChosen(null);setError('');
- }}>Confirm estimates and add this place</button></div>}
- <p>Powered by <a href="https://www.geoapify.com/">Geoapify</a> | <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a></p></details>;
+import { useEffect, useRef, useState } from 'react';
+import { plannerFetch } from '@/lib/planner-fetch';
+import { apiBaseUrl } from '@/lib/planner-network';
+import type { ConfirmedDiscoveryStop } from '@/types/trip';
+import PlaceSearch, { SearchOption } from './PlaceSearch';
+
+type Result = { id: string; name: string; address: string; lat: number; lng: number; category: string };
+type CatalogOption = SearchOption & { lat?: number; lng?: number };
+export default function PlannerDiscovery({ destination, catalog, selected, onPin, onConfirm, disabled }: {
+  destination: string; catalog: CatalogOption[]; selected: string[];
+  onPin: (id: string) => void; onConfirm: (stop: ConfirmedDiscoveryStop, mandatory: boolean) => void; disabled: boolean;
+}) {
+  const [query, setQuery] = useState('');
+  const [items, setItems] = useState<Result[]>([]);
+  const [chosen, setChosen] = useState<Result | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
+  const cache = useRef(new Map<string, Result[]>());
+  useEffect(() => {
+    const controller = new AbortController();
+    const name = query.trim();
+    setItems([]); setError(''); setBusy(false);
+    if (name.length < 3 || disabled) return () => controller.abort();
+    const key = `${destination}:${name.toLowerCase()}`;
+    const cached = cache.current.get(key);
+    if (cached) { setItems(cached); return () => controller.abort(); }
+    setBusy(true);
+    const timer = setTimeout(async () => {
+      try {
+        const response = await plannerFetch(`${apiBaseUrl()}/api/discovery?${new URLSearchParams({ location: destination + ', India', category: 'all', query: name })}`, { signal: controller.signal });
+        const body = await response.json();
+        if (!Array.isArray(body.places)) throw new Error('Place search returned an invalid response. Please retry.');
+        if (!controller.signal.aborted) {
+          const places = body.places as Result[];
+          if (cache.current.size >= 10) cache.current.delete(cache.current.keys().next().value!);
+          cache.current.set(key, places); setItems(places);
+        }
+      } catch (failure) {
+        if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Live search is unavailable. Catalog matches are still available.');
+      } finally { if (!controller.signal.aborted) setBusy(false); }
+    }, 900);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [query, destination, disabled, retry]);
+  const live = items.filter(item => !selected.includes('discovered:' + item.id) && !catalog.some(place =>
+    place.label.trim().toLowerCase() === item.name.trim().toLowerCase() && place.lat !== undefined && place.lng !== undefined && Math.abs(place.lat-item.lat) < 0.002 && Math.abs(place.lng-item.lng) < 0.002));
+  const options: SearchOption[] = [
+    ...catalog.filter(place => !selected.includes(place.value)).map(place => ({ ...place, description: 'Catalog · planning estimates available' })),
+    ...live.map(item => ({ value: 'discovered:' + item.id, label: item.name, description: `Live listing · ${item.address}` })),
+  ];
+  const status = disabled ? 'You can select up to 15 places. Remove a pin to add another.' : busy ? 'Searching real places…' : error || (query.trim().length < 3 ? 'Type at least 3 characters to search real attractions, restaurants, parks and hills. Select places one at a time; your pins stay selected.' : 'Matching catalog and live listings near this city. Coverage depends on the source.');
+  return <div>
+    <PlaceSearch label="Search and pin a place" value="" placeholder="Type an attraction, restaurant, park or hill…" options={options} disabled={disabled} onQueryChange={setQuery} status={status} onChange={id => {
+      const item = items.find(place => 'discovered:' + place.id === id);
+      if (item) setChosen(item); else onPin(id);
+    }} />
+    {error && <button type="button" onClick={() => setRetry(value => value + 1)} disabled={busy}>Retry live search</button>}
+    {chosen && <ConfirmPlace key={chosen.id} place={chosen} disabled={disabled} onCancel={() => setChosen(null)} onConfirm={stop => { onConfirm(stop, true); setChosen(null); }} />}
+    <p className="catalog-caption">Live listings: <a href="https://www.geoapify.com/">Geoapify</a> / <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Hours and prices may need your confirmation.</p>
+  </div>;
+}
+
+function ConfirmPlace({ place, disabled, onCancel, onConfirm }: { place: Result; disabled: boolean; onCancel: () => void; onConfirm: (stop: ConfirmedDiscoveryStop) => void }) {
+  const [duration, setDuration] = useState('');
+  const [cost, setCost] = useState('');
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [error, setError] = useState('');
+  return <section className="booking-summary" aria-label={`Confirm estimates for ${place.name}`}>
+    <h4>{place.name}</h4><p>{place.address}</p>
+    <p>This listing is missing verified planning facts. Confirm your estimates to pin it; these remain labeled as estimates in the itinerary.</p>
+    <div className="booking-grid">
+      <label>Visit length (minutes)<input type="number" min={15} max={480} value={duration} onChange={event => setDuration(event.target.value)} /></label>
+      <label>Cost per person (₹, enter 0 if free)<input type="number" min={0} max={100000} value={cost} onChange={event => setCost(event.target.value)} /></label>
+      <label>Earliest planned visit<input type="time" min="08:00" max="20:00" value={start} onChange={event => setStart(event.target.value)} /></label>
+      <label>Finish by<input type="time" min="08:00" max="20:00" value={end} onChange={event => setEnd(event.target.value)} /></label>
+    </div>
+    {error && <p role="alert">{error}</p>}
+    <div className="trip-step-actions"><button type="button" onClick={onCancel}>Cancel</button><button type="button" className="booking-submit" disabled={disabled} onClick={() => {
+      const minute = (time: string) => Number(time.slice(0,2))*60 + Number(time.slice(3))-480;
+      if (!cost || !duration || !Number.isInteger(Number(cost)) || Number(cost)<0 || Number(cost)>100000 || !Number.isInteger(Number(duration)) || Number(duration)<15 || Number(duration)>480 || !start || !end || minute(start)<0 || minute(end)>720 || minute(end)-minute(start)<Number(duration)) { setError('Enter a duration, cost and time window that fits your visit between 08:00 and 20:00.'); return; }
+      onConfirm({ place_id: place.id, name: place.name, lat: place.lat, lng: place.lng, place_type: place.category === 'restaurants' ? 'restaurant' : 'attraction', duration_minutes: Number(duration), estimated_cost_per_person_inr: Number(cost), open_time_mins: minute(start), close_time_mins: minute(end) });
+    }}>Confirm estimates and pin</button></div>
+  </section>;
 }

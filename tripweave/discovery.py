@@ -11,6 +11,7 @@ from urllib.request import urlopen
 from fastapi import HTTPException
 
 CATEGORIES = {
+    "all": "tourism,catering.restaurant,leisure.park,natural.mountain",
     "attractions": "tourism.sights",
     "restaurants": "catering.restaurant",
     "stays": "accommodation",
@@ -53,7 +54,7 @@ class DiscoveryProvider:
             # Never return a URL or raw exception containing the API key.
             raise HTTPException(503, "Place-data service is unavailable. Please retry later.") from None
 
-    def search(self, location, category):
+    def search(self, location, category, query=None):
         locations = self._get("v1/geocode/search", {"text": location, "limit": 1, "lang": "en"})
         if not locations:
             return {"location": location, "places": [], "fetched_at": datetime.now(timezone.utc).isoformat()}
@@ -64,8 +65,11 @@ class DiscoveryProvider:
                 raise ValueError()
         except (KeyError, TypeError, ValueError):
             raise HTTPException(503, "Location service returned invalid coordinates.") from None
-        features = self._get("v2/places", {"categories": CATEGORIES[category],
-            "filter": f"circle:{lon},{lat},15000", "bias": f"proximity:{lon},{lat}", "limit": 20, "lang": "en"})
+        params = {"categories": CATEGORIES[category],
+            "filter": f"circle:{lon},{lat},15000", "bias": f"proximity:{lon},{lat}", "limit": 20, "lang": "en"}
+        if query:
+            params["name"] = query
+        features = self._get("v2/places", params)
         places = []
         for feature in features[:20]:
             if not isinstance(feature, dict):
@@ -82,7 +86,9 @@ class DiscoveryProvider:
                     continue
             except (KeyError, TypeError, ValueError):
                 continue
+            categories = props.get("categories", [])
+            is_food = isinstance(categories, list) and any(isinstance(c, str) and c.startswith("catering.restaurant") for c in categories)
             places.append({"lat": lat, "lng": lng,"id": str(props.get("place_id", ""))[:512], "name": name[:250],
-                "address": str(props.get("formatted", ""))[:600], "category": category})
+                "address": str(props.get("formatted", ""))[:600], "category": "restaurants" if is_food else category})
         return {"location": str(center.get("formatted", location))[:600], "places": places,
             "fetched_at": datetime.now(timezone.utc).isoformat()}

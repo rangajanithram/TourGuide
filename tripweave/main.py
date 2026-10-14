@@ -470,14 +470,23 @@ def planner_catalog(destination: str = "hyderabad"):
     return {
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,
-                    "duration": p.duration_minutes} for p in places],
-        "interests": sorted({tag for p in places for tag in p.tags}),
+                    "duration": p.duration_minutes, "lat": p.lat, "lng": p.lng} for p in places],
+        "interests": sorted({tag for p in places for tag in p.tags} | {
+            "history", "heritage", "architecture", "art", "museum", "culture", "fortress",
+            "palace", "nature", "garden", "park", "hilltop", "panoramic", "viewpoint",
+            "sunset", "walking", "food", "breakfast", "sweets", "coastal", "caves", "unesco", "royal", "social"}),
         "long_visits": any(p.duration_minutes > 90 for p in places),
         "climbing_known": any(p.requires_climbing is not None for p in places),
         "food_available": any(p.place_type == "restaurant" for p in places),
         "dietary_options": sorted({diet for p in places for diet in p.dietary_options}),
         "source": "Database curated catalog; not live availability" if any(p.catalog_origin == "supabase_curated" for p in places) else "Curated destination catalog; not live availability",
     }
+
+
+@app.get("/api/planner/cities", tags=["Places Database"])
+def planner_cities():
+    # Destination entry must not wait for database-backed venue records.
+    return {"cities": [{"value": c, "label": c.title()} for c in sorted(settings.supported_cities)]}
 
 
 @app.get("/api/places", response_model=List[Place], tags=["Places Database"])
@@ -746,10 +755,13 @@ _discovery = DiscoveryProvider(settings.geoapify_api_key, settings.discovery_dai
 
 @app.get("/api/discovery", tags=["Place Discovery"])
 def discover_places(response: Response, location: str = Query(min_length=2, max_length=150),
-                    category: Literal["attractions", "restaurants", "stays", "parks", "hills"] = "attractions",
+                    category: Literal["all", "attractions", "restaurants", "stays", "parks", "hills"] = "attractions",
+                    query: Optional[str] = Query(default=None, min_length=2, max_length=100),
                     current_user: UserProfile = Depends(get_current_user)):
     _enforce_rate_limit(current_user, "discovery", limit=6)
     response.headers["Cache-Control"] = "private, no-store"
     if len(location.strip()) < 2:
         raise HTTPException(422, "Enter a location of at least two characters.")
-    return _discovery.search(location.strip(), category)
+    if query is not None and len(query.strip()) < 2:
+        raise HTTPException(422, "Enter at least two characters for place search.")
+    return _discovery.search(location.strip(), category, query.strip() if query else None)
