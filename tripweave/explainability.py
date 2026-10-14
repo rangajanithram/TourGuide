@@ -31,7 +31,9 @@ class ExplainabilityEngine:
 
         # 1. Hotel Rationale
         hotel_sum = plan.hotel_summary
-        if hotel_sum and hotel_sum.nights > 0:
+        if hotel_sum and request.stay_choice:
+            hotel_text = hotel_sum.why_this_hotel or hotel_sum.provenance
+        elif hotel_sum and hotel_sum.nights > 0:
             hotel_text = (
                 f"Selected {hotel_sum.hotel_name} (₹{hotel_sum.price_per_night_per_room}/room/night) "
                 f"for its optimal geographic centroid location relative to your daily attraction clusters, "

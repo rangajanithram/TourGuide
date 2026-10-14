@@ -1,3 +1,4 @@
+import { validateStayChoice } from './stay-choice';
 import { journeyWindow } from './journey-timing';
 import type { MultiVariantTripPlan, TripFormData, TripPlan, VariantKey } from '@/types/trip';
 
@@ -122,7 +123,7 @@ export function validateSnapshot(raw: unknown): asserts raw is MultiVariantTripP
 
 export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTripPlan, selected?: VariantKey): TripFormData {
   if (!validDate(form.start_date) || !validDate(form.end_date)) invalid('trip dates');
-  try { journeyWindow(form); } catch (error) { invalid(error instanceof Error ? error.message : 'journey timing'); }
+  try { journeyWindow(form); validateStayChoice(form.stay_choice, form.budget_inr); } catch (error) { invalid(error instanceof Error ? error.message : 'journey timing'); }
   const days = (Date.parse(form.end_date) - Date.parse(form.start_date)) / 86400000 + 1;
   integer(days, 'duration', 1, 14); integer(form.budget_inr, 'budget', 1, 5_000_000); integer(form.people_count, 'travelers', 1, 20);
   if (form.destination.toLowerCase() !== snapshot.destination.toLowerCase()) invalid('request destination mismatch');
@@ -153,6 +154,12 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if ((form.locked_activities || []).length > 15) invalid('too many pins');
   for (const plan of Object.values(snapshot.variants) as TripPlan[]) {
     if (plan.days.some((day, index) => day.day_number !== index + 1 || day.date !== new Date(Date.parse(form.start_date) + index * 86400000).toISOString().slice(0,10))) invalid('day sequence');
+    if (form.stay_choice) {
+      const stay = form.stay_choice, hotel = plan.hotel_summary;
+      const included = stay.budget_treatment === 'include' ? stay.total_stay_cost_inr : 0;
+      const excluded = stay.budget_treatment === 'already_paid' ? stay.total_stay_cost_inr : 0;
+      if (!hotel || hotel.accommodation_kind !== stay.kind || hotel.hotel_name !== stay.base_name.trim() || hotel.lat !== stay.lat || hotel.lng !== stay.lng || hotel.total_cost_inr !== included || hotel.excluded_prepaid_cost_inr !== excluded || hotel.reported_stay_total_inr !== stay.total_stay_cost_inr) invalid('confirmed base or lodging budget scope changed');
+    }
     if (plan.total_cost_inr > form.budget_inr) invalid('itinerary exceeds the requested budget');
     if (plan.days.length !== days) invalid('itinerary does not cover every requested day. Please regenerate the trip with the updated planner');
     if (plan.days[0].date !== form.start_date || plan.days[days - 1].date !== form.end_date) invalid('itinerary dates differ from the requested travel dates');

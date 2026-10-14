@@ -84,6 +84,9 @@ export interface DayPlan {
 }
 
 export interface HotelStaySummary {
+  accommodation_kind?: 'planner_selected' | 'booked' | 'family_friends' | 'no_stay';
+  reported_stay_total_inr?: number | null;
+  excluded_prepaid_cost_inr?: number;
   hotel_id?: string;
   hotel_name: string;
   lat?: number;
@@ -270,7 +273,17 @@ export interface JourneyTiming {
   arrival_buffer_minutes: number;
   departure_buffer_minutes: number;
 }
+export interface StayChoice {
+  version: 1;
+  kind: 'booked' | 'family_friends' | 'no_stay';
+  base_name: string;
+  lat: number;
+  lng: number;
+  total_stay_cost_inr: number;
+  budget_treatment: 'include' | 'already_paid';
+}
 export interface TripFormData {
+ stay_choice?: StayChoice;
  journey_timing?: JourneyTiming;
  external_stops?:ConfirmedDiscoveryStop[];
  meal_budget_per_person?:number;

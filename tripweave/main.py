@@ -305,7 +305,7 @@ def _build_single_plan(
     }
     timings[4] = round(max(0.01, (time.perf_counter() - t_stage4) * 1000), 2)
 
-    if hotel_summary.nights > 0:
+    if hotel_summary.nights > 0 and not request.stay_choice:
         hotel_summary.why_this_hotel = (
             f"Selected {hotel_summary.hotel_name} (₹{hotel_summary.price_per_night_per_room}/room/night) "
             f"because its centroid proximity minimizes daily commute to attractions "
@@ -340,6 +340,7 @@ def _build_single_plan(
     try:
         itinerary = optimizer.generate_plan()
         itinerary.meal_places = meal_places
+        itinerary.planning_preferences.stay_choice = request.stay_choice
         itinerary.planning_preferences.journey_timing = request.journey_timing
         itinerary.planning_preferences.meal_budget_per_person = request.meal_budget_per_person
         itinerary.planning_preferences.arrival_available_mins = request.arrival_available_mins

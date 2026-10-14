@@ -12,6 +12,27 @@ class FeasibilityFilter:
     """
 
     def select_hotel(self, places: List[Place], request: TripRequest) -> Tuple[Place, HotelStaySummary]:
+        if request.stay_choice:
+            choice = request.stay_choice
+            _, center_lat, center_lng = LocationResolver.resolve_origin(request.destination, origin_type="center")
+            if calculate_distance_km(choice.lat, choice.lng, center_lat, center_lng) > 100:
+                raise ValueError("Your daily base is over 100 km from the destination center. Confirm its map coordinates or choose a closer base.")
+            included = choice.total_stay_cost_inr if choice.budget_treatment == "include" else 0
+            excluded = choice.total_stay_cost_inr if choice.budget_treatment == "already_paid" else 0
+            if included >= request.budget_inr:
+                raise ValueError("The booked stay uses the entire destination budget. Increase the budget or correct the stay cost.")
+            label = {"booked": "Your booked stay", "family_friends": "Staying with family or friends", "no_stay": "Daily base; no accommodation arranged"}[choice.kind]
+            provenance = "User-confirmed location and whole-group stay cost; booking, occupancy and check-in are not verified."
+            base = Place(place_id="user_stay_base", name=choice.base_name, place_type="hotel",
+                         lat=choice.lat, lng=choice.lng, duration_minutes=0,
+                         verification_status="estimated", last_verified_date=None, source_reference=provenance)
+            return base, HotelStaySummary(hotel_id=base.place_id, hotel_name=choice.base_name,
+                lat=choice.lat, lng=choice.lng, accommodation_kind=choice.kind,
+                reported_stay_total_inr=choice.total_stay_cost_inr, excluded_prepaid_cost_inr=excluded,
+                price_per_night_per_room=0, rooms_needed=0,
+                nights=0 if choice.kind == "no_stay" else max(0, request.days - 1),
+                people_accommodated=request.people_count, total_cost_inr=included,
+                provenance=provenance, why_this_hotel=f"{label}. Each sightseeing day starts and ends at your confirmed base. ₹{included} counts toward the destination budget; ₹{excluded} was marked already paid.")
         all_hotels = [p for p in places if p.place_type == "hotel"]
         sightseeing = [p for p in places if p.place_type != "hotel"]
         

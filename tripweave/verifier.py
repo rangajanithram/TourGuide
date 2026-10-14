@@ -6,7 +6,7 @@ accurate time windows, valid opening days, and strict budget conservation.
 from tripweave.preferences import preference_conflict
 from datetime import datetime, date
 from typing import List, Tuple, Dict, Any, Optional
-from tripweave.models import TripPlan, TripRequest, Place, VerificationReport, JourneyTiming
+from tripweave.models import TripPlan, TripRequest, Place, VerificationReport, JourneyTiming, StayChoice
 from tripweave.distance import calculate_distance_km, get_travel_metrics
 
 def _time_str_to_minutes(time_str: str) -> int:
@@ -59,6 +59,28 @@ class ItineraryVerifier:
         checks_passed = []
         warnings = []
         errors = []
+        if request.stay_choice:
+            try:
+                stay = StayChoice.model_validate(request.stay_choice)
+                summary = plan.hotel_summary
+                included = stay.total_stay_cost_inr if stay.budget_treatment == "include" else 0
+                excluded = stay.total_stay_cost_inr if stay.budget_treatment == "already_paid" else 0
+                nights = 0 if stay.kind == "no_stay" else max(0, request.days - 1)
+                if (not summary or summary.hotel_id != "user_stay_base" or summary.hotel_name != stay.base_name
+                        or summary.lat != stay.lat or summary.lng != stay.lng
+                        or summary.accommodation_kind != stay.kind or summary.nights != nights
+                        or summary.total_cost_inr != included or summary.excluded_prepaid_cost_inr != excluded
+                        or summary.reported_stay_total_inr != stay.total_stay_cost_inr):
+                    errors.append("Accommodation conflict: the plan changed your confirmed base or lodging budget scope.")
+                else:
+                    checks_passed.append("Confirmed daily base and lodging budget scope preserved.")
+                warnings.append("Your base, stay cost and accommodation arrangements are user-supplied; booking, occupancy and check-in are unverified.")
+                if stay.kind == "no_stay" and request.days > 1:
+                    warnings.append("No overnight accommodation is included. Arrange a safe overnight stay separately; the daily base is only a routing location.")
+                if excluded:
+                    warnings.append(f"Already-paid lodging ₹{excluded} is excluded from this destination budget and itinerary subtotal.")
+            except (ValueError, TypeError) as error:
+                errors.append(f"Accommodation conflict: {error}")
         earliest_bound = request.arrival_available_mins
         latest_bound = request.departure_deadline_mins
         if request.journey_timing:

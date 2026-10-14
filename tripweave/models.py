@@ -100,8 +100,34 @@ class JourneyTiming(BaseModel):
         return earliest, latest
 
 
+class StayChoice(BaseModel):
+    """User-confirmed daily base and whole-group stay cost; never a hotel quote."""
+    model_config = ConfigDict(extra="forbid")
+    version: Literal[1] = 1
+    kind: Literal["booked", "family_friends", "no_stay"]
+    base_name: str = Field(min_length=1, max_length=160)
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    total_stay_cost_inr: int = Field(default=0, ge=0, le=5_000_000)
+    budget_treatment: Literal["include", "already_paid"] = "include"
+
+    @field_validator("base_name")
+    @classmethod
+    def clean_base_name(cls, value):
+        if not value.strip():
+            raise ValueError("Enter a name for the daily starting location.")
+        return value.strip()
+
+    @model_validator(mode="after")
+    def check_cost_scope(self):
+        if self.kind != "booked" and (self.total_stay_cost_inr or self.budget_treatment != "include"):
+            raise ValueError("Only booked stays can have a lodging cost or prepaid budget treatment.")
+        return self
+
+
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    stay_choice: Optional[StayChoice] = None
     journey_timing: Optional[JourneyTiming] = None
     meal_budget_per_person: Optional[int] = Field(default=None, ge=0, le=10000)
     arrival_available_mins: int = Field(default=60, ge=0, le=719)
@@ -269,6 +295,9 @@ class Place(BaseModel):
 # --- OUTPUT ITINERARY (What the engine produces) ---
 
 class HotelStaySummary(BaseModel):
+    accommodation_kind: Literal["planner_selected", "booked", "family_friends", "no_stay"] = "planner_selected"
+    reported_stay_total_inr: Optional[int] = Field(default=None, ge=0, le=5_000_000)
+    excluded_prepaid_cost_inr: int = Field(default=0, ge=0, le=5_000_000)
     hotel_id: str = Field(default="", max_length=120, description="Unique ID of the hotel or day-trip depot")
     hotel_name: str = Field(..., min_length=1, max_length=200)
     lat: float = Field(default=0.0, ge=-90.0, le=90.0, description="Hotel latitude for map pin")

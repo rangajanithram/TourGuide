@@ -131,7 +131,9 @@ export function formatItineraryForShare(plan: TripPlan, destination: string): st
   let summary = `🌟 TourGuide Optimized Itinerary: ${destination} (${plan.variant_type.toUpperCase()} Variant)\n`;
   summary += `💰 Total Estimated Cost: ₹${plan.total_cost_inr.toLocaleString('en-IN')}\n`;
   if (plan.hotel_summary) {
-    summary += `🏨 Base Stay: ${plan.hotel_summary.hotel_name} (₹${plan.hotel_summary.price_per_night_per_room}/night)\n`;
+    if (plan.hotel_summary.accommodation_kind && plan.hotel_summary.accommodation_kind !== 'planner_selected') {
+      summary += `Daily base: ${plan.hotel_summary.hotel_name} (${plan.hotel_summary.accommodation_kind}); counted stay ₹${plan.hotel_summary.total_cost_inr}; prepaid excluded ₹${plan.hotel_summary.excluded_prepaid_cost_inr || 0}. User-supplied arrangement.\n`;
+    } else summary += `🏨 Base Stay: ${plan.hotel_summary.hotel_name} (₹${plan.hotel_summary.price_per_night_per_room}/night)\n`;
   }
   summary += `🚗 Transit: ${plan.transport_mode.toUpperCase()} (₹${plan.estimated_transport_cost_inr})\n\n`;
 

@@ -362,3 +362,29 @@ Next increment: complete the journey contract with explicit budget scope and acc
 choices, then transport/stay scenario selection and canonical place evidence validation. The broader journey milestone remains partial:
 allowed travel modes, booked/no-hotel bases, terminal routes, check-in and full-journey pricing
 still need independent acceptance gates.
+
+## 2026-10-14 amendment: accommodation and lodging budget scope
+
+The second journey increment adds optional version-1 `stay_choice` to planning preferences
+and saved request JSON. Missing choices retain existing planner-selected hotels/day-trip hubs.
+
+- Choices: already booked, family/friends, or no accommodation arranged. All require an
+  explicit named daily base and coordinates; no address is silently geocoded or fabricated.
+- A supplied base must be within 100 km of the supported destination center. Each daily
+  route starts and ends there. This is a bounded local-planning constraint, not an assertion
+  that any coordinate within the radius is accessible or is the claimed property.
+- Booked stay prices are user-confirmed whole-group, whole-stay totals. They may be included
+  in the destination budget or marked already paid. Excluded prepaid costs remain visible
+  in the stay summary and text export, but are never charged twice to the solver budget.
+- Family/friends and no-stay choices have zero counted lodging cost. No-stay is a routing
+  base only and explicitly warns that overnight accommodation is not included.
+- The engine does not invent nightly rates, room counts, booking validity, occupancy or
+  check-in availability for user-supplied stays. Travel-night/check-in handling remains pending.
+- All variants retain the selected base and cost scope. Independent verification and saved
+  request validation reject changed bases or lodging scope; edit/rebalance reuse preferences.
+- No schema migration, paid provider or new authentication permissions are required.
+
+This completes lodging budget treatment, not whole-journey budgeting. Intercity tickets,
+exact hotel check-in/out dates and terminal transfer routing are still outside the verified
+local subtotal. Next: allowed/booked transport modes and scenario selection, with explicit
+intercity cost treatment and capacity propagation before claiming door-to-door feasibility.

@@ -794,25 +794,25 @@ export default function ItineraryView({
                 <Building2 className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-sm font-bold uppercase tracking-widest text-[#89532d]">Your stay</span>
+                <span className="text-sm font-bold uppercase tracking-widest text-[#89532d]">{hotel.accommodation_kind && hotel.accommodation_kind !== 'planner_selected' ? 'Your confirmed daily base' : 'Your stay'}</span>
                 <h3 className="text-base font-bold text-[#243e33]">{hotel.hotel_name}</h3>
               </div>
             </div>
 
-            <div className="flex items-baseline space-x-2 text-right">
+            {hotel.accommodation_kind && hotel.accommodation_kind !== 'planner_selected' ? <div className="text-sm text-[#526653]"><p>₹{hotel.total_cost_inr.toLocaleString('en-IN')} counted in this budget</p><p>₹{(hotel.excluded_prepaid_cost_inr || 0).toLocaleString('en-IN')} already paid, excluded</p><p>Whole-group stay total: ₹{(hotel.reported_stay_total_inr || 0).toLocaleString('en-IN')}</p></div> : <div className="flex items-baseline space-x-2 text-right">
               <span className="text-base font-bold text-[#243e33]">
                 ₹{(hotel.price_per_night_per_room || hotel.cost_per_night_inr || 0).toLocaleString('en-IN')}
               </span>
               <span className="text-sm text-[#526653]">/ room / night</span>
               <span className="text-sm text-[#596b57]">• {hotel.rooms_needed} room(s)</span>
-            </div>
+            </div>}
           </div>
 
           {hotel.why_this_hotel && (
             <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3.5 text-sm text-[#425d4c] flex items-start space-x-2.5">
               <Sparkles className="w-4 h-4 text-[#89532d] shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-[#89532d]">Why this hotel was selected: </span>
+                <span className="font-semibold text-[#89532d]">{hotel.accommodation_kind && hotel.accommodation_kind !== 'planner_selected' ? 'Your base arrangement: ' : 'Why this hotel was selected: '}</span>
                 <span className="text-[#425d4c] leading-relaxed">{hotel.why_this_hotel}</span>
               </div>
             </div>
@@ -825,7 +825,7 @@ export default function ItineraryView({
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
           <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Estimated destination cost</span>
           <span className="text-xl font-extrabold text-[#89532d]">₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5">Lodging, city transit & stops (excl. intercity & taxes)</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">Counted lodging, city transit & stops (excl. intercity and prepaid stay)</span>
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
@@ -843,7 +843,7 @@ export default function ItineraryView({
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
           <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Lodging</span>
           <span className="text-xl font-extrabold text-[#243e33]">₹{(hotel?.total_cost_inr || 0).toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5">{hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">{hotel?.accommodation_kind === 'no_stay' ? 'No accommodation arranged' : hotel?.excluded_prepaid_cost_inr ? 'Prepaid stay shown separately' : hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
         </div>
       </div>
 

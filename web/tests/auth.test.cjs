@@ -234,7 +234,7 @@ const {
   normalizeSavedSnapshot,
   resolveSelectedVariant,
   getAvailableVariants,
-} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts') }) });
+} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') }) });
 
 const sampleDay = {
   day_number: 1,
@@ -502,7 +502,7 @@ test('saved trip service blocks duplicate concurrent saves, reopens without rege
 });
 
 
-const snapshotValidator = load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts') });
+const snapshotValidator = load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') });
 test('snapshot guard rejects future schemas, broken costs, coordinates and overlapping appointments', () => {
   const original = { schema_version: 1, destination: 'Hyderabad', variants: { balanced: samplePlan } };
   assert.doesNotThrow(() => normalizeSavedSnapshot(original));
@@ -614,4 +614,26 @@ test('saved request validation retains journey timing and rejects unsupported co
   const reopened = snapshotValidator.validateTripRequest(JSON.parse(JSON.stringify(saved)), snapshot, 'balanced');
   assert.deepEqual(reopened.journey_timing, form.journey_timing);
   assert.throws(() => snapshotValidator.validateTripRequest({ ...form, journey_timing: { ...form.journey_timing, version: 2 } }, snapshot), /Unsupported journey/);
+});
+
+const { validateStayChoice } = load('lib/stay-choice.ts');
+const bookedStay = { version: 1, kind: 'booked', base_name: 'My base', lat: 17.385, lng: 78.486, total_stay_cost_inr: 3000, budget_treatment: 'include' };
+test('stay input validates costs, coordinate bounds and prepaid scope', () => {
+  assert.doesNotThrow(() => validateStayChoice(undefined, 15000));
+  assert.doesNotThrow(() => validateStayChoice(bookedStay, 15000));
+  assert.doesNotThrow(() => validateStayChoice({ ...bookedStay, budget_treatment: 'already_paid' }, 2000));
+  for (const changes of [{ lat: NaN }, { lng: 200 }, { total_stay_cost_inr: -1 }, { kind: 'family_friends' }, { base_name: ' ' }, { version: 2 }]) assert.throws(() => validateStayChoice({ ...bookedStay, ...changes }, 15000));
+  assert.throws(() => validateStayChoice(bookedStay, 3000), /entire destination budget/);
+});
+test('saved request keeps a confirmed stay and rejects base or cost changes', () => {
+  const form = { destination: 'hyderabad', start_date: '2026-10-15', end_date: '2026-10-16', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [], stay_choice: bookedStay };
+  const snapshot = { destination: 'Hyderabad', variants: { balanced: structuredClone(samplePlan) } };
+  snapshot.variants.balanced.hotel_summary = { ...snapshot.variants.balanced.hotel_summary, hotel_name: bookedStay.base_name, accommodation_kind: 'booked', lat: bookedStay.lat, lng: bookedStay.lng, total_cost_inr: 3000, reported_stay_total_inr: 3000, excluded_prepaid_cost_inr: 0 };
+  const saved = snapshotValidator.validateTripRequest(form, snapshot);
+  assert.deepEqual(snapshotValidator.validateTripRequest(JSON.parse(JSON.stringify(saved)), snapshot).stay_choice, bookedStay);
+  snapshot.variants.balanced.hotel_summary.lat = 17.4;
+  assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /base or lodging budget scope/);
+  snapshot.variants.balanced.hotel_summary.lat = bookedStay.lat;
+  snapshot.variants.balanced.hotel_summary.excluded_prepaid_cost_inr = 3000;
+  assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /base or lodging budget scope/);
 });

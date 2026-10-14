@@ -144,7 +144,7 @@ export default function VariantSwitcher({
                 <span>{v.plan?.days.length || 0} Days</span>
               </div>
 
-              <p className="text-[11px] text-[#526653] leading-relaxed">{v.desc}</p>
+              <p className="text-[11px] text-[#526653] leading-relaxed">{v.plan?.hotel_summary?.accommodation_kind && v.plan.hotel_summary.accommodation_kind !== 'planner_selected' ? 'Your confirmed daily base stays fixed. Compare the sightseeing schedule and local transport.' : v.desc}</p>
             </button>
           );
         })}
