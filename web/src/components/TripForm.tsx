@@ -4,6 +4,8 @@ import { Compass, Pin, Sparkles, X } from 'lucide-react';
 import ThemedSelect from './ThemedSelect';
 import PlannerDiscovery from './PlannerDiscovery';
 import JourneyTimingFields from './JourneyTimingFields';
+import BookedTransportFields from './BookedTransportFields';
+import { validateBookedTransport } from '../lib/booked-transport';
 import StayChoiceFields from './StayChoiceFields';
 import { validateStayChoice } from '../lib/stay-choice';
 import { journeyWindow } from '../lib/journey-timing';
@@ -81,7 +83,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     if (!Number.isInteger(form.people_count) || form.people_count < 1 || form.people_count > 20) return 'Enter between 1 and 20 travelers.';
     if (!Number.isInteger(form.budget_inr) || form.budget_inr < 1 || form.budget_inr > 5000000) return 'Enter a group budget between ₹1 and ₹50,00,000.';
     if ((form.locked_activities?.length || 0) > 15) return 'Choose up to 15 must-visit places.';
-    try { journeyWindow(form); validateStayChoice(form.stay_choice, form.budget_inr); } catch (failure) { return failure instanceof Error ? failure.message : 'Check travel timing.'; }
+    try { validateBookedTransport(form); journeyWindow(form); validateStayChoice(form.stay_choice, form.budget_inr); } catch (failure) { return failure instanceof Error ? failure.message : 'Check travel timing.'; }
     return '';
   };
   const submit = (event: React.FormEvent) => {
@@ -93,7 +95,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
   const pins = form.locked_activities || [];
   const changeDestination = (destination: string) => {
     if (destination === form.destination) return;
-    setForm(previous => ({ ...previous, destination, stay_choice: undefined, journey_timing: undefined, external_stops: [], locked_activities: [], interests: [], max_visit_minutes: undefined, avoid_climbing: false, food_preference: 'any' }));
+    setForm(previous => ({ ...previous, destination, stay_choice: undefined, journey_timing: undefined, booked_transport: undefined, external_stops: [], locked_activities: [], interests: [], max_visit_minutes: undefined, avoid_climbing: false, food_preference: 'any' }));
     setNotice('Destination changed. Place selections, stay details and destination preferences have been reset.'); setSurprise(false);
   };
   const pinLabel = (value: string) => form.external_stops?.find(stop=>"discovered:"+stop.place_id===value)?.name || catalog?.places.find(place => place.value === value || place.label === value)?.label || value;
@@ -109,7 +111,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     {step === 0 && <section className="trip-step booking-section" aria-label="Journey details">
       <p className="step-note">Start with the essentials. Choose a suggestion to confirm each city.</p>
       <div className="booking-grid">
-        <PlaceSearch label="From" value={form.origin_city || ''} options={[{ value: '', label: 'Already at the destination' }, ...cities]} onChange={value => setForm(previous => ({ ...previous, origin_city: value, journey_timing: undefined }))} onPendingChange={setPendingFrom} status={!cities.length ? citiesError || 'Loading city suggestions; you can type now.' : undefined} />
+        <PlaceSearch label="From" value={form.origin_city || ''} options={[{ value: '', label: 'Already at the destination' }, ...cities]} onChange={value => setForm(previous => ({ ...previous, origin_city: value, booked_transport: undefined, journey_timing: undefined }))} onPendingChange={setPendingFrom} status={!cities.length ? citiesError || 'Loading city suggestions; you can type now.' : undefined} />
         <PlaceSearch label="To" value={form.destination} options={cities} onChange={changeDestination} onPendingChange={setPendingTo} status={!cities.length ? citiesError || 'Loading city suggestions; you can type now.' : undefined} />
         <label>First sightseeing date<input type="date" value={form.start_date} min={futureDate(0)} onChange={event => update('start_date', event.target.value)} /></label>
         <label>Last sightseeing date<input type="date" value={form.end_date} min={form.start_date || futureDate(0)} onChange={event => update('end_date', event.target.value)} /></label>
@@ -118,7 +120,8 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
       </div>
       <p className="step-note">Includes counted lodging, local travel, entry fees and scheduled dining. A stay marked already paid is displayed separately and excluded. Travel to the city and extra meals are estimated separately. Dates are sightseeing days; allow for your arrival journey.</p>
       {form.origin_city && form.origin_city !== form.destination && <JourneyTimingFields form={form} onChange={value => update('journey_timing', value)} />}
-      {form.origin_city && form.origin_city !== form.destination && <fieldset className="booking-summary">
+      {form.origin_city && form.origin_city !== form.destination && <BookedTransportFields value={form.booked_transport} onChange={value => update('booked_transport', value)} />}
+      {!form.booked_transport && form.origin_city && form.origin_city !== form.destination && <fieldset className="booking-summary">
         <legend>Travel to and from the city</legend>
         <p>Choose the modes we may suggest. Select at least one. Reference fares are additional to your destination budget; these are not bookings or confirmed schedules.</p>
         <div className="flex flex-wrap gap-3">{(['train', 'bus', 'flight'] as const).map(mode => {
@@ -158,7 +161,8 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     </section>}
     {step === 3 && <section className="trip-step booking-section" aria-label="Review your trip">
       <div className="booking-summary"><h4>{titleCase(form.origin_city || 'Already there')} → {titleCase(form.destination)}</h4><p>{form.start_date} to {form.end_date} · {form.people_count} travelers · ₹{form.budget_inr.toLocaleString('en-IN')} destination budget</p><p>{titleCase(form.pace)} pace · {titleCase(form.transport_mode)} · {pins.length} must-visits</p><p>{pins.map(pinLabel).join(' · ') || 'Let the planner select the stops'}</p><p>Interests: {form.interests.map(titleCase).join(', ') || 'Open to discovery'} · Food: {titleCase(form.food_preference || 'any')}</p>{form.max_visit_minutes && <p>Maximum {form.max_visit_minutes} minutes per stop</p>}{form.avoid_climbing && <p>Only stops documented as not requiring climbing</p>}</div>
-      {form.origin_city && form.origin_city !== form.destination && <p>Intercity suggestions: {(form.intercity_modes ?? ['train', 'bus', 'flight']).map(titleCase).join(', ')}. Tickets are additional to the destination budget.</p>}
+      {!form.booked_transport && form.origin_city && form.origin_city !== form.destination && <p>Intercity suggestions: {(form.intercity_modes ?? ['train', 'bus', 'flight']).map(titleCase).join(', ')}. Tickets are additional to the destination budget.</p>}
+      {form.booked_transport && <p>Booked travel: {titleCase(form.booked_transport.outbound_mode)} outbound, {titleCase(form.booked_transport.return_mode)} return. Whole-group tickets ₹{form.booked_transport.total_fare_inr.toLocaleString('en-IN')}; paid ₹{form.booked_transport.paid_inr.toLocaleString('en-IN')}. Additional to destination budget; user-reported.</p>}
       {form.stay_choice && <div className="booking-summary"><h4>Your daily base: {form.stay_choice.base_name}</h4><p>{titleCase(form.stay_choice.kind)} · {form.stay_choice.lat}, {form.stay_choice.lng}</p><p>Stay total: ₹{form.stay_choice.total_stay_cost_inr.toLocaleString('en-IN')} · {form.stay_choice.budget_treatment === 'already_paid' ? 'Already paid, excluded from remaining destination budget' : 'Included in destination budget'}</p></div>}
       {form.journey_timing && <div className="booking-summary"><h4>Your travel timing · India time</h4><p>Outbound: {form.journey_timing.outbound_departure.slice(0,16).replace('T',' ')} → {form.journey_timing.destination_arrival.slice(0,16).replace('T',' ')}</p><p>Return: {form.journey_timing.destination_departure.slice(0,16).replace('T',' ')} → {form.journey_timing.return_arrival.slice(0,16).replace('T',' ')}</p><p>User-supplied times. Arrival buffer: {form.journey_timing.arrival_buffer_minutes} min; return buffer: {form.journey_timing.departure_buffer_minutes} min. Intercity tickets excluded from destination budget.</p></div>}
       <details className="booking-more"><summary>Arrival, departure and starting point</summary><div className="booking-grid">

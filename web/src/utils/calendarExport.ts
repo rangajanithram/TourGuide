@@ -129,6 +129,10 @@ export function exportToIcs(plan: TripPlan, destination: string) {
  */
 export function formatItineraryForShare(plan: TripPlan, destination: string): string {
   let summary = `🌟 TourGuide Optimized Itinerary: ${destination} (${plan.variant_type.toUpperCase()} Variant)\n`;
+  if (plan.booked_transport) {
+    const booked = plan.booked_transport;
+    summary += `Booked travel (user-reported, unverified): ${booked.outbound_mode} outbound / ${booked.return_mode} return. Whole-group tickets ₹${booked.total_fare_inr}; paid ₹${booked.paid_inr}; remaining ₹${booked.total_fare_inr - booked.paid_inr}. Additional to destination budget.\n`;
+  }
   summary += `💰 Total Estimated Cost: ₹${plan.total_cost_inr.toLocaleString('en-IN')}\n`;
   if (plan.hotel_summary) {
     if (plan.hotel_summary.accommodation_kind && plan.hotel_summary.accommodation_kind !== 'planner_selected') {

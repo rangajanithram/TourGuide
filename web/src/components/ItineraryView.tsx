@@ -434,6 +434,16 @@ export default function ItineraryView({
 
   return (
     <div className="itinerary-reader space-y-6">
+      {currentPlan.booked_transport && <section className="rounded-2xl border border-[#d6dfd0] bg-[#fffdf5] p-5" aria-label="Booked travel costs">
+        <h3 className="text-xl font-semibold">Your booked travel</h3>
+        <p className="my-2">{currentPlan.booked_transport.outbound_mode} outbound · {currentPlan.booked_transport.return_mode} return. User-reported; tickets and payments are unverified.</p>
+        <dl className="grid gap-4 sm:grid-cols-3">
+          <div><dt>Whole-group roundtrip fare</dt><dd className="text-xl font-semibold">₹{currentPlan.booked_transport.total_fare_inr.toLocaleString('en-IN')}</dd></div>
+          <div><dt>Already paid</dt><dd className="text-xl font-semibold">₹{currentPlan.booked_transport.paid_inr.toLocaleString('en-IN')}</dd></div>
+          <div><dt>Ticket balance to pay</dt><dd className="text-xl font-semibold">₹{(currentPlan.booked_transport.total_fare_inr - currentPlan.booked_transport.paid_inr).toLocaleString('en-IN')}</dd></div>
+        </dl>
+        <p className="mt-4">Tickets are additional to the destination subtotal of ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}. Transfers outside the daily itinerary, extra meals and other uncounted costs still need budgeting.</p>
+      </section>}
       {formData?.journey_timing && <section className="rounded-2xl border border-[#d6dfd0] bg-[#fffdf5] p-5" aria-label="Your travel timing">
         <h2 className="text-xl font-semibold">Your travel timing</h2>
         <p className="text-sm text-[#596b57] mt-2">User-supplied · India time (UTC+05:30). These times constrain sightseeing; transport suggestions below are separate reference options.</p>

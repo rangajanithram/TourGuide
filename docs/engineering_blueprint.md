@@ -407,3 +407,39 @@ intercity cost treatment and capacity propagation before claiming door-to-door f
   not automatically remove a hotel night.
 - No migration or paid service is required. Booked fares, whole-journey budgeting,
   schedule coupling and real transport availability remain separate future work.
+
+## 2026-10-15 amendment: user-reported booked roundtrip travel
+
+`booked_transport` is an optional version-1 contract in the request, planning
+preferences and result. It records outbound/return modes, a whole-group roundtrip
+fare, and how much of that fare is already paid. Amounts are integer INR from zero
+to 5,000,000; paid cannot exceed total. No booking identifiers or passenger details
+are collected. Both journey legs must be booked for this increment.
+
+- Booked travel requires the existing chronological `journey_timing` contract.
+  Arrival/departure buffers continue to constrain and independently verify the
+  first and last sightseeing days.
+- User bookings take precedence over allowed suggestion modes. Curated transport
+  suggestions are suppressed rather than displayed as replacement bookings.
+- Ticket fares remain additional to the destination budget. Paid and remaining
+  ticket amounts are displayed separately, with no double-counting in the local
+  solver subtotal. This is not a verified whole-journey price or budget cap.
+- All variants, snapshots, reopen/edit flows and text exports retain the booking.
+  The independent verifier and saved-request validation reject changed booking
+  fields. Tickets, payments, terminals and availability remain user-reported.
+- Old snapshots need no migration. No paid API or database change is introduced.
+
+### Next chronological increments and acceptance gates
+
+1. **Whole-journey budget scope:** distinguish total spending from remaining cash,
+   reserve confirmed ticket/stay costs once, expose unknown expenses, and have the
+   independent verifier reject overspend after generation and every edit.
+2. **Transfers and stay timing:** user-confirmed terminals, arrival/departure legs,
+   check-in/out windows and travel nights; explicitly reject impossible connections.
+3. **Real place candidate integration:** expand the candidate pool using the free
+   provider, retain mandatory pins and user-confirmed unknowns, and avoid presenting
+   incomplete source data as verified hours, fees, dietary safety or availability.
+4. **Presentation acceptance:** signed-in generate/save/reopen/edit/restore flows,
+   mobile layout, provider failures and deployment checks for each increment.
+
+Do not combine these into an unverified claim of worldwide or door-to-door planning.

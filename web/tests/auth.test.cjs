@@ -234,7 +234,7 @@ const {
   normalizeSavedSnapshot,
   resolveSelectedVariant,
   getAvailableVariants,
-} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') }) });
+} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts', { './booked-transport': load('lib/booked-transport.ts'), './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') }) });
 
 const sampleDay = {
   day_number: 1,
@@ -502,7 +502,7 @@ test('saved trip service blocks duplicate concurrent saves, reopens without rege
 });
 
 
-const snapshotValidator = load('lib/snapshot-validation.ts', { './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') });
+const snapshotValidator = load('lib/snapshot-validation.ts', { './booked-transport': load('lib/booked-transport.ts'), './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') });
 test('snapshot guard rejects future schemas, broken costs, coordinates and overlapping appointments', () => {
   const original = { schema_version: 1, destination: 'Hyderabad', variants: { balanced: samplePlan } };
   assert.doesNotThrow(() => normalizeSavedSnapshot(original));
@@ -645,4 +645,22 @@ test('saved requests retain allowed intercity modes and reject empty or unsuppor
   for (const modes of [[], ['boat'], ['train', 'bus', 'flight', 'train']]) {
     assert.throws(() => snapshotValidator.validateTripRequest({ ...form, intercity_modes: modes }, snapshot), /intercity modes/);
   }
+});
+
+const { validateBookedTransport } = load('lib/booked-transport.ts');
+test('booked transport requires timing and valid whole-group paid amounts', () => {
+  const booked_transport = { version: 1, outbound_mode: 'train', return_mode: 'flight', total_fare_inr: 6000, paid_inr: 4000 };
+  assert.doesNotThrow(() => validateBookedTransport({ ...timedTrip, booked_transport }));
+  assert.throws(() => validateBookedTransport({ booked_transport }), /timing/);
+  for (const changes of [{ paid_inr: 6001 }, { total_fare_inr: -1 }, { total_fare_inr: true }, { paid_inr: 1.5 }, { return_mode: 'boat' }, { version: 2 }]) {
+    assert.throws(() => validateBookedTransport({ ...timedTrip, booked_transport: { ...booked_transport, ...changes } }));
+  }
+});
+test('saved bookings retain fares and reject changed snapshot bookings', () => {
+  const booked_transport = { version: 1, outbound_mode: 'train', return_mode: 'flight', total_fare_inr: 6000, paid_inr: 4000 };
+  const form = { destination: 'hyderabad', origin_city: 'bengaluru', start_date: '2026-10-15', end_date: '2026-10-16', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [], booked_transport, journey_timing: { ...timedTrip.journey_timing, outbound_departure: '2026-10-14T08:00+05:30', destination_arrival: '2026-10-14T20:00+05:30', destination_departure: '2026-10-17T08:00+05:30', return_arrival: '2026-10-17T20:00+05:30' } };
+  const snapshot = { destination: 'Hyderabad', variants: { balanced: { ...structuredClone(samplePlan), booked_transport } } };
+  assert.deepEqual(snapshotValidator.validateTripRequest(JSON.parse(JSON.stringify(form)), snapshot).booked_transport, booked_transport);
+  snapshot.variants.balanced.booked_transport = { ...booked_transport, paid_inr: 0 };
+  assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /booked transport changed/);
 });

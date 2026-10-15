@@ -162,7 +162,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         setActiveFormData({
           meal_budget_per_person:req.meal_budget_per_person,
           external_stops: req.external_stops,
-          intercity_modes:req.intercity_modes, journey_timing:req.journey_timing, stay_choice:req.stay_choice,
+          booked_transport:req.booked_transport, intercity_modes:req.intercity_modes, journey_timing:req.journey_timing, stay_choice:req.stay_choice,
           arrival_available_mins:req.arrival_available_mins, departure_deadline_mins:req.departure_deadline_mins,
           max_visit_minutes: req.max_visit_minutes,
           avoid_climbing: req.avoid_climbing,
@@ -224,7 +224,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         body: JSON.stringify({
           meal_budget_per_person:formData.meal_budget_per_person,
           external_stops: formData.external_stops,
-          intercity_modes:formData.intercity_modes, journey_timing:formData.journey_timing, stay_choice:formData.stay_choice,
+          booked_transport:formData.booked_transport, intercity_modes:formData.intercity_modes, journey_timing:formData.journey_timing, stay_choice:formData.stay_choice,
           arrival_available_mins:formData.arrival_available_mins, departure_deadline_mins:formData.departure_deadline_mins,
           max_visit_minutes: formData.max_visit_minutes,
           avoid_climbing: formData.avoid_climbing,

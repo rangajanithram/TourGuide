@@ -340,6 +340,8 @@ def _build_single_plan(
     try:
         itinerary = optimizer.generate_plan()
         itinerary.meal_places = meal_places
+        itinerary.booked_transport = request.booked_transport
+        itinerary.planning_preferences.booked_transport = request.booked_transport
         itinerary.planning_preferences.intercity_modes = request.intercity_modes
         itinerary.planning_preferences.stay_choice = request.stay_choice
         itinerary.planning_preferences.journey_timing = request.journey_timing
@@ -416,7 +418,7 @@ def _build_single_plan(
     timings[10] = round((time.perf_counter() - t_stage10) * 1000, 2)
 
     # Inter-City Transit Intelligence
-    if request.origin_city and request.origin_city.strip().lower() != request.destination.strip().lower():
+    if not request.booked_transport and request.origin_city and request.origin_city.strip().lower() != request.destination.strip().lower():
         tp = get_transport_provider()
         itinerary.intercity_transport = tp.get_transport_summary(
             origin_city=request.origin_city,

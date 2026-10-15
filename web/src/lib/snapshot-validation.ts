@@ -1,3 +1,4 @@
+import { validateBookedTransport } from './booked-transport';
 import { validateStayChoice } from './stay-choice';
 import { journeyWindow } from './journey-timing';
 import type { MultiVariantTripPlan, TripFormData, TripPlan, VariantKey } from '@/types/trip';
@@ -124,7 +125,7 @@ export function validateSnapshot(raw: unknown): asserts raw is MultiVariantTripP
 export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTripPlan, selected?: VariantKey): TripFormData {
   if (form.intercity_modes !== undefined && (!Array.isArray(form.intercity_modes) || !form.intercity_modes.length || form.intercity_modes.length > 3 || form.intercity_modes.some(mode => !['train', 'bus', 'flight'].includes(mode)))) invalid('intercity modes');
   if (!validDate(form.start_date) || !validDate(form.end_date)) invalid('trip dates');
-  try { journeyWindow(form); validateStayChoice(form.stay_choice, form.budget_inr); } catch (error) { invalid(error instanceof Error ? error.message : 'journey timing'); }
+  try { validateBookedTransport(form); journeyWindow(form); validateStayChoice(form.stay_choice, form.budget_inr); } catch (error) { invalid(error instanceof Error ? error.message : 'journey timing'); }
   const days = (Date.parse(form.end_date) - Date.parse(form.start_date)) / 86400000 + 1;
   integer(days, 'duration', 1, 14); integer(form.budget_inr, 'budget', 1, 5_000_000); integer(form.people_count, 'travelers', 1, 20);
   if (form.destination.toLowerCase() !== snapshot.destination.toLowerCase()) invalid('request destination mismatch');
@@ -155,6 +156,8 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if ((form.locked_activities || []).length > 15) invalid('too many pins');
   for (const plan of Object.values(snapshot.variants) as TripPlan[]) {
     if (plan.days.some((day, index) => day.day_number !== index + 1 || day.date !== new Date(Date.parse(form.start_date) + index * 86400000).toISOString().slice(0,10))) invalid('day sequence');
+    const booking = form.booked_transport, savedBooking = plan.booked_transport;
+    if (booking ? (!savedBooking || plan.intercity_transport || (['version', 'outbound_mode', 'return_mode', 'total_fare_inr', 'paid_inr'] as const).some(key => booking[key] !== savedBooking[key])) : !!savedBooking) invalid('booked transport changed');
     if (form.stay_choice) {
       const stay = form.stay_choice, hotel = plan.hotel_summary;
       const included = stay.budget_treatment === 'include' ? stay.total_stay_cost_inr : 0;

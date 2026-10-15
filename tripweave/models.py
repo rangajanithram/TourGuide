@@ -125,8 +125,24 @@ class StayChoice(BaseModel):
         return self
 
 
+class BookedTransport(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    version: Literal[1] = 1
+    outbound_mode: Literal["train", "bus", "flight"]
+    return_mode: Literal["train", "bus", "flight"]
+    total_fare_inr: int = Field(..., ge=0, le=5_000_000, strict=True)
+    paid_inr: int = Field(..., ge=0, le=5_000_000, strict=True)
+
+    @model_validator(mode="after")
+    def check_paid_amount(self):
+        if self.paid_inr > self.total_fare_inr:
+            raise ValueError("Paid transport amount cannot exceed the whole-group roundtrip fare.")
+        return self
+
+
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    booked_transport: Optional[BookedTransport] = None
     intercity_modes: List[Literal["train", "bus", "flight"]] = Field(default_factory=lambda: ["train", "bus", "flight"], min_length=1, max_length=3)
     stay_choice: Optional[StayChoice] = None
     journey_timing: Optional[JourneyTiming] = None
@@ -164,6 +180,8 @@ class TripRequest(PlanningPreferences):
 
     @model_validator(mode="after")
     def apply_journey_timing(self):
+        if self.booked_transport and not self.journey_timing:
+            raise ValueError("Booked transport requires your outbound and return travel timing.")
         if self.journey_timing:
             if not self.origin_city or self.origin_city.strip().lower() == self.destination.strip().lower():
                 raise ValueError("Choose a different origin city to add intercity travel timing.")
@@ -405,6 +423,7 @@ class TripPlan(BaseModel):
     fatigue_report: Optional[Dict[str, Any]] = Field(default=None, description="Physical exertion and pace report")
     decision_trace: Optional[DecisionTrace] = Field(default=None, description="Why this hotel and why not X explainability trace")
     expense_breakdown: Optional[ExpenseBreakdown] = Field(default=None, description="Category-wise budget breakdown and simulator")
+    booked_transport: Optional[BookedTransport] = None
     intercity_notice: Optional[str] = None
     intercity_transport: Optional[InterCityTransportSummary] = Field(default=None, description="Curated inter-city transit options & depot-to-hotel last mile connection")
     disclaimer: str = Field(

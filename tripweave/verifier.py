@@ -6,7 +6,7 @@ accurate time windows, valid opening days, and strict budget conservation.
 from tripweave.preferences import preference_conflict
 from datetime import datetime, date
 from typing import List, Tuple, Dict, Any, Optional
-from tripweave.models import TripPlan, TripRequest, Place, VerificationReport, JourneyTiming, StayChoice
+from tripweave.models import TripPlan, TripRequest, Place, VerificationReport, JourneyTiming, StayChoice, BookedTransport
 from tripweave.distance import calculate_distance_km, get_travel_metrics
 
 def _time_str_to_minutes(time_str: str) -> int:
@@ -59,6 +59,18 @@ class ItineraryVerifier:
         checks_passed = []
         warnings = []
         errors = []
+        if request.booked_transport:
+            try:
+                booked = BookedTransport.model_validate(request.booked_transport)
+                if not request.journey_timing or plan.booked_transport != booked or plan.intercity_transport:
+                    errors.append("Booked transport conflict: timing, fares or booked modes were changed.")
+                else:
+                    checks_passed.append("User-reported booked transport and separate fare scope preserved.")
+                warnings.append("Booked tickets and fares are user-reported, not provider-verified. Intercity fares are outside the destination budget.")
+            except (ValueError, TypeError) as error:
+                errors.append(f"Booked transport conflict: {error}")
+        elif plan.booked_transport:
+            errors.append("Booked transport conflict: no booking was supplied in the request.")
         if request.stay_choice:
             try:
                 stay = StayChoice.model_validate(request.stay_choice)
