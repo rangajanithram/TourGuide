@@ -190,6 +190,7 @@ export interface TripPlan {
   fatigue_report?: FatigueReport | null;
   decision_trace?: DecisionTrace | null;
   expense_breakdown?: ExpenseBreakdown | null;
+  intercity_notice?: string | null;
   intercity_transport?: InterCityTransportSummary | null;
   disclaimer?: string;
 }
@@ -283,6 +284,7 @@ export interface StayChoice {
   budget_treatment: 'include' | 'already_paid';
 }
 export interface TripFormData {
+ intercity_modes?: ('train' | 'bus' | 'flight')[];
  stay_choice?: StayChoice;
  journey_timing?: JourneyTiming;
  external_stops?:ConfirmedDiscoveryStop[];

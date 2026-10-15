@@ -122,6 +122,7 @@ export function validateSnapshot(raw: unknown): asserts raw is MultiVariantTripP
 }
 
 export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTripPlan, selected?: VariantKey): TripFormData {
+  if (form.intercity_modes !== undefined && (!Array.isArray(form.intercity_modes) || !form.intercity_modes.length || form.intercity_modes.length > 3 || form.intercity_modes.some(mode => !['train', 'bus', 'flight'].includes(mode)))) invalid('intercity modes');
   if (!validDate(form.start_date) || !validDate(form.end_date)) invalid('trip dates');
   try { journeyWindow(form); validateStayChoice(form.stay_choice, form.budget_inr); } catch (error) { invalid(error instanceof Error ? error.message : 'journey timing'); }
   const days = (Date.parse(form.end_date) - Date.parse(form.start_date)) / 86400000 + 1;

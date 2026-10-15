@@ -136,9 +136,12 @@ class InterCityTransportProvider:
         variant_type: str = "balanced",
         people_count: int = 1,
         start_date: Optional[date] = None,
-        end_date: Optional[date] = None
+        end_date: Optional[date] = None,
+        allowed_modes: Optional[List[Literal["train", "bus", "flight"]]] = None
     ) -> Optional[InterCityTransportSummary]:
-        routes = self.get_routes(origin_city, destination_city)
+        modes = set(allowed_modes if allowed_modes is not None else ["train", "bus", "flight"])
+        routes = [r for r in self.get_routes(origin_city, destination_city)
+                  if r.mode in modes and self.route_operates_on_date(r, start_date) is not False]
         if not routes:
             return None
 
@@ -152,7 +155,7 @@ class InterCityTransportProvider:
         if outbound_on_date:
             recommended = self._select_best_route(outbound_on_date, v)
         else:
-            recommended = self._select_best_route(outbound_unverified or routes, v)
+            recommended = self._select_best_route(outbound_unverified, v)
             if start_date is not None:
                 outbound_warning = f"Outbound service weekday operation is unverified for {start_date.strftime('%A')}; confirm the indicative schedule with the operator."
 
@@ -161,9 +164,11 @@ class InterCityTransportProvider:
         date_warning = outbound_warning
 
         # Look up return routes (destination -> origin)
-        return_routes = self.get_routes(destination_city, origin_city)
+        return_routes = [r for r in self.get_routes(destination_city, origin_city)
+                         if r.mode in modes and self.route_operates_on_date(r, end_date) is not False]
         return_option: Optional[InterCityRoute] = None
 
+        return_warning = None
         if return_routes:
             matching_mode_return = [r for r in return_routes if r.mode == recommended.mode]
             operating_matching = [r for r in matching_mode_return if self.route_operates_on_date(r, end_date) is True]
@@ -182,35 +187,9 @@ class InterCityTransportProvider:
             elif unverified_all:
                 return_option = self._select_best_route(unverified_all, v)
                 return_warning = f"Return service weekday operation is unverified for {return_dow_full or 'your date'}; confirm the indicative schedule with the operator."
-            else:
-                return_option = self._select_best_route(matching_mode_return or return_routes, v)
-                return_warning = f"No return service is recorded as operating on {return_dow_full or 'your return date'}. The displayed option is an unconfirmed fallback; check before travel."
             date_warning = " ".join(warning for warning in (date_warning, return_warning) if warning)
         else:
-            # Explicit symmetric estimate with clear provenance
-            return_option = InterCityRoute(
-                route_id=f"ret_{recommended.route_id}",
-                origin_city=destination_city.lower(),
-                destination_city=origin_city.lower(),
-                mode=recommended.mode,
-                operator_name=f"{recommended.operator_name} (Return Leg)",
-                service_number=None,
-                departure_station=recommended.arrival_station,
-                departure_hub_key=recommended.arrival_hub_key,
-                arrival_station=recommended.departure_station,
-                arrival_hub_key=recommended.departure_hub_key,
-                departure_window=f"Estimated reverse schedule ({recommended.mode})",
-                typical_duration_min=recommended.typical_duration_min,
-                typical_fare_min=recommended.typical_fare_min,
-                typical_fare_max=recommended.typical_fare_max,
-                fare_class=recommended.fare_class,
-                availability_status="indicative_schedule",
-                recommendation_badge="Indicative Return Estimate",
-                last_mile_note=f"Returns to {recommended.departure_station}",
-                notes="Estimated reverse route schedule benchmark based on outbound rates. Check operator portal for exact schedules.",
-                source=recommended.source,
-                verified_at=None
-            )
+            date_warning = " ".join(filter(None, [date_warning, "No eligible return service is in the reference catalog. Return fare and schedule are unknown; arrange your return separately."]))
 
         # Compute outbound last-mile: arrival terminal -> hotel
         last_mile: Optional[LastMileConnection] = None
@@ -293,10 +272,10 @@ class InterCityTransportProvider:
         if rec.mode == "flight":
             return f"Direct air connection via {rec.operator_name} ({dur_str}). Best for saving sightseeing time."
         elif rec.mode == "train":
-            overnight_tip = " Overnight journey saves a hotel room night." if is_overnight else " Comfortable and scenic rail connection."
+            overnight_tip = " Overnight reference journey; accommodation nights are calculated separately." if is_overnight else " Comfortable and scenic rail connection."
             return f"Recommended: {rec.operator_name} ({dur_str}) arriving at {rec.arrival_station}.{overnight_tip}"
         else:
-            overnight_tip = " Overnight schedule saves a hotel room night." if is_overnight else " Economical daytime highway route."
+            overnight_tip = " Overnight reference schedule; accommodation nights are calculated separately." if is_overnight else " Economical daytime highway route."
             return f"Economical: {rec.operator_name} ({dur_str}) dropping at {rec.arrival_station}.{overnight_tip}"
 
 # Singleton instance

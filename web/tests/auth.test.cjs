@@ -637,3 +637,12 @@ test('saved request keeps a confirmed stay and rejects base or cost changes', ()
   snapshot.variants.balanced.hotel_summary.excluded_prepaid_cost_inr = 3000;
   assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /base or lodging budget scope/);
 });
+test('saved requests retain allowed intercity modes and reject empty or unsupported choices', () => {
+  const snapshot = { destination: 'Hyderabad', variants: { balanced: samplePlan } };
+  const form = { destination: 'hyderabad', origin_city: 'bengaluru', start_date: '2026-10-15', end_date: '2026-10-16', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [], intercity_modes: ['train'] };
+  const saved = snapshotValidator.validateTripRequest(form, snapshot);
+  assert.deepEqual(snapshotValidator.validateTripRequest(JSON.parse(JSON.stringify(saved)), snapshot).intercity_modes, ['train']);
+  for (const modes of [[], ['boat'], ['train', 'bus', 'flight', 'train']]) {
+    assert.throws(() => snapshotValidator.validateTripRequest({ ...form, intercity_modes: modes }, snapshot), /intercity modes/);
+  }
+});

@@ -506,6 +506,7 @@ export default function ItineraryView({
       </div>
 
       {/* Blueprint Section 1 & Product Spec Feature 1: Inter-City Transit Intelligence */}
+      {plan.intercity_notice && <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-[#243e33]">{plan.intercity_notice}</p>}
       {plan.intercity_transport && (
         <div className="bg-[#fffdf5] border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2">
@@ -649,9 +650,10 @@ export default function ItineraryView({
               const outbound = plan.intercity_transport.recommended_option;
               const returnOpt = plan.intercity_transport.return_option;
 
-              // Actual return leg rates if available, otherwise outbound rates
-              const retFareMin = returnOpt ? returnOpt.typical_fare_min : outbound.typical_fare_min;
-              const retFareMax = returnOpt ? returnOpt.typical_fare_max : outbound.typical_fare_max;
+              // Missing return fares remain unknown; never mirror outbound fares.
+              if (!returnOpt) return <p role="status" className="p-4">Return travel is not available in the reference catalog for your choices. A roundtrip total cannot be estimated. Intercity tickets remain outside your destination budget.</p>;
+              const retFareMin = returnOpt.typical_fare_min;
+              const retFareMax = returnOpt.typical_fare_max;
 
               // Roundtrip transit: Outbound party fare + Return party fare
               const outboundTransitMin = outbound.typical_fare_min * party;
@@ -690,7 +692,7 @@ export default function ItineraryView({
                       </div>
                       <span className="text-sm text-[#526653] block mt-1">
                         Outbound: {outbound.operator_name} (₹{outbound.typical_fare_min.toLocaleString('en-IN')})
-                        {returnOpt ? ` • Return: ${returnOpt.operator_name} (₹${retFareMin.toLocaleString('en-IN')})` : ' • Return leg mirrors outbound'}
+                        {` • Return: ${returnOpt.operator_name} (₹${retFareMin.toLocaleString('en-IN')})`}
                       </span>
                     </div>
                     <div className="text-left sm:text-right shrink-0">

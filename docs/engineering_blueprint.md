@@ -388,3 +388,22 @@ This completes lodging budget treatment, not whole-journey budgeting. Intercity 
 exact hotel check-in/out dates and terminal transfer routing are still outside the verified
 local subtotal. Next: allowed/booked transport modes and scenario selection, with explicit
 intercity cost treatment and capacity propagation before claiming door-to-door feasibility.
+
+
+## 2026-10-15 amendment: allowed intercity travel modes
+
+- Optional `intercity_modes` accepts one to three train/bus/flight values. Legacy
+  requests default to all three. The form, forwarded request, saved request and
+  generated planning preferences retain the selection.
+- Both outbound and return reference options must respect allowed modes. Known
+  non-operating weekdays are excluded, including from comparison lists. Unknown
+  schedules remain explicitly unverified. User-entered journey departure dates
+  take precedence over sightseeing dates for this filtering.
+- Missing return routes are no longer synthesized by reversing outbound records.
+  The UI withholds roundtrip totals when return fares are unknown. No matching
+  outbound route produces an explicit notice while preserving the local itinerary.
+- These are reference estimates, not ticket availability or bookings. Intercity
+  costs remain outside the verified destination budget. Overnight transport does
+  not automatically remove a hotel night.
+- No migration or paid service is required. Booked fares, whole-journey budgeting,
+  schedule coupling and real transport availability remain separate future work.

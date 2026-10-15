@@ -340,6 +340,7 @@ def _build_single_plan(
     try:
         itinerary = optimizer.generate_plan()
         itinerary.meal_places = meal_places
+        itinerary.planning_preferences.intercity_modes = request.intercity_modes
         itinerary.planning_preferences.stay_choice = request.stay_choice
         itinerary.planning_preferences.journey_timing = request.journey_timing
         itinerary.planning_preferences.meal_budget_per_person = request.meal_budget_per_person
@@ -425,9 +426,13 @@ def _build_single_plan(
             hotel_lng=selected_hotel.lng,
             variant_type=variant.value if hasattr(variant, 'value') else str(variant),
             people_count=request.people_count,
-            start_date=request.start_date,
-            end_date=request.end_date
+            start_date=request.journey_timing.outbound_departure.date() if request.journey_timing else request.start_date,
+            end_date=request.journey_timing.destination_departure.date() if request.journey_timing else request.end_date,
+            allowed_modes=request.intercity_modes
         )
+
+        if itinerary.intercity_transport is None:
+            itinerary.intercity_notice = "No reference transport options match your selected modes and dates. Arrange travel separately; intercity fares and schedules are unknown and excluded from the destination budget."
 
     # Minimum Useful Plan Guarantee
     total_activities = sum(len(day.activities) for day in itinerary.days)

@@ -127,6 +127,7 @@ class StayChoice(BaseModel):
 
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    intercity_modes: List[Literal["train", "bus", "flight"]] = Field(default_factory=lambda: ["train", "bus", "flight"], min_length=1, max_length=3)
     stay_choice: Optional[StayChoice] = None
     journey_timing: Optional[JourneyTiming] = None
     meal_budget_per_person: Optional[int] = Field(default=None, ge=0, le=10000)
@@ -404,6 +405,7 @@ class TripPlan(BaseModel):
     fatigue_report: Optional[Dict[str, Any]] = Field(default=None, description="Physical exertion and pace report")
     decision_trace: Optional[DecisionTrace] = Field(default=None, description="Why this hotel and why not X explainability trace")
     expense_breakdown: Optional[ExpenseBreakdown] = Field(default=None, description="Category-wise budget breakdown and simulator")
+    intercity_notice: Optional[str] = None
     intercity_transport: Optional[InterCityTransportSummary] = Field(default=None, description="Curated inter-city transit options & depot-to-hotel last mile connection")
     disclaimer: str = Field(
         default="Estimated local on-ground subtotal (lodging, local transit, attraction tickets, and scheduled dining). Excludes intercity travel, lodging taxes/GST, and unscheduled personal expenses.",

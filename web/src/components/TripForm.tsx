@@ -118,6 +118,14 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
       </div>
       <p className="step-note">Includes counted lodging, local travel, entry fees and scheduled dining. A stay marked already paid is displayed separately and excluded. Travel to the city and extra meals are estimated separately. Dates are sightseeing days; allow for your arrival journey.</p>
       {form.origin_city && form.origin_city !== form.destination && <JourneyTimingFields form={form} onChange={value => update('journey_timing', value)} />}
+      {form.origin_city && form.origin_city !== form.destination && <fieldset className="booking-summary">
+        <legend>Travel to and from the city</legend>
+        <p>Choose the modes we may suggest. Select at least one. Reference fares are additional to your destination budget; these are not bookings or confirmed schedules.</p>
+        <div className="flex flex-wrap gap-3">{(['train', 'bus', 'flight'] as const).map(mode => {
+          const selected = form.intercity_modes ?? ['train', 'bus', 'flight'];
+          return <label key={mode} className="flex items-center gap-2 p-3"><input type="checkbox" checked={selected.includes(mode)} disabled={selected.length === 1 && selected.includes(mode)} onChange={() => update('intercity_modes', selected.includes(mode) ? selected.filter(item => item !== mode) : [...selected, mode])} />{titleCase(mode)}</label>;
+        })}</div>
+      </fieldset>}
       <StayChoiceFields value={form.stay_choice} onChange={value => update('stay_choice', value)} />
       <p className="catalog-caption">{catalog?.source}. Search currently covers supported cities only.</p>
     </section>}
@@ -150,6 +158,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     </section>}
     {step === 3 && <section className="trip-step booking-section" aria-label="Review your trip">
       <div className="booking-summary"><h4>{titleCase(form.origin_city || 'Already there')} → {titleCase(form.destination)}</h4><p>{form.start_date} to {form.end_date} · {form.people_count} travelers · ₹{form.budget_inr.toLocaleString('en-IN')} destination budget</p><p>{titleCase(form.pace)} pace · {titleCase(form.transport_mode)} · {pins.length} must-visits</p><p>{pins.map(pinLabel).join(' · ') || 'Let the planner select the stops'}</p><p>Interests: {form.interests.map(titleCase).join(', ') || 'Open to discovery'} · Food: {titleCase(form.food_preference || 'any')}</p>{form.max_visit_minutes && <p>Maximum {form.max_visit_minutes} minutes per stop</p>}{form.avoid_climbing && <p>Only stops documented as not requiring climbing</p>}</div>
+      {form.origin_city && form.origin_city !== form.destination && <p>Intercity suggestions: {(form.intercity_modes ?? ['train', 'bus', 'flight']).map(titleCase).join(', ')}. Tickets are additional to the destination budget.</p>}
       {form.stay_choice && <div className="booking-summary"><h4>Your daily base: {form.stay_choice.base_name}</h4><p>{titleCase(form.stay_choice.kind)} · {form.stay_choice.lat}, {form.stay_choice.lng}</p><p>Stay total: ₹{form.stay_choice.total_stay_cost_inr.toLocaleString('en-IN')} · {form.stay_choice.budget_treatment === 'already_paid' ? 'Already paid, excluded from remaining destination budget' : 'Included in destination budget'}</p></div>}
       {form.journey_timing && <div className="booking-summary"><h4>Your travel timing · India time</h4><p>Outbound: {form.journey_timing.outbound_departure.slice(0,16).replace('T',' ')} → {form.journey_timing.destination_arrival.slice(0,16).replace('T',' ')}</p><p>Return: {form.journey_timing.destination_departure.slice(0,16).replace('T',' ')} → {form.journey_timing.return_arrival.slice(0,16).replace('T',' ')}</p><p>User-supplied times. Arrival buffer: {form.journey_timing.arrival_buffer_minutes} min; return buffer: {form.journey_timing.departure_buffer_minutes} min. Intercity tickets excluded from destination budget.</p></div>}
       <details className="booking-more"><summary>Arrival, departure and starting point</summary><div className="booking-grid">
