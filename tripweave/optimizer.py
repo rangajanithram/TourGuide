@@ -457,7 +457,11 @@ class TripOptimizer:
                     source_reference=getattr(place, "source_reference", "Curated City Seed Dataset"),
                     crowd_forecast=crowd_fc,
                     depends_on=list(getattr(place, "depends_on", [])),
-                    detour_cost_inr=detour_val
+                    detour_cost_inr=detour_val,
+                    rating=getattr(place, "rating", None),
+                    review_count=getattr(place, "review_count", None),
+                    formatted_address=getattr(place, "formatted_address", None),
+                    osm_url=getattr(place, "osm_url", None) or f"https://www.openstreetmap.org/?mlat={place.lat}&mlon={place.lng}#map=16/{place.lat}/{place.lng}"
                 ))
                 day_places.append(place)
                 day_cost += place_cost

@@ -690,6 +690,8 @@ test('stay input validates costs, coordinate bounds and prepaid scope', () => {
   assert.doesNotThrow(() => validateStayChoice(undefined, 15000));
   assert.doesNotThrow(() => validateStayChoice(bookedStay, 15000));
   assert.doesNotThrow(() => validateStayChoice({ ...bookedStay, budget_treatment: 'already_paid' }, 2000));
+  assert.doesNotThrow(() => validateStayChoice({ ...bookedStay, check_in_time: '14:00', check_out_time: '11:00' }, 15000));
+  assert.throws(() => validateStayChoice({ ...bookedStay, check_in_time: '25:00' }, 15000), /HH:MM format/);
   for (const changes of [{ lat: NaN }, { lng: 200 }, { total_stay_cost_inr: -1 }, { kind: 'family_friends' }, { base_name: ' ' }, { version: 2 }]) assert.throws(() => validateStayChoice({ ...bookedStay, ...changes }, 15000));
   assert.throws(() => validateStayChoice(bookedStay, 3000), /entire destination budget/);
 });

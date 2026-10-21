@@ -52,6 +52,9 @@ class ConfirmedDiscoveryStop(BaseModel):
     estimated_cost_per_person_inr: int = Field(ge=0, le=100000)
     open_time_mins: int = Field(ge=0, le=720)
     close_time_mins: int = Field(ge=0, le=720)
+    rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    review_count: Optional[int] = Field(default=None, ge=0)
+    formatted_address: Optional[str] = Field(default=None, max_length=300)
 
     @model_validator(mode="after")
     def check_window(self):
@@ -110,6 +113,23 @@ class StayChoice(BaseModel):
     lng: float = Field(ge=-180, le=180)
     total_stay_cost_inr: int = Field(default=0, ge=0, le=5_000_000)
     budget_treatment: Literal["include", "already_paid"] = "include"
+    check_in_time: Optional[str] = Field(default=None, max_length=16)
+    check_out_time: Optional[str] = Field(default=None, max_length=16)
+    allows_bag_drop: bool = Field(default=True)
+
+    @field_validator("check_in_time", "check_out_time")
+    @classmethod
+    def validate_stay_time(cls, value):
+        if value is not None:
+            v = value.strip()
+            parts = v.split(":")
+            if len(parts) != 2 or not all(p.isdigit() for p in parts):
+                raise ValueError("Stay time must be in HH:MM format.")
+            h, m = int(parts[0]), int(parts[1])
+            if not (0 <= h <= 23 and 0 <= m <= 59):
+                raise ValueError("Stay time must be a valid 24-hour time.")
+            return f"{h:02d}:{m:02d}"
+        return value
 
     @field_validator("base_name")
     @classmethod
@@ -313,6 +333,12 @@ class Place(BaseModel):
     price_per_night_inr: Optional[int] = Field(None, ge=0)
     max_guests_per_room: int = Field(default=2, ge=1, le=10)
     data_source: Optional[str] = Field(None, description="Data provenance note")
+    check_in_time: Optional[str] = Field(default=None, max_length=16)
+    check_out_time: Optional[str] = Field(default=None, max_length=16)
+    rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    review_count: Optional[int] = Field(default=None, ge=0)
+    formatted_address: Optional[str] = Field(default=None, max_length=300)
+    osm_url: Optional[str] = Field(default=None, max_length=500)
     
     # Optional evidence: unknown is not a claim of accessibility or dietary suitability.
     requires_climbing: Optional[bool] = None
@@ -342,6 +368,12 @@ class HotelStaySummary(BaseModel):
     total_cost_inr: int = Field(..., ge=0, le=5_000_000)
     provenance: str = Field(..., max_length=500, description="Clear provenance note of the rate")
     why_this_hotel: Optional[str] = Field(None, max_length=1000, description="Decision trace explaining why this hotel was selected")
+    check_in_time: Optional[str] = Field(default="14:00", max_length=16)
+    check_out_time: Optional[str] = Field(default="11:00", max_length=16)
+    rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    review_count: Optional[int] = Field(default=None, ge=0)
+    formatted_address: Optional[str] = Field(default=None, max_length=300)
+    osm_url: Optional[str] = Field(default=None, max_length=500)
 
 class WeatherSummary(BaseModel):
     condition: str = Field(default="Clear", description="Dominant weather condition: Clear, Partly Cloudy, Rain, etc.")
@@ -400,6 +432,10 @@ class ScheduledActivity(BaseModel):
     crowd_forecast: Optional[CrowdForecast] = Field(default=None, description="Heuristic crowd forecast for this scheduled time window")
     depends_on: List[str] = Field(default_factory=list, max_length=10, description="Prerequisite activities that must precede this stop")
     detour_cost_inr: Optional[float] = Field(default=None, description="Detour cost in INR for dining insertion")
+    rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
+    review_count: Optional[int] = Field(default=None, ge=0)
+    formatted_address: Optional[str] = Field(default=None, max_length=300)
+    osm_url: Optional[str] = Field(default=None, max_length=500)
 
 
 class DayPlan(BaseModel):

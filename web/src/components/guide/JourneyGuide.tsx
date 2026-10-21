@@ -125,7 +125,7 @@ export default function JourneyGuide() {
   return <main className={`journey-guide ${night ? 'is-night' : ''}`}>
     <ExperienceMetrics /><a className="guide-skip" href="#user-manual">Skip to the user guide</a>
     <header className="journey-header">
-      <Link className="journey-brand" href="/guide"><span><Compass size={23} strokeWidth={1.6} /></span>TripWeave<i /></Link>
+      <Link className="journey-brand" href="/guide" aria-label="TripWeave field guide"><span><Compass size={23} strokeWidth={1.6} /></span>TripWeave<i /></Link>
       <nav aria-label="Guide navigation"><a href="#departure">The journey</a><a href="#user-manual">Field guide</a><a href="#questions">Good to know</a></nav>
       <Link className="guide-account-link" href={user ? "/account" : "/login"}>{user ? "My profile" : "Log in / Sign up"}</Link><Link className="nav-planner" href={user || authLoading ? "/planner" : "/login"}>Open planner <ArrowRight size={16} /></Link>
     </header>
@@ -224,6 +224,6 @@ export default function JourneyGuide() {
     <section className="faq-section section-shell" id="questions"><div><div className="eyebrow">BEFORE YOU SET OFF</div><h2>Good questions.<br /><em>Honest answers.</em></h2><p>A little clarity makes a better travel companion.</p></div><div className="faq-list">{faqs.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={17} /></summary><p>{answer}</p></details>)}</div></section>
 
     <section className="boarding-section section-shell"><div className="boarding-pass"><div className="boarding-main"><div className="eyebrow"><Ticket size={17} /> YOUR NEXT CHAPTER</div><h2>Shall we <em>go somewhere?</em></h2><p>You bring the curiosity. Let’s start putting the trip together.</p><div className="boarding-form"><div className="boarding-destination"><span>WHERE TO?</span><ThemedSelect id="journey-destination" label="Destination" value={destination} onChange={setDestination} options={stations.map(stop => ({ value: stop.city, label: stop.city }))} /></div><button className="journey-button" onClick={() => openExample(destination)}>Start my trip <ArrowRight size={18} /></button></div></div><div className="boarding-stub"><Compass size={58} strokeWidth={1} /><span>FOREST LINE · TW 001<br /><strong>CURIOUS TRAVELER</strong></span><div className="ticket-barcode" /><small>TRIPWEAVE · EXPLORER PASS<br />THE GOOD PART STARTS HERE</small></div></div></section>
-    <footer className="journey-footer"><Link className="journey-brand" href="/guide"><Compass size={21} />TripWeave</Link><span>Made for the journey. And the people on it.</span><a href="#departure">Back to departure ↑</a></footer>
+    <footer className="journey-footer"><Link className="journey-brand" href="/guide" aria-label="TripWeave field guide"><Compass size={21} />TripWeave</Link><span>Made for the journey. And the people on it.</span><a href="#departure">Back to departure ↑</a></footer>
   </main>;
 }

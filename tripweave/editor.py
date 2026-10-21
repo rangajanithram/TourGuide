@@ -486,7 +486,11 @@ class ItineraryEditor:
                         recommended_viewpoint=rec_viewpoint,
                         verification_status=repl_place.verification_status,
                         last_verified_date=repl_place.last_verified_date,
-                        source_reference=repl_place.source_reference
+                        source_reference=repl_place.source_reference,
+                        rating=getattr(repl_place, "rating", None),
+                        review_count=getattr(repl_place, "review_count", None),
+                        formatted_address=getattr(repl_place, "formatted_address", None),
+                        osm_url=getattr(repl_place, "osm_url", None) or f"https://www.openstreetmap.org/?mlat={repl_place.lat}&mlon={repl_place.lng}#map=16/{repl_place.lat}/{repl_place.lng}"
                     )
                     new_activities.append(swapped_act)
                 elif i > idx and new_activities:

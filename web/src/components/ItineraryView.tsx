@@ -9,7 +9,8 @@ import {
   CloudRain, Flame, Utensils, Wallet,
   HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users,
   Train, Plane, Car, ArrowRight, CheckSquare,
-  ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw, Zap
+  ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw, Zap,
+  Star, MapPin, Clock
 } from 'lucide-react';
 import { TripPlan, TripFormData, DayPlan, EditActionType, GroupMember, TripExpenseLedger, ExpenseCategory } from '../types/trip';
 import { exportToIcs, formatItineraryForShare } from '../utils/calendarExport';
@@ -810,6 +811,24 @@ export default function ItineraryView({
               <div>
                 <span className="text-sm font-bold uppercase tracking-widest text-[#89532d]">{hotel.accommodation_kind && hotel.accommodation_kind !== 'planner_selected' ? 'Your confirmed daily base' : 'Your stay'}</span>
                 <h3 className="text-base font-bold text-[#243e33]">{hotel.hotel_name}</h3>
+                <div className="flex items-center flex-wrap gap-2 mt-1">
+                  {hotel.rating && (
+                    <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-flex items-center gap-1">
+                      <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                      <span>{hotel.rating.toFixed(1)}</span>
+                      {hotel.review_count ? <span className="text-stone-500 font-normal">({hotel.review_count.toLocaleString('en-IN')} reviews)</span> : null}
+                    </span>
+                  )}
+                  <span className="text-xs text-[#526653] inline-flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Check-in: {hotel.check_in_time || '14:00'} • Check-out: {hotel.check_out_time || '11:00'}
+                  </span>
+                  {hotel.lat && hotel.lng && (
+                    <a href={hotel.osm_url || `https://www.openstreetmap.org/?mlat=${hotel.lat}&mlon=${hotel.lng}#map=16/${hotel.lat}/${hotel.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#243e33] underline hover:text-[#385e4e] inline-flex items-center gap-0.5">
+                      Map pin ↗
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1026,6 +1045,27 @@ export default function ItineraryView({
                         <h5 className={`font-bold text-base ${isVisited ? 'text-[#425d4c] line-through' : 'text-[#243e33]'}`}>
                           {act.place_name}
                         </h5>
+
+                        {act.rating && (
+                          <span className="text-sm font-semibold text-amber-700 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded inline-flex items-center space-x-0.5">
+                            <Star className="w-2.5 h-2.5 fill-amber-500 text-amber-500 mr-0.5" />
+                            <span>{act.rating.toFixed(1)}</span>
+                            {act.review_count ? <span className="text-[#596b57] font-normal text-xs ml-0.5">({act.review_count.toLocaleString('en-IN')})</span> : null}
+                          </span>
+                        )}
+                        {act.formatted_address && (
+                          <span className="text-xs text-[#526653] inline-flex items-center gap-0.5">
+                            <MapPin className="w-3 h-3 text-[#89532d] shrink-0" />
+                            <span>{act.formatted_address}</span>
+                          </span>
+                        )}
+                        {act.lat !== undefined && act.lng !== undefined && (
+                          <a href={act.osm_url || `https://www.openstreetmap.org/?mlat=${act.lat}&mlon=${act.lng}#map=17/${act.lat}/${act.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#243e33] underline hover:text-[#385e4e] inline-flex items-center gap-0.5">
+                            Map ↗
+                          </a>
+                        )}
+
+
                         {act.is_locked && (
                           <span className="text-sm text-[#89532d] bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded font-semibold inline-flex items-center space-x-0.5">
                             <Pin className="w-2.5 h-2.5 mr-0.5" />

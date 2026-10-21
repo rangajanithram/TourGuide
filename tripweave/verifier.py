@@ -104,7 +104,9 @@ class ItineraryVerifier:
                         or summary.lat != stay.lat or summary.lng != stay.lng
                         or summary.accommodation_kind != stay.kind or summary.nights != nights
                         or summary.total_cost_inr != included or summary.excluded_prepaid_cost_inr != excluded
-                        or summary.reported_stay_total_inr != stay.total_stay_cost_inr):
+                        or summary.reported_stay_total_inr != stay.total_stay_cost_inr
+                        or (stay.check_in_time and summary.check_in_time != stay.check_in_time)
+                        or (stay.check_out_time and summary.check_out_time != stay.check_out_time)):
                     errors.append("Accommodation conflict: the plan changed your confirmed base or lodging budget scope.")
                 else:
                     checks_passed.append("Confirmed daily base and lodging budget scope preserved.")

@@ -69,6 +69,10 @@ export interface ScheduledActivity {
   crowd_forecast?: CrowdForecast | null;
   depends_on?: string[];
   detour_cost_inr?: number | null;
+  rating?: number | null;
+  review_count?: number | null;
+  formatted_address?: string | null;
+  osm_url?: string | null;
 }
 
 export interface DayPlan {
@@ -99,6 +103,12 @@ export interface HotelStaySummary {
   total_cost_inr: number;
   provenance?: string;
   why_this_hotel?: string | null;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  rating?: number | null;
+  review_count?: number | null;
+  formatted_address?: string | null;
+  osm_url?: string | null;
 }
 
 export interface VerificationReport {
@@ -284,6 +294,9 @@ export interface StayChoice {
   lng: number;
   total_stay_cost_inr: number;
   budget_treatment: 'include' | 'already_paid';
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  allows_bag_drop?: boolean;
 }
 export interface BookedTransport {
   version: 1;

@@ -463,3 +463,15 @@ Intercity caps require user-reported booked roundtrip fares. Paid costs remain
 inside total spending. Unknown costs are explicitly outside coverage; this is
 not a complete door-to-door quote. See `JOURNEY_COST_SUMMARY.md` for acceptance
 scope and remaining live verification.
+
+### 2026-10-21 stay timing coordination and place rating enrichment
+
+`check_in_time`, `check_out_time`, and `allows_bag_drop` now coordinate lodging
+transitions in user accommodation choices. Timing is validated as 24-hr `HH:MM`
+and surfaced in itinerary hotel summaries. Real-world place metadata (`rating`,
+`review_count`, `formatted_address`, and `osm_url`) has been added across
+`Place`, `ScheduledActivity`, `ConfirmedDiscoveryStop`, and `HotelStaySummary`.
+Ratings and review counts are rendered alongside direct OpenStreetMap links in
+the web client, without scraping restricted review corpora. Navigation links
+and action triggers have been updated with descriptive `aria-label`s for full
+accessibility compliance.

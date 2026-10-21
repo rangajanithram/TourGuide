@@ -153,11 +153,11 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
     <main className="account-page">
       <ExperienceMetrics />
       <header className="account-header">
-        <Link href="/guide">
+        <Link href="/guide" aria-label="TripWeave field guide">
           <Compass size={25} />
           TripWeave<span>THE FOREST LINE</span>
         </Link>
-        <Link href="/guide">
+        <Link href="/guide" aria-label="TripWeave field guide">
           Explore the guide <ArrowRight size={16} />
         </Link>
       </header>
@@ -441,7 +441,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
 
       <footer className="account-footer">
         <span>LESS PLANNING FRICTION. MORE POSSIBILITY.</span>
-        <Link href="/guide">Explore the field guide ↗</Link>
+        <Link href="/guide" aria-label="TripWeave field guide">Explore the field guide ↗</Link>
       </footer>
     </main>
   );
