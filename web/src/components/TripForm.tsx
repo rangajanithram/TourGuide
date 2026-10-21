@@ -13,6 +13,7 @@ import PlaceSearch, { SearchOption } from './PlaceSearch';
 import InfoTip from './InfoTip';
 import { TripFormData } from '../types/trip';
 import { apiBaseUrl, boundedFetch, requireApiSuccess } from '@/lib/planner-network';
+import { validateJourneyBudget } from '@/lib/journey-budget';
 
 interface Catalog {
   cities: SearchOption[];
@@ -83,7 +84,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     if (!Number.isInteger(form.people_count) || form.people_count < 1 || form.people_count > 20) return 'Enter between 1 and 20 travelers.';
     if (!Number.isInteger(form.budget_inr) || form.budget_inr < 1 || form.budget_inr > 5000000) return 'Enter a group budget between ₹1 and ₹50,00,000.';
     if ((form.locked_activities?.length || 0) > 15) return 'Choose up to 15 must-visit places.';
-    try { validateBookedTransport(form); journeyWindow(form); validateStayChoice(form.stay_choice, form.budget_inr); } catch (failure) { return failure instanceof Error ? failure.message : 'Check travel timing.'; }
+    try { validateBookedTransport(form); journeyWindow(form); validateStayChoice(form.stay_choice, validateJourneyBudget(form)); } catch (failure) { return failure instanceof Error ? failure.message : 'Check travel timing.'; }
     return '';
   };
   const submit = (event: React.FormEvent) => {
@@ -120,6 +121,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
       </div>
       <p className="step-note">Includes counted lodging, local travel, entry fees and scheduled dining. A stay marked already paid is displayed separately and excluded. Travel to the city and extra meals are estimated separately. Dates are sightseeing days; allow for your arrival journey.</p>
       {form.origin_city && form.origin_city !== form.destination && <JourneyTimingFields form={form} onChange={value => update('journey_timing', value)} />}
+      <label>Combined counted journey cost cap (₹, optional)<input type="number" min={1} max={5000000} value={form.whole_journey_budget_inr ?? ''} onChange={event => update('whole_journey_budget_inr', event.target.value === '' ? undefined : Number(event.target.value))} /><span className="block text-sm">Includes the full booked ticket fare and prepaid stay, even amounts already paid. Unknown costs remain excluded. Leave blank to constrain only the destination budget.</span></label>
       {form.origin_city && form.origin_city !== form.destination && <BookedTransportFields value={form.booked_transport} onChange={value => update('booked_transport', value)} />}
       {!form.booked_transport && form.origin_city && form.origin_city !== form.destination && <fieldset className="booking-summary">
         <legend>Travel to and from the city</legend>
@@ -161,6 +163,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     </section>}
     {step === 3 && <section className="trip-step booking-section" aria-label="Review your trip">
       <div className="booking-summary"><h4>{titleCase(form.origin_city || 'Already there')} → {titleCase(form.destination)}</h4><p>{form.start_date} to {form.end_date} · {form.people_count} travelers · ₹{form.budget_inr.toLocaleString('en-IN')} destination budget</p><p>{titleCase(form.pace)} pace · {titleCase(form.transport_mode)} · {pins.length} must-visits</p><p>{pins.map(pinLabel).join(' · ') || 'Let the planner select the stops'}</p><p>Interests: {form.interests.map(titleCase).join(', ') || 'Open to discovery'} · Food: {titleCase(form.food_preference || 'any')}</p>{form.max_visit_minutes && <p>Maximum {form.max_visit_minutes} minutes per stop</p>}{form.avoid_climbing && <p>Only stops documented as not requiring climbing</p>}</div>
+      {form.whole_journey_budget_inr != null && <p>Combined counted cost cap: ₹{form.whole_journey_budget_inr.toLocaleString('en-IN')}, including already-paid costs. Unknown costs are excluded.</p>}
       {!form.booked_transport && form.origin_city && form.origin_city !== form.destination && <p>Intercity suggestions: {(form.intercity_modes ?? ['train', 'bus', 'flight']).map(titleCase).join(', ')}. Tickets are additional to the destination budget.</p>}
       {form.booked_transport && <p>Booked travel: {titleCase(form.booked_transport.outbound_mode)} outbound, {titleCase(form.booked_transport.return_mode)} return. Whole-group tickets ₹{form.booked_transport.total_fare_inr.toLocaleString('en-IN')}; paid ₹{form.booked_transport.paid_inr.toLocaleString('en-IN')}. Additional to destination budget; user-reported.</p>}
       {form.stay_choice && <div className="booking-summary"><h4>Your daily base: {form.stay_choice.base_name}</h4><p>{titleCase(form.stay_choice.kind)} · {form.stay_choice.lat}, {form.stay_choice.lng}</p><p>Stay total: ₹{form.stay_choice.total_stay_cost_inr.toLocaleString('en-IN')} · {form.stay_choice.budget_treatment === 'already_paid' ? 'Already paid, excluded from remaining destination budget' : 'Included in destination budget'}</p></div>}

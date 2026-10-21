@@ -177,6 +177,7 @@ export interface SynthesisStage {
 }
 
 export interface TripPlan {
+  planning_preferences?: { whole_journey_budget_inr?: number | null };
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
   hotel_summary?: HotelStaySummary | null;
@@ -292,6 +293,7 @@ export interface BookedTransport {
   paid_inr: number;
 }
 export interface TripFormData {
+ whole_journey_budget_inr?: number;
  booked_transport?: BookedTransport;
  intercity_modes?: ('train' | 'bus' | 'flight')[];
  stay_choice?: StayChoice;

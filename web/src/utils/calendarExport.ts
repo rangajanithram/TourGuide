@@ -1,4 +1,5 @@
 import { TripPlan } from '../types/trip';
+import { journeyCosts, journeyCostCaveat } from '../lib/journey-costs';
 
 function escapeIcsText(str: string): string {
   return str
@@ -133,7 +134,11 @@ export function formatItineraryForShare(plan: TripPlan, destination: string): st
     const booked = plan.booked_transport;
     summary += `Booked travel (user-reported, unverified): ${booked.outbound_mode} outbound / ${booked.return_mode} return. Whole-group tickets ₹${booked.total_fare_inr}; paid ₹${booked.paid_inr}; remaining ₹${booked.total_fare_inr - booked.paid_inr}. Additional to destination budget.\n`;
   }
-  summary += `💰 Total Estimated Cost: ₹${plan.total_cost_inr.toLocaleString('en-IN')}\n`;
+  const costs = journeyCosts(plan);
+  if (plan.planning_preferences?.whole_journey_budget_inr != null) summary += `Combined counted cost cap: ₹${plan.planning_preferences.whole_journey_budget_inr.toLocaleString('en-IN')}\n`;
+  summary += `💰 Destination estimate: ₹${costs.destination.toLocaleString('en-IN')}\n`;
+  summary += `Counted journey total: ₹${costs.total.toLocaleString('en-IN')} · Reported already paid: ₹${costs.paid.toLocaleString('en-IN')} · Estimated amount still to cover: ₹${costs.remaining.toLocaleString('en-IN')}\n`;
+  summary += `${journeyCostCaveat}\n`;
   if (plan.hotel_summary) {
     if (plan.hotel_summary.accommodation_kind && plan.hotel_summary.accommodation_kind !== 'planner_selected') {
       summary += `Daily base: ${plan.hotel_summary.hotel_name} (${plan.hotel_summary.accommodation_kind}); counted stay ₹${plan.hotel_summary.total_cost_inr}; prepaid excluded ₹${plan.hotel_summary.excluded_prepaid_cost_inr || 0}. User-supplied arrangement.\n`;

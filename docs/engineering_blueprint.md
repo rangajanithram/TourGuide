@@ -443,3 +443,23 @@ are collected. Both journey legs must be booked for this increment.
    mobile layout, provider failures and deployment checks for each increment.
 
 Do not combine these into an unverified claim of worldwide or door-to-door planning.
+
+### 2026-10-20 accounting display increment
+
+The result and text export now derive combined counted costs, reported payments
+and estimated remaining spend from the active plan. See `JOURNEY_COST_SUMMARY.md`.
+Included lodging is not added twice; excluded prepaid lodging is added to both
+cost and paid totals. Missing tickets and uncounted costs remain explicitly
+excluded. This display does not enforce a whole-journey cap: item 1 above remains
+open for request, solver and independent-verifier integration.
+
+### 2026-10-20 optional combined counted-cost cap
+
+`whole_journey_budget_inr` now persists in planning preferences. The solver uses
+the smaller of the destination cap and the combined cap less full booked tickets
+and excluded prepaid lodging. The verifier checks combined reported/recomputed
+costs after generation and editor reconstruction; saving checks cap consistency.
+Intercity caps require user-reported booked roundtrip fares. Paid costs remain
+inside total spending. Unknown costs are explicitly outside coverage; this is
+not a complete door-to-door quote. See `JOURNEY_COST_SUMMARY.md` for acceptance
+scope and remaining live verification.

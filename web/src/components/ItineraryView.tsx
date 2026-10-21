@@ -17,6 +17,7 @@ import { calculateOptimalSettlements } from '../utils/settlement';
 import EditConsequenceModal from './EditConsequenceModal';
 import LiveRebalanceModal from './LiveRebalanceModal';
 import GroupExpenseModal from './GroupExpenseModal';
+import JourneyCostSummary from './JourneyCostSummary';
 
 interface ItineraryViewProps {
   actionsTargetId?: string;
@@ -434,6 +435,7 @@ export default function ItineraryView({
 
   return (
     <div className="itinerary-reader space-y-6">
+      <JourneyCostSummary plan={currentPlan} />
       {currentPlan.booked_transport && <section className="rounded-2xl border border-[#d6dfd0] bg-[#fffdf5] p-5" aria-label="Booked travel costs">
         <h3 className="text-xl font-semibold">Your booked travel</h3>
         <p className="my-2">{currentPlan.booked_transport.outbound_mode} outbound · {currentPlan.booked_transport.return_mode} return. User-reported; tickets and payments are unverified.</p>
@@ -446,7 +448,7 @@ export default function ItineraryView({
       </section>}
       {formData?.journey_timing && <section className="rounded-2xl border border-[#d6dfd0] bg-[#fffdf5] p-5" aria-label="Your travel timing">
         <h2 className="text-xl font-semibold">Your travel timing</h2>
-        <p className="text-sm text-[#596b57] mt-2">User-supplied · India time (UTC+05:30). These times constrain sightseeing; transport suggestions below are separate reference options.</p>
+        <p className="text-sm text-[#596b57] mt-2">User-supplied · India time (UTC+05:30). These times constrain sightseeing. {currentPlan.booked_transport ? 'Your booked travel is shown separately above.' : 'Any transport suggestions are separate reference options.'}</p>
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           {([['outbound_departure', 'Leave origin'], ['destination_arrival', 'Arrive at destination'], ['destination_departure', 'Leave destination'], ['return_arrival', 'Return to origin']] as const).map(([key, label]) => <div key={key}><dt className="text-sm text-[#596b57]">{label}</dt><dd className="font-semibold">{formData.journey_timing![key].slice(0,16).replace('T', ' · ')}</dd></div>)}
         </dl>

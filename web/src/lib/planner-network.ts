@@ -14,15 +14,27 @@ export function apiBaseUrl(value = process.env.NEXT_PUBLIC_API_URL, environment 
   return url.href.replace(/\/$/, '');
 }
 
+export class PlannerNetworkError extends Error {
+  constructor(
+    public readonly code: 'offline' | 'timeout' | 'connection' | 'response',
+    message: string,
+  ) {
+    super(message);
+    this.name = 'PlannerNetworkError';
+  }
+}
+
 export async function boundedFetch(input: string, init: RequestInit = {}, timeoutMs = 120_000): Promise<Response> {
   const controller = new AbortController();
   const cancel = () => controller.abort(init.signal?.reason);
   if (init.signal?.aborted) cancel();
   else init.signal?.addEventListener('abort', cancel, { once: true });
   let timedOut = false;
+  let receivedHeaders = false;
   const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
   try {
     const response = await fetch(input, { ...init, signal: controller.signal, cache: 'no-store' });
+    receivedHeaders = true;
     // Keep the deadline active through body delivery, not just response headers.
     const body = await response.arrayBuffer();
     return new Response([204, 205, 304].includes(response.status) ? null : body, {
@@ -30,8 +42,14 @@ export async function boundedFetch(input: string, init: RequestInit = {}, timeou
     });
   } catch (error) {
     if (init.signal?.aborted) throw error;
-    if (timedOut) throw new Error('The planning service took too long to respond. Your existing trip is unchanged. Please try again.');
-    throw new Error('Could not reach the planning service. Check your connection and try again.');
+    if (timedOut) throw new PlannerNetworkError('timeout', 'The planning service took too long to respond. Your existing trip is unchanged. Please try again. [timeout]');
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw new PlannerNetworkError('offline', 'Your browser is offline. Reconnect, then try again. Your existing trip is unchanged. [offline]');
+    }
+    if (receivedHeaders) {
+      throw new PlannerNetworkError('response', 'The planning service responded, but the response could not be read completely. Your existing trip is unchanged. Please try again. [response]');
+    }
+    throw new PlannerNetworkError('connection', 'Could not reach the planning service. The connection may have been interrupted or blocked. Your existing trip is unchanged. Please try again. [connection]');
   } finally {
     clearTimeout(timer);
     init.signal?.removeEventListener('abort', cancel);

@@ -18,6 +18,52 @@ function load(relative, mocks = {}) {
 const { safeNext, authErrorMessage } = load('lib/auth-policy.ts');
 const { createAuthService } = load('lib/auth-service.ts');
 const { apiBaseUrl, boundedFetch, requireApiSuccess } = load('lib/planner-network.ts');
+const costsModule = load('lib/journey-costs.ts');
+test('combined budget reserves full tickets and prepaid stays and rejects missing fares', () => {
+  const { validateJourneyBudget } = load('lib/journey-budget.ts');
+  const form = { destination: 'hyderabad', origin_city: 'bengaluru', budget_inr: 15000,
+    whole_journey_budget_inr: 10000, booked_transport: { total_fare_inr: 6000, paid_inr: 4000 } };
+  assert.equal(validateJourneyBudget(form), 4000);
+  assert.equal(validateJourneyBudget({ ...form, stay_choice: { budget_treatment: 'already_paid', total_stay_cost_inr: 2000 } }), 2000);
+  assert.throws(() => validateJourneyBudget({ ...form, booked_transport: undefined }), /booked roundtrip/);
+  assert.throws(() => validateJourneyBudget({ ...form, whole_journey_budget_inr: 6000 }), /no destination budget/);
+});
+test('combined journey costs count included stay once and subtract reported ticket payments', () => {
+  const costs = costsModule.journeyCosts({
+    total_cost_inr: 6051,
+    hotel_summary: { total_cost_inr: 2400 },
+    booked_transport: { total_fare_inr: 6000, paid_inr: 4000 },
+  });
+  assert.equal(costs.total, 12051);
+  assert.equal(costs.paid, 4000);
+  assert.equal(costs.remaining, 8051);
+});
+test('prepaid excluded stay is counted in journey total and already paid exactly once', () => {
+  const costs = costsModule.journeyCosts({
+    total_cost_inr: 3651,
+    hotel_summary: { total_cost_inr: 0, excluded_prepaid_cost_inr: 2400 },
+    booked_transport: { total_fare_inr: 6000, paid_inr: 4000 },
+  });
+  assert.equal(costs.total, 12051);
+  assert.equal(costs.paid, 6400);
+  assert.equal(costs.remaining, 5651);
+});
+test('old snapshots and edited destination totals derive fresh journey costs', () => {
+  assert.equal(costsModule.journeyCosts({ total_cost_inr: 5000 }).hasBookedTickets, false);
+  assert.equal(costsModule.journeyCosts({ total_cost_inr: 5000 }).remaining, 5000);
+  assert.equal(costsModule.journeyCosts({ total_cost_inr: 4500 }).total, 4500);
+});
+test('text export shares the same combined accounting and labels unknown costs', () => {
+  const { formatItineraryForShare } = load('utils/calendarExport.ts', { '../lib/journey-costs': costsModule });
+  const text = formatItineraryForShare({
+    variant_type: 'balanced', total_cost_inr: 6051, transport_mode: 'cab',
+    estimated_transport_cost_inr: 1651, days: [],
+    booked_transport: { outbound_mode: 'train', return_mode: 'flight', total_fare_inr: 6000, paid_inr: 4000 },
+  }, 'Hyderabad');
+  assert.match(text, /12,051/);
+  assert.match(text, /8,051/);
+  assert.match(text, /not a complete journey quote/);
+});
 test('production API configuration never falls back to localhost or insecure URLs', () => {
   for (const value of ['', 'http://localhost:8000', 'https://127.0.0.1', 'ftp://api.test', 'https://user:password@api.test', 'https://api.test?key=secret']) {
     assert.throws(() => apiBaseUrl(value, 'production'));
@@ -56,6 +102,18 @@ test('deadline includes delayed response body delivery', async () => {
   }) });
   try { await assert.rejects(boundedFetch('https://api.test', {}, 10), /took too long/); }
   finally { global.fetch = original; }
+});
+test('network failures distinguish connection loss from incomplete response without retrying', async () => {
+  const original = global.fetch;
+  let calls = 0;
+  try {
+    global.fetch = async () => { calls++; throw new TypeError('private transport details'); };
+    await assert.rejects(boundedFetch('https://api.test', { method: 'POST' }), error =>
+      error.code === 'connection' && !error.message.includes('private transport'));
+    assert.equal(calls, 1);
+    global.fetch = async () => ({ arrayBuffer: async () => { throw new TypeError('stream failed'); } });
+    await assert.rejects(boundedFetch('https://api.test'), error => error.code === 'response');
+  } finally { global.fetch = original; }
 });
 const verified = { id: 'a', email_confirmed_at: '2026-10-09', is_anonymous: false };
 function provider(overrides = {}) {
@@ -234,7 +292,7 @@ const {
   normalizeSavedSnapshot,
   resolveSelectedVariant,
   getAvailableVariants,
-} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts', { './booked-transport': load('lib/booked-transport.ts'), './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') }) });
+} = load('lib/trips-service.ts', { './snapshot-validation': load('lib/snapshot-validation.ts', { './journey-budget': load('lib/journey-budget.ts'), './booked-transport': load('lib/booked-transport.ts'), './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') }) });
 
 const sampleDay = {
   day_number: 1,
@@ -502,7 +560,17 @@ test('saved trip service blocks duplicate concurrent saves, reopens without rege
 });
 
 
-const snapshotValidator = load('lib/snapshot-validation.ts', { './booked-transport': load('lib/booked-transport.ts'), './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') });
+const snapshotValidator = load('lib/snapshot-validation.ts', { './journey-budget': load('lib/journey-budget.ts'), './booked-transport': load('lib/booked-transport.ts'), './journey-timing': load('lib/journey-timing.ts'), './stay-choice': load('lib/stay-choice.ts') });
+test('saved journey cap survives serialization and rejects mismatch or overspend', () => {
+  const snapshot = { destination: 'Hyderabad', variants: { balanced: structuredClone(samplePlan) } };
+  const form = { destination: 'hyderabad', start_date: '2026-10-15', end_date: '2026-10-16', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [], whole_journey_budget_inr: 15000 };
+  snapshot.variants.balanced.planning_preferences = { whole_journey_budget_inr: 15000 };
+  const restored = JSON.parse(JSON.stringify(snapshot));
+  assert.equal(snapshotValidator.validateTripRequest(form, restored).whole_journey_budget_inr, 15000);
+  assert.throws(() => snapshotValidator.validateTripRequest({ ...form, whole_journey_budget_inr: undefined }, restored), /cap mismatch/);
+  restored.variants.balanced.planning_preferences.whole_journey_budget_inr = 1;
+  assert.throws(() => snapshotValidator.validateTripRequest({ ...form, whole_journey_budget_inr: 1 }, restored), /exceeds/);
+});
 test('snapshot guard rejects future schemas, broken costs, coordinates and overlapping appointments', () => {
   const original = { schema_version: 1, destination: 'Hyderabad', variants: { balanced: samplePlan } };
   assert.doesNotThrow(() => normalizeSavedSnapshot(original));

@@ -59,6 +59,28 @@ class ItineraryVerifier:
         checks_passed = []
         warnings = []
         errors = []
+        tickets = prepaid = 0
+        cap = request.whole_journey_budget_inr
+        if plan.planning_preferences.whole_journey_budget_inr != cap:
+            errors.append("Combined journey budget conflict: the requested cap was changed.")
+        if cap is not None:
+            if type(cap) is not int or not 0 < cap <= 5_000_000:
+                errors.append("Combined journey budget is invalid.")
+            else:
+                try:
+                    booking = BookedTransport.model_validate(request.booked_transport) if request.booked_transport else None
+                    stay_cost = StayChoice.model_validate(request.stay_choice) if request.stay_choice else None
+                    tickets = booking.total_fare_inr if booking else 0
+                    prepaid = stay_cost.total_stay_cost_inr if stay_cost and stay_cost.budget_treatment == "already_paid" else 0
+                    if request.origin_city and request.origin_city.lower() != request.destination.lower() and not booking:
+                        errors.append("Combined cap requires booked roundtrip fares for intercity travel.")
+                except (ValueError, TypeError):
+                    errors.append("Combined cap could not validate confirmed costs.")
+                if plan.total_cost_inr + tickets + prepaid > cap:
+                    errors.append("Combined journey budget exceeded: reduce planned costs or increase the cap.")
+                else:
+                    checks_passed.append("Combined counted journey costs fit the requested cap, including already-paid costs.")
+                warnings.append("Combined cap covers counted costs only; unknown tickets, taxes, transfers and unscheduled expenses are not verified.")
         if request.booked_transport:
             try:
                 booked = BookedTransport.model_validate(request.booked_transport)
@@ -361,6 +383,8 @@ class ItineraryVerifier:
         else:
             checks_passed.append("Grand Total Reconciled: Sum of activities, transit, and lodging matches total cost.")
 
+        if type(cap) is int and computed_grand_total + tickets + prepaid > cap:
+            errors.append("Recomputed costs exceed the combined journey budget.")
         if plan.total_cost_inr > request.budget_inr or computed_grand_total > request.budget_inr:
             errors.append(
                 f"Budget Violation: Plan total ₹{max(plan.total_cost_inr, computed_grand_total)} exceeds requested on-ground budget ₹{request.budget_inr}."

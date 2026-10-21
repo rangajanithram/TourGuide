@@ -214,6 +214,9 @@ def _build_single_plan(
     return_timings: bool = False
 ):
     """Internal pipeline helper executing Stages 1-8 for a specific variant with real performance profiling."""
+    request = request.model_copy(update={"budget_inr": request.destination_budget_available})
+    if request.budget_inr <= 0:
+        raise HTTPException(status_code=422, detail="Confirmed costs leave no destination budget. Increase the combined cap or reduce confirmed costs.")
     timings: Dict[int, float] = {}
 
     # Stage 1: Candidate Generation
@@ -342,6 +345,7 @@ def _build_single_plan(
         itinerary.meal_places = meal_places
         itinerary.booked_transport = request.booked_transport
         itinerary.planning_preferences.booked_transport = request.booked_transport
+        itinerary.planning_preferences.whole_journey_budget_inr = request.whole_journey_budget_inr
         itinerary.planning_preferences.intercity_modes = request.intercity_modes
         itinerary.planning_preferences.stay_choice = request.stay_choice
         itinerary.planning_preferences.journey_timing = request.journey_timing

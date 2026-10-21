@@ -142,6 +142,7 @@ class BookedTransport(BaseModel):
 
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    whole_journey_budget_inr: Optional[int] = Field(default=None, gt=0, le=5_000_000, strict=True)
     booked_transport: Optional[BookedTransport] = None
     intercity_modes: List[Literal["train", "bus", "flight"]] = Field(default_factory=lambda: ["train", "bus", "flight"], min_length=1, max_length=3)
     stay_choice: Optional[StayChoice] = None
@@ -156,6 +157,14 @@ class PlanningPreferences(BaseModel):
 
 class TripRequest(PlanningPreferences):
     model_config = ConfigDict(extra="forbid")
+    @property
+    def destination_budget_available(self) -> int:
+        if self.whole_journey_budget_inr is None:
+            return self.budget_inr
+        tickets = self.booked_transport.total_fare_inr if self.booked_transport else 0
+        prepaid = self.stay_choice.total_stay_cost_inr if self.stay_choice and self.stay_choice.budget_treatment == "already_paid" else 0
+        return min(self.budget_inr, self.whole_journey_budget_inr - tickets - prepaid)
+
     origin_city: Optional[str] = Field(None, max_length=80, description="Optional departure city for inter-city travel recommendations (e.g. 'Bengaluru', 'Mumbai', 'Delhi')")
     destination: str = Field(..., min_length=2, max_length=80, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
     start_date: Optional[date] = Field(None, description="Trip start date (YYYY-MM-DD)")
@@ -180,6 +189,11 @@ class TripRequest(PlanningPreferences):
 
     @model_validator(mode="after")
     def apply_journey_timing(self):
+        if self.whole_journey_budget_inr is not None:
+            if self.origin_city and self.origin_city.strip().lower() != self.destination.strip().lower() and not self.booked_transport:
+                raise ValueError("Book and enter both travel fares before setting a combined journey cost cap.")
+            if self.destination_budget_available <= 0:
+                raise ValueError("Tickets and prepaid stay leave no destination budget. Increase the combined cap or reduce confirmed costs.")
         if self.booked_transport and not self.journey_timing:
             raise ValueError("Booked transport requires your outbound and return travel timing.")
         if self.journey_timing:

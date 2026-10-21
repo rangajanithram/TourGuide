@@ -162,6 +162,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         setActiveFormData({
           meal_budget_per_person:req.meal_budget_per_person,
           external_stops: req.external_stops,
+          whole_journey_budget_inr:req.whole_journey_budget_inr,
           booked_transport:req.booked_transport, intercity_modes:req.intercity_modes, journey_timing:req.journey_timing, stay_choice:req.stay_choice,
           arrival_available_mins:req.arrival_available_mins, departure_deadline_mins:req.departure_deadline_mins,
           max_visit_minutes: req.max_visit_minutes,
@@ -224,6 +225,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         body: JSON.stringify({
           meal_budget_per_person:formData.meal_budget_per_person,
           external_stops: formData.external_stops,
+          whole_journey_budget_inr:formData.whole_journey_budget_inr,
           booked_transport:formData.booked_transport, intercity_modes:formData.intercity_modes, journey_timing:formData.journey_timing, stay_choice:formData.stay_choice,
           arrival_available_mins:formData.arrival_available_mins, departure_deadline_mins:formData.departure_deadline_mins,
           max_visit_minutes: formData.max_visit_minutes,
@@ -281,8 +283,9 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         }
       }
     } catch (err: unknown) {
+      if (controller.signal.aborted || version !== requestVersion.current) return;
       console.error('Failed to generate trip:', err);
-      const message = controller.signal.aborted ? 'Planning took too long. Please try again; the service may be waking up.' : err instanceof Error ? err.message : 'Could not reach the trip planning service. Check your connection and try again.';
+      const message = err instanceof Error ? err.message : 'Could not reach the trip planning service. Check your connection and try again.';
       if (version === requestVersion.current) setError(message);
     } finally {
       if (version === requestVersion.current) setIsLoading(false);
