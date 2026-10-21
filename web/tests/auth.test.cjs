@@ -694,6 +694,8 @@ test('stay input validates costs, coordinate bounds and prepaid scope', () => {
   assert.throws(() => validateStayChoice({ ...bookedStay, check_in_time: '25:00' }, 15000), /HH:MM format/);
   for (const changes of [{ lat: NaN }, { lng: 200 }, { total_stay_cost_inr: -1 }, { kind: 'family_friends' }, { base_name: ' ' }, { version: 2 }]) assert.throws(() => validateStayChoice({ ...bookedStay, ...changes }, 15000));
   assert.throws(() => validateStayChoice(bookedStay, 3000), /entire destination budget/);
+  for (const allows_bag_drop of [undefined, null, false, true]) assert.doesNotThrow(() => validateStayChoice({ ...bookedStay, allows_bag_drop }, 15000));
+  assert.throws(() => validateStayChoice({ ...bookedStay, allows_bag_drop: 'yes' }, 15000), /luggage storage/);
 });
 test('saved request keeps a confirmed stay and rejects base or cost changes', () => {
   const form = { destination: 'hyderabad', start_date: '2026-10-15', end_date: '2026-10-16', budget_inr: 15000, people_count: 2, pace: 'balanced', transport_mode: 'cab', interests: [], stay_choice: bookedStay };

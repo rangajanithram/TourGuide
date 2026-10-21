@@ -296,7 +296,7 @@ export interface StayChoice {
   budget_treatment: 'include' | 'already_paid';
   check_in_time?: string | null;
   check_out_time?: string | null;
-  allows_bag_drop?: boolean;
+  allows_bag_drop?: boolean | null;
 }
 export interface BookedTransport {
   version: 1;

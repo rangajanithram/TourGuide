@@ -9,6 +9,7 @@ export function validateStayChoice(stay: StayChoice | undefined, budget: number)
   if (!['include', 'already_paid'].includes(stay.budget_treatment)) throw new Error('Choose how the stay cost counts toward your budget.');
   if (stay.kind !== 'booked' && (stay.total_stay_cost_inr !== 0 || stay.budget_treatment !== 'include')) throw new Error('Only booked stays can have a lodging cost or prepaid treatment.');
   if (stay.budget_treatment === 'include' && stay.total_stay_cost_inr >= budget) throw new Error('Your booked stay uses the entire destination budget. Increase the budget or correct the stay cost.');
+  if (stay.allows_bag_drop != null && typeof stay.allows_bag_drop !== 'boolean') throw new Error('Confirm luggage storage as available or unavailable, or leave it unknown.');
   if (stay.check_in_time !== undefined && stay.check_in_time !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(stay.check_in_time)) throw new Error('Check-in time must be in HH:MM format.');
   if (stay.check_out_time !== undefined && stay.check_out_time !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(stay.check_out_time)) throw new Error('Check-out time must be in HH:MM format.');
 }

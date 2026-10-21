@@ -33,8 +33,8 @@ class FeasibilityFilter:
                 nights=0 if choice.kind == "no_stay" else max(0, request.days - 1),
                 people_accommodated=request.people_count, total_cost_inr=included,
                 provenance=provenance, why_this_hotel=f"{label}. Each sightseeing day starts and ends at your confirmed base. ₹{included} counts toward the destination budget; ₹{excluded} was marked already paid.",
-                check_in_time=choice.check_in_time or "14:00",
-                check_out_time=choice.check_out_time or "11:00",
+                check_in_time=choice.check_in_time,
+                check_out_time=choice.check_out_time,
                 osm_url=f"https://www.openstreetmap.org/?mlat={choice.lat}&mlon={choice.lng}#map=16/{choice.lat}/{choice.lng}")
         all_hotels = [p for p in places if p.place_type == "hotel"]
         sightseeing = [p for p in places if p.place_type != "hotel"]
@@ -141,8 +141,8 @@ class FeasibilityFilter:
                         f"({dist_to_centroid:.1f} km from sightseeing centroid) minimizes commute overhead "
                         f"via {mode_str.capitalize()} while comfortably accommodating {request.people_count} travelers."
                     ),
-                    check_in_time=getattr(hotel, "check_in_time", "14:00") or "14:00",
-                    check_out_time=getattr(hotel, "check_out_time", "11:00") or "11:00",
+                    check_in_time=hotel.check_in_time,
+                    check_out_time=hotel.check_out_time,
                     rating=getattr(hotel, "rating", None),
                     review_count=getattr(hotel, "review_count", None),
                     formatted_address=getattr(hotel, "formatted_address", None),

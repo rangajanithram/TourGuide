@@ -464,14 +464,22 @@ inside total spending. Unknown costs are explicitly outside coverage; this is
 not a complete door-to-door quote. See `JOURNEY_COST_SUMMARY.md` for acceptance
 scope and remaining live verification.
 
-### 2026-10-21 stay timing coordination and place rating enrichment
+### 2026-10-21 stay metadata and accessibility increment — reviewed scope
 
-`check_in_time`, `check_out_time`, and `allows_bag_drop` now coordinate lodging
-transitions in user accommodation choices. Timing is validated as 24-hr `HH:MM`
-and surfaced in itinerary hotel summaries. Real-world place metadata (`rating`,
-`review_count`, `formatted_address`, and `osm_url`) has been added across
-`Place`, `ScheduledActivity`, `ConfirmedDiscoveryStop`, and `HotelStaySummary`.
-Ratings and review counts are rendered alongside direct OpenStreetMap links in
-the web client, without scraping restricted review corpora. Navigation links
-and action triggers have been updated with descriptive `aria-label`s for full
-accessibility compliance.
+Check-in/out values are optional reference metadata, not enforced schedule
+constraints. The verifier checks preservation of supplied values, not feasible
+hotel transitions. Terminal transfers, check-in/out scheduling and luggage
+handling remain unfinished. Missing times and bag-drop availability must remain
+unknown; common hotel times are not verified facts.
+
+Place rating, review-count and address fields exist in models and result UI.
+This does not connect a ratings/reviews provider or establish worldwide planning.
+Only source-backed data may populate them. Map links use coordinates on a fixed
+OpenStreetMap origin. Navigation labels were improved; a full accessibility audit
+has not been completed.
+
+Next acceptance gate: define explicit user-confirmed transfer and stay windows,
+apply them in generation and independent verification, preserve them through
+edit/save/reopen, and reject impossible connections with actionable feedback.
+Then expand automatic real-place candidates using free services and confirmed
+planning estimates. Do not mark either increment complete from schema tests alone.

@@ -115,7 +115,7 @@ class StayChoice(BaseModel):
     budget_treatment: Literal["include", "already_paid"] = "include"
     check_in_time: Optional[str] = Field(default=None, max_length=16)
     check_out_time: Optional[str] = Field(default=None, max_length=16)
-    allows_bag_drop: bool = Field(default=True)
+    allows_bag_drop: Optional[bool] = Field(default=None, strict=True)
 
     @field_validator("check_in_time", "check_out_time")
     @classmethod
@@ -368,8 +368,8 @@ class HotelStaySummary(BaseModel):
     total_cost_inr: int = Field(..., ge=0, le=5_000_000)
     provenance: str = Field(..., max_length=500, description="Clear provenance note of the rate")
     why_this_hotel: Optional[str] = Field(None, max_length=1000, description="Decision trace explaining why this hotel was selected")
-    check_in_time: Optional[str] = Field(default="14:00", max_length=16)
-    check_out_time: Optional[str] = Field(default="11:00", max_length=16)
+    check_in_time: Optional[str] = Field(default=None, max_length=16)
+    check_out_time: Optional[str] = Field(default=None, max_length=16)
     rating: Optional[float] = Field(default=None, ge=0.0, le=5.0)
     review_count: Optional[int] = Field(default=None, ge=0)
     formatted_address: Optional[str] = Field(default=None, max_length=300)

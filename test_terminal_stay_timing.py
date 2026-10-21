@@ -9,6 +9,18 @@ from tripweave.feasibility import FeasibilityFilter
 
 
 class TestStayTimingAndEnrichment(unittest.TestCase):
+    def test_unknown_stay_facts_remain_unknown(self):
+        stay = StayChoice(kind="booked", base_name="Test base", lat=17.4, lng=78.4)
+        self.assertIsNone(stay.allows_bag_drop)
+        request = TripRequest(destination="hyderabad", budget_inr=15000, days=2,
+                              people_count=2, stay_choice=stay)
+        _, summary = FeasibilityFilter().select_hotel([], request)
+        self.assertIsNone(summary.check_in_time)
+        self.assertIsNone(summary.check_out_time)
+        with self.assertRaises(ValueError):
+            StayChoice(kind="booked", base_name="Test base", lat=17.4, lng=78.4,
+                       allows_bag_drop="yes")
+
     def test_stay_choice_valid_times(self):
         stay = StayChoice(
             version=1,
