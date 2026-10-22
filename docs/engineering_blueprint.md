@@ -525,3 +525,11 @@ remaining cash needs cleanly, without implying a complete door-to-door quote.
 ### 2026-10-22 real-place candidate admission and metadata linking
 
 Discovered stops from free-tier Geoapify now construct direct OpenStreetMap links (`osm_url`) and carry `formatted_address`. The planner discovery UI allows travelers to confirm estimates for visit duration, fee, and time windows before admission to the solver candidate pool, with the option to mark the confirmed stop as a mandatory pin or an optional candidate. Confirmed external stops propagate through the optimizer, editor, verifier, and UI without inventing missing operating hours or prices.
+## 2026-10-22 nearby discovery browsing
+
+Planner users can request nearby real listings without already knowing a place
+name. Returned listings use the same estimate-confirmation and mandatory/optional
+admission flow as named search. Existing selections remain visible and are not
+silently replaced. Requests use the bounded free provider and its recovery states.
+This does not automatically admit missing facts or establish worldwide scheduling.
+Live authenticated acceptance is still required after deployment.

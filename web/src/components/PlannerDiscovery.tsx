@@ -17,19 +17,20 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
+  const [browse, setBrowse] = useState(false);
   const cache = useRef(new Map<string, Result[]>());
   useEffect(() => {
     const controller = new AbortController();
     const name = query.trim();
     setItems([]); setError(''); setBusy(false);
-    if (name.length < 3 || disabled) return () => controller.abort();
+    if ((!browse && name.length < 3) || disabled) return () => controller.abort();
     const key = `${destination}:${name.toLowerCase()}`;
     const cached = cache.current.get(key);
     if (cached) { setItems(cached); return () => controller.abort(); }
     setBusy(true);
     const timer = setTimeout(async () => {
       try {
-        const response = await plannerFetch(`${apiBaseUrl()}/api/discovery?${new URLSearchParams({ location: destination + ', India', category: 'all', query: name })}`, { signal: controller.signal });
+        const response = await plannerFetch(`${apiBaseUrl()}/api/discovery?${new URLSearchParams({ location: destination + ', India', category: 'all', ...(name.length >= 3 ? { query: name } : {}) })}`, { signal: controller.signal });
         const body = await response.json();
         if (!Array.isArray(body.places)) throw new Error('Place search returned an invalid response. Please retry.');
         if (!controller.signal.aborted) {
@@ -42,7 +43,7 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
       } finally { if (!controller.signal.aborted) setBusy(false); }
     }, 900);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [query, destination, disabled, retry]);
+  }, [query, destination, disabled, retry, browse]);
   const live = items.filter(item => !selected.includes('discovered:' + item.id) && !catalog.some(place =>
     place.label.trim().toLowerCase() === item.name.trim().toLowerCase() && place.lat !== undefined && place.lng !== undefined && Math.abs(place.lat-item.lat) < 0.002 && Math.abs(place.lng-item.lng) < 0.002));
   const options: SearchOption[] = [
@@ -51,6 +52,8 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
   ];
   const status = disabled ? 'You can select up to 15 places. Remove a pin to add another.' : busy ? 'Searching real places…' : error || (query.trim().length < 3 ? 'Type at least 3 characters to search real attractions, restaurants, parks and hills. Select places one at a time; your pins stay selected.' : 'Matching catalog and live listings near this city. Coverage depends on the source.');
   return <div>
+    <button type="button" disabled={disabled || busy} onClick={() => { setBrowse(true); setRetry(value => value + 1); }}>Browse nearby real places</button>
+    {browse && !busy && !error && query.trim().length < 3 && <div className="booking-chips" aria-label="Nearby real places">{live.map(item => <button type="button" key={item.id} disabled={disabled} onClick={() => setChosen(item)}>{item.name}</button>)}{items.length === 0 && <p>No nearby listings returned. Search by name or retry later.</p>}</div>}
     <PlaceSearch label="Search and pin a place" value="" placeholder="Type an attraction, restaurant, park or hill…" options={options} disabled={disabled} onQueryChange={setQuery} status={status} onChange={id => {
       const item = items.find(place => 'discovered:' + place.id === id);
       if (item) setChosen(item); else onPin(id);
