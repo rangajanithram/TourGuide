@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
+import "./theme.css";
+import SiteTheme from "@/components/SiteTheme";
+import { themeScript } from "@/lib/site-theme";
 
 
 const displayFont = localFont({
@@ -32,13 +35,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body
         className={`${displayFont.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
+        <SiteTheme><AuthProvider>
           {children}
-        </AuthProvider>
+        </AuthProvider></SiteTheme>
       </body>
     </html>
   );

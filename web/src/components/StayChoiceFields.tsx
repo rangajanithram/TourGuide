@@ -30,7 +30,7 @@ export default function StayChoiceFields({ value, onChange }: { value?: StayChoi
           <label>Check-out time (optional)<input type="time" value={value.check_out_time || ''} onChange={event => onChange({ ...value, check_out_time: event.target.value || undefined })} /></label>
         </>}
       </div>
-      <p className="step-note">{value.kind === 'no_stay' ? 'No lodging cost or overnight stay will be added. For a multi-day trip, arrange a safe place to sleep separately.' : 'Confirm occupancy, check-in, luggage storage and the stay dates yourself. The planner uses your supplied location and cost.'} Intercity tickets remain outside this destination budget.</p>
-    </> : <p className="step-note">Overnight plans include an estimated stay in the destination budget. Day trips use a representative starting hub without lodging charges.</p>}
+      <p className="step-note">{value.kind === 'no_stay' ? 'No stay or hotel cost will be added. For a multi-day trip, arrange a safe place to sleep separately.' : 'Check room capacity, check-in times, luggage storage and your stay dates. The planner uses your supplied location and cost.'} Tickets between cities cost extra.</p>
+    </> : <p className="step-note">Overnight plans include an estimated stay in the destination budget. Day trips start at a nearby meeting point and have no hotel cost.</p>}
   </section>;
 }

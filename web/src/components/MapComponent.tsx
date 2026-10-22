@@ -135,7 +135,7 @@ export default function MapComponent({ plan, selectedDay = 'all', onSelectDay }:
       <div className="absolute bottom-7 right-3 z-[1000] bg-[#fffdf5]/90 backdrop-blur-md border border-[#d6dfd0] rounded-xl px-3 py-2 text-xs shadow-lg space-y-1.5 hidden sm:block">
         <div className="flex items-center space-x-2">
           <span className="w-3 h-3 rounded-full bg-amber-500 border border-white"></span>
-          <span className="text-[#425d4c] font-semibold">Centroid Base / Hotel</span>
+          <span className="text-[#425d4c] font-semibold">Your stay / starting point</span>
         </div>
         {plan.days.map((day, idx) => (
           <div key={day.day_number} className="flex items-center space-x-2">

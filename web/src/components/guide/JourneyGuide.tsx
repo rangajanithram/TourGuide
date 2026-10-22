@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useSiteTheme } from '../SiteTheme';
 import ExperienceMetrics from './ExperienceMetrics';
 import JourneyLoading from '../JourneyLoading';
 import ThemedSelect from '../ThemedSelect';
@@ -58,7 +59,7 @@ export default function JourneyGuide() {
   const progress = useRef(0);
   const progressBar = useRef<HTMLDivElement>(null);
   const [station, setStation] = useState(0);
-  const [night, setNight] = useState(false);
+  const { dark: night, toggle: toggleTheme } = useSiteTheme();
   const [weather, setWeather] = useState('clear');
   const [journeyVisible, setJourneyVisible] = useState(true);
   const [paused, setPaused] = useState(false);
@@ -198,7 +199,7 @@ export default function JourneyGuide() {
         <div className="scene-orbit orbit-one" /><div className="scene-orbit orbit-two" /><div className="scene-sun" />
         <TravelWorld weather={weather} progress={progress} night={night} paused={paused} rotation={rotation} />
         <div className="scene-postmark">TAKE THE<strong>scenic route.</strong><span>WITH TRIPWEAVE</span></div>
-        <div className="scene-controls" hidden={!journeyVisible}><div className="weather-icons" role="group" aria-label="Illustrated weather">{[{value:'clear',label:'Sunshine',icon:Sun},{value:'mist',label:'Mountain mist',icon:CloudFog},{value:'rain',label:'Gentle rain',icon:CloudRain}].map(item => <button key={item.value} onClick={() => setWeather(item.value)} aria-label={item.label} title={item.label} aria-pressed={weather === item.value}><item.icon size={19} /></button>)}</div><button onClick={() => setNight(!night)} aria-label={night ? 'Switch to daytime scenery' : 'Switch to evening scenery'} aria-pressed={night} title="Day / evening">{night ? <Sun size={18} /> : <Moon size={18} />}</button><button onClick={() => setRotation(value => value + Math.PI / 4)} aria-label="Rotate the miniature world" title="Rotate world"><RotateCcw size={18} /></button><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume ambient animation' : 'Pause ambient animation'} aria-pressed={paused} title="Pause / play">{paused ? <Play size={18} /> : <Pause size={18} />}</button></div>
+        <div className="scene-controls" hidden={!journeyVisible}><div className="weather-icons" role="group" aria-label="Illustrated weather">{[{value:'clear',label:'Sunshine',icon:Sun},{value:'mist',label:'Mountain mist',icon:CloudFog},{value:'rain',label:'Gentle rain',icon:CloudRain}].map(item => <button key={item.value} onClick={() => setWeather(item.value)} aria-label={item.label} title={item.label} aria-pressed={weather === item.value}><item.icon size={19} /></button>)}</div><button onClick={() => toggleTheme()} aria-label={night ? 'Switch to daytime scenery' : 'Switch to evening scenery'} aria-pressed={night} title="Day / evening">{night ? <Sun size={18} /> : <Moon size={18} />}</button><button onClick={() => setRotation(value => value + Math.PI / 4)} aria-label="Rotate the miniature world" title="Rotate world"><RotateCcw size={18} /></button><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume ambient animation' : 'Pause ambient animation'} aria-pressed={paused} title="Pause / play">{paused ? <Play size={18} /> : <Pause size={18} />}</button></div>
         <div className="scene-bottom"><div className="station-readout"><div><span>NOW EXPLORING</span><strong>{stations[station].city}</strong></div><p>{stations[station].coordinates}<span>0{station + 1} <i>/ 05</i></span></p></div>
           <div className="rail-progress"><div ref={progressBar} /></div>
           <nav className="station-navigation" aria-label="Journey stops">{stations.map((stop, i) => <a key={stop.id} className={station === i ? 'current' : ''} href={`#${stop.id}`} aria-current={station === i ? 'step' : undefined}><span>{i < station ? <Check size={12} /> : i + 1}</span><strong>{stop.city}</strong></a>)}</nav>

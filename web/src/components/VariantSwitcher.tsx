@@ -76,7 +76,7 @@ export default function VariantSwitcher({
           if (!isAvailable) {
             const reason =
               unavailableReasons[v.id] ||
-              'Not available as a distinct feasible schedule under your current budget, date, or transport constraints.';
+              'No different plan fits these dates, travel choices and budget.';
             return (
               <div
                 key={v.id}
@@ -133,7 +133,7 @@ export default function VariantSwitcher({
 
               <div className="flex items-baseline space-x-1.5 mb-1.5">
                 <span className="text-xl font-extrabold text-[#243e33]">₹{totalCost.toLocaleString('en-IN')}</span>
-                <span className="text-xs text-[#526653]">local on-ground est.</span>
+                <span className="text-xs text-[#526653]">estimated destination cost</span>
               </div>
 
               <div className="flex items-center space-x-2 text-xs text-[#526653] mb-2">

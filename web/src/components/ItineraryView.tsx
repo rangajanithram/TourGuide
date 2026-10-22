@@ -18,6 +18,8 @@ import { calculateOptimalSettlements } from '../utils/settlement';
 import EditConsequenceModal from './EditConsequenceModal';
 import LiveRebalanceModal from './LiveRebalanceModal';
 import GroupExpenseModal from './GroupExpenseModal';
+import { plainPlannerText } from '../lib/planner-copy';
+import PlanNotices from './PlanNotices';
 import JourneyCostSummary from './JourneyCostSummary';
 
 interface ItineraryViewProps {
@@ -370,7 +372,7 @@ export default function ItineraryView({
             title="Download standard .ics file for Google Calendar, Apple Calendar, or Outlook"
           >
             <Calendar className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Export .ics</span>
+            <span>Add to calendar</span>
           </button>
 
           <button
@@ -387,7 +389,7 @@ export default function ItineraryView({
             ) : (
               <>
                 <Link2 className="w-3.5 h-3.5 text-black" />
-                <span>Copy Parameter Link</span>
+                <span>Copy trip link</span>
               </>
             )}
           </button>
@@ -421,7 +423,7 @@ export default function ItineraryView({
             title="Open Browser-Local Group Expense Ledger & UPI Split Tracker (stored in this browser only)"
           >
             <Wallet className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Group Splits (Browser-Local)</span>
+            <span>Split costs on this device</span>
             {ledger.expenses.length > 0 && (
               <span className="ml-1 text-sm bg-amber-500/20 text-[#89532d] px-1.5 py-0.2 rounded-full font-bold">
                 {ledger.expenses.length}
@@ -461,9 +463,9 @@ export default function ItineraryView({
           <div className="flex items-center space-x-2.5">
             <Sparkles className="w-4 h-4 text-[#89532d] shrink-0" />
             <div>
-              <span className="font-bold text-[#243e33] block">Customized Itinerary State</span>
+              <span className="font-bold text-[#243e33] block">Your edited plan</span>
               <span className="text-sm text-[#89532d]/80">
-                You have made {planHistory.length} local edit(s). Updated on-ground subtotal: <strong>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</strong>
+                You have made {planHistory.length} local edit(s). Updated destination cost: <strong>₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</strong>
               </span>
             </div>
           </div>
@@ -490,10 +492,10 @@ export default function ItineraryView({
                   onReoptimize(pinnedNames);
                 }}
                 className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
-                title="Send pinned constraints back to OR-Tools solver for a globally reconciled plan"
+                title="Build a new plan around your pinned places"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Re-solve with Pinned</span>
+                <span>Plan again with my pins</span>
               </button>
             )}
           </div>
@@ -507,10 +509,10 @@ export default function ItineraryView({
             <Compass className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-base text-[#243e33]">{currentPlan.plan_name}</h3>
+            <h3 className="font-bold text-base text-[#243e33]">{currentPlan.plan_name.replace('TripWeave Prototype Itinerary', 'Your trip').replace(' Variant', '')}</h3>
             <p className="text-sm text-[#526653]">
               {currentPlan.days.length} Days • ₹{currentPlan.total_cost_inr.toLocaleString('en-IN')} Estimated destination cost
-              {currentPlan.fatigue_report?.overall_pace && ` • ${currentPlan.fatigue_report.overall_pace}`}
+              {currentPlan.fatigue_report?.overall_pace && ` • ${plainPlannerText(currentPlan.fatigue_report.overall_pace)}`}
             </p>
           </div>
         </div>
@@ -518,8 +520,16 @@ export default function ItineraryView({
         {actionsTarget ? createPortal(tripActions, actionsTarget) : tripActions}
       </div>
 
-      {plan.candidate_summary && <section className="booking-summary text-[#243e33]" aria-label="Planning evidence"><h3>How this plan was built</h3><p>{plan.candidate_summary.total_candidates} candidates considered · {plan.candidate_summary.confirmed_discovered_candidates} discovered inputs · {plan.candidate_summary.rated_candidates} candidates with historical rating evidence.</p><p>{plan.candidate_summary.notes}</p><p>Weather: {plan.candidate_summary.weather_used_in_ranking ? 'forecast or seasonal conditions used as a soft ranking signal' : 'unavailable; not used in ranking'}. Venue opening hours, costs, dietary suitability and accessibility still require confirmation where marked estimated.</p></section>}
-      {/* Blueprint Section 1 & Product Spec Feature 1: Inter-City Transit Intelligence */}
+      {currentPlan.candidate_summary && <section className="plan-evidence" aria-label="Planning evidence">
+        <div><h3>How we picked your stops</h3><p>We compare places with your time, budget and interests. Your pinned places stay required.</p></div>
+        <dl className="plan-evidence-counts">
+          <div><dt>Places compared</dt><dd>{currentPlan.candidate_summary.total_candidates}</dd></div>
+          <div><dt>Places from search</dt><dd>{currentPlan.candidate_summary.confirmed_discovered_candidates}</dd></div>
+          <div><dt>With older ratings</dt><dd>{currentPlan.candidate_summary.rated_candidates}</dd></div>
+        </dl>
+        <details><summary>About the data</summary><p>Older ratings help compare places; missing ratings do not count against a place. {currentPlan.candidate_summary.weather_used_in_ranking ? 'Weather forecasts or seasonal weather also help us choose stops.' : 'Weather data was unavailable and did not affect the choices.'} Check opening hours, prices, food needs and access where marked as estimates.</p><p>{currentPlan.candidate_summary.notes}</p></details>
+      </section>}
+      {/* Blueprint Section 1 & Product Spec Feature 1: Travel between cities */}
       {plan.intercity_notice && <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-[#243e33]">{plan.intercity_notice}</p>}
       {plan.intercity_transport && (
         <div className="intercity-panel bg-[#fffdf5] border border-amber-500/30 rounded-2xl p-5 shadow-xl relative space-y-4">
@@ -536,7 +546,7 @@ export default function ItineraryView({
               </div>
               <div>
                 <span className="text-sm font-bold uppercase tracking-widest text-[#89532d]">
-                  Inter-City Transit Intelligence
+                  Travel between cities
                 </span>
                 <h3 className="text-base font-bold text-[#243e33] flex items-center space-x-2">
                   <span>{plan.intercity_transport.origin_city}</span>
@@ -559,7 +569,7 @@ export default function ItineraryView({
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-bold uppercase tracking-wider text-[#89532d] bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                    Outbound
+                    To your destination
                   </span>
                   <span className="font-bold text-base text-[#243e33]">
                     {plan.intercity_transport.recommended_option.operator_name}
@@ -574,7 +584,7 @@ export default function ItineraryView({
                   {plan.intercity_transport.recommended_option.departure_station} ➔ {plan.intercity_transport.recommended_option.arrival_station}
                 </p>
                 <p className="text-sm text-[#596b57] mt-0.5">
-                  Schedule Window: {plan.intercity_transport.recommended_option.departure_window}
+                  Travel times: {plan.intercity_transport.recommended_option.departure_window}
                 </p>
               </div>
 
@@ -588,13 +598,13 @@ export default function ItineraryView({
               </div>
             </div>
 
-            {/* Return Leg Detail */}
+            {/* Return journey Detail */}
             {plan.intercity_transport.return_option && (
               <div className="transit-leg">
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-bold uppercase tracking-wider text-cyan-700 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
-                      Return Leg
+                      Return journey
                     </span>
                     <span className="font-bold text-base text-[#243e33]">
                       {plan.intercity_transport.return_option.operator_name}
@@ -605,14 +615,14 @@ export default function ItineraryView({
                       </span>
                     )}
                     <span className="text-sm text-[#526653] bg-[#fffdf5] px-1.5 py-0.5 rounded border border-[#c6d2c0]">
-                      Indicative Schedule Benchmark
+                      Example schedule · check before booking
                     </span>
                   </div>
                   <p className="text-sm text-[#526653] mt-1">
                     {plan.intercity_transport.return_option.departure_station} ➔ {plan.intercity_transport.return_option.arrival_station}
                   </p>
                   <p className="text-sm text-[#596b57] mt-0.5">
-                    Schedule Window: {plan.intercity_transport.return_option.departure_window}
+                    Travel times: {plan.intercity_transport.return_option.departure_window}
                   </p>
                 </div>
 
@@ -637,7 +647,7 @@ export default function ItineraryView({
                 <div className="flex items-start space-x-2.5 text-sm text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-emerald-700 block mb-0.5">Arrival Transfer (Inbound Terminal ➔ Hotel):</span>
+                    <span className="font-bold text-emerald-700 block mb-0.5">Station / airport to your stay:</span>
                     <span>{plan.intercity_transport.last_mile.guidance}</span>
                   </div>
                 </div>
@@ -647,7 +657,7 @@ export default function ItineraryView({
                 <div className="flex items-start space-x-2.5 text-sm text-cyan-800 bg-cyan-500/10 border border-cyan-500/20 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4 text-cyan-700 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-bold text-cyan-700 block mb-0.5">Departure Transfer (Hotel ➔ Return Terminal):</span>
+                    <span className="font-bold text-cyan-700 block mb-0.5">Your stay to the station / airport:</span>
                     <span>{plan.intercity_transport.return_last_mile.guidance}</span>
                   </div>
                 </div>
@@ -669,7 +679,7 @@ export default function ItineraryView({
               const retFareMin = returnOpt.typical_fare_min;
               const retFareMax = returnOpt.typical_fare_max;
 
-              // Roundtrip transit: Outbound party fare + Return party fare
+              // Roundtrip transit: To your destination party fare + Return party fare
               const outboundTransitMin = outbound.typical_fare_min * party;
               const outboundTransitMax = outbound.typical_fare_max * party;
               const returnTransitMin = retFareMin * party;
@@ -677,7 +687,7 @@ export default function ItineraryView({
               const roundtripTransitMin = outboundTransitMin + returnTransitMin;
               const roundtripTransitMax = outboundTransitMax + returnTransitMax;
 
-              // Last-mile transfers: Outbound arrival to hotel + return departure to terminal
+              // Last-mile transfers: To your destination arrival to hotel + return departure to terminal
               const outboundLastMileCost = plan.intercity_transport.last_mile?.estimated_cost_inr || 0;
               const returnLastMileCost = plan.intercity_transport.return_last_mile?.estimated_cost_inr;
               const roundtripLastMile = outboundLastMileCost + (returnLastMileCost ?? 0);
@@ -699,13 +709,13 @@ export default function ItineraryView({
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center space-x-2 flex-wrap">
-                        <span className="font-bold text-[#89532d]">Indicative Roundtrip Outlay (Party of {party})</span>
+                        <span className="font-bold text-[#89532d]">Estimated return trip cost · {party} people</span>
                         <span className="text-sm bg-amber-500/10 text-[#89532d] border border-amber-500/30 px-2 py-0.5 rounded font-medium">
-                          Curated Non-Live Baseline
+                          Estimates · not live prices
                         </span>
                       </div>
                       <span className="text-sm text-[#526653] block mt-1">
-                        Outbound: {outbound.operator_name} (₹{outbound.typical_fare_min.toLocaleString('en-IN')})
+                        To your destination: {outbound.operator_name} (₹{outbound.typical_fare_min.toLocaleString('en-IN')})
                         {` • Return: ${returnOpt.operator_name} (₹${retFareMin.toLocaleString('en-IN')})`}
                       </span>
                     </div>
@@ -714,10 +724,10 @@ export default function ItineraryView({
                         ₹{projectedTotalMin.toLocaleString('en-IN')} - ₹{projectedTotalMax.toLocaleString('en-IN')}
                       </span>
                       <span className="text-sm text-[#89532d]/90 block font-semibold">
-                        Total Projected Outlay (incl. Meals)
+                        Estimated total with meals
                       </span>
                       <span className="text-sm text-[#596b57] block">
-                        Base Direct Outlay: ₹{baseDirectMin.toLocaleString('en-IN')} - ₹{baseDirectMax.toLocaleString('en-IN')}
+                        Total before extra meals: ₹{baseDirectMin.toLocaleString('en-IN')} - ₹{baseDirectMax.toLocaleString('en-IN')}
                       </span>
                     </div>
                   </div>
@@ -725,34 +735,34 @@ export default function ItineraryView({
                   {/* 4-Column Breakdown Grid */}
                   <div className="transit-cost-grid grid grid-cols-2 gap-4 pt-4 border-t border-[#d6dfd0] text-sm text-[#526653]">
                     <div>
-                      <span className="text-[#596b57] block">On-Ground Subtotal</span>
+                      <span className="text-[#596b57] block">Cost at your destination</span>
                       <span className="font-semibold text-[#294333]">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
                       <span className="text-sm text-[#596b57] block">Sightseeing & Hotel</span>
                     </div>
                     <div>
-                      <span className="text-[#596b57] block">Roundtrip Transit (x{party})</span>
+                      <span className="text-[#596b57] block">Return tickets · {party} people</span>
                       <span className="font-semibold text-[#294333]">₹{roundtripTransitMin.toLocaleString('en-IN')} - ₹{roundtripTransitMax.toLocaleString('en-IN')}</span>
                       <span className="text-sm text-[#596b57] block">2-way {outbound.mode.toUpperCase()}</span>
                     </div>
                     <div>
-                      <span className="text-[#596b57] block">Destination Transfers</span>
+                      <span className="text-[#596b57] block">Station / airport transfers</span>
                       <span className="font-semibold text-[#294333]">₹{roundtripLastMile.toLocaleString('en-IN')}</span>
                       <span className="text-sm text-[#596b57] block">Inbound (₹{outboundLastMileCost}) + Return ({returnLastMileCost === undefined ? 'unavailable' : `₹${returnLastMileCost}`})</span>
                     </div>
                     <div>
-                      <span className="text-[#596b57] block">Estimated Meals Buffer</span>
+                      <span className="text-[#596b57] block">Extra meal budget</span>
                       <span className="font-semibold text-[#89532d]">~₹{mealAllowance.toLocaleString('en-IN')}</span>
-                      <span className="text-sm text-[#596b57] block">Additional allowance after itinerary dining</span>
+                      <span className="text-sm text-[#596b57] block">For meals not already in your plan</span>
                     </div>
                   </div>
 
                   {/* Static Data & Rate Variability Disclaimer */}
                   <div className="text-sm text-[#526653]/80 bg-[#eef1e5] p-2.5 rounded-lg border border-[#c6d2c0] leading-relaxed space-y-1">
                     <p>
-                      ⚠️ <span className="font-semibold text-[#425d4c]">Rate & Availability Notice:</span> Transit fares and operator schedules are derived from curated standard timetable benchmarks (status: <em>indicative_schedule</em>). Actual prices depend on live booking windows, IRCTC Tatkal / airline dynamic surge pricing, peak seasonal dates, and local government taxes. Ticket availability is subject to booking at operator portals.
+                      ⚠️ <span className="font-semibold text-[#425d4c]">Check before booking:</span> These fares and times are examples, not live offers. Prices and seats can change. Check the operator’s website before booking.
                     </p>
                     <p className="text-[#596b57]">
-                      📍 <span className="font-semibold text-[#526653]">Transfer Scope:</span> Calculated transfers cover destination terminal-to-hotel legs only. Local origin-city transfers between traveler residence and origin hub are excluded.
+                      📍 <span className="font-semibold text-[#526653]">What transfers include:</span> These costs cover travel between your destination station or airport and your stay. Travel from home to your departure station or airport is not included.
                     </p>
                   </div>
                 </div>
@@ -846,8 +856,8 @@ export default function ItineraryView({
             <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3.5 text-sm text-[#425d4c] flex items-start space-x-2.5">
               <Sparkles className="w-4 h-4 text-[#89532d] shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold text-[#89532d]">{hotel.accommodation_kind && hotel.accommodation_kind !== 'planner_selected' ? 'Your base arrangement: ' : 'Why this hotel was selected: '}</span>
-                <span className="text-[#425d4c] leading-relaxed">{hotel.why_this_hotel}</span>
+                <span className="font-semibold text-[#89532d]">{hotel.accommodation_kind && hotel.accommodation_kind !== 'planner_selected' ? 'Your starting point: ' : 'Why we chose this stay: '}</span>
+                <span className="text-[#425d4c] leading-relaxed">{plainPlannerText(hotel.why_this_hotel)}</span>
               </div>
             </div>
           )}
@@ -859,7 +869,7 @@ export default function ItineraryView({
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
           <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Estimated destination cost</span>
           <span className="text-xl font-extrabold text-[#89532d]">₹{currentPlan.total_cost_inr.toLocaleString('en-IN')}</span>
-          <span className="text-sm text-[#596b57] block mt-0.5">Counted lodging, city transit & stops (excl. intercity and prepaid stay)</span>
+          <span className="text-sm text-[#596b57] block mt-0.5">Stay, local travel and stops. Tickets between cities and prepaid stays cost extra.</span>
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
@@ -875,7 +885,7 @@ export default function ItineraryView({
         </div>
 
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-xl p-3.5 shadow-md">
-          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Lodging</span>
+          <span className="text-sm font-semibold text-[#526653] uppercase tracking-wider block">Stay</span>
           <span className="text-xl font-extrabold text-[#243e33]">₹{(hotel?.total_cost_inr || 0).toLocaleString('en-IN')}</span>
           <span className="text-sm text-[#596b57] block mt-0.5">{hotel?.accommodation_kind === 'no_stay' ? 'No accommodation arranged' : hotel?.excluded_prepaid_cost_inr ? 'Prepaid stay shown separately' : hotel ? `${hotel.nights} night(s)` : 'Day Trip'}</span>
         </div>
@@ -884,9 +894,9 @@ export default function ItineraryView({
       </section>
 
       {currentPlan.verification_report && <div className="itinerary-check-summary" role="status">
-        <ShieldCheck size={20} aria-hidden="true" /><span>{currentPlan.verification_report.is_valid ? 'Schedule checks passed using the listed data and assumptions.' : 'This plan needs attention. Review the schedule checks below.'} Current venue prices and conditions still need confirmation.</span>
+        <ShieldCheck size={20} aria-hidden="true" /><span>{currentPlan.verification_report.is_valid ? 'Your plan passed our time and budget checks using the available data.' : 'This plan needs attention. Review the schedule checks below.'} Check current prices and opening hours before you go.</span>
       </div>}
-      {currentPlan.verification_report?.warnings?.map((warning, index) => <p key={`warning-${index}`} className="itinerary-warning">{warning}</p>)}
+      <PlanNotices warnings={currentPlan.verification_report?.warnings} />
       {currentPlan.verification_report?.errors?.map((error, index) => <p key={`error-${index}`} role="alert" className="itinerary-warning">{error}</p>)}
       {/* Day by Day Itinerary */}
       <div className="itinerary-schedule space-y-5">
@@ -988,7 +998,7 @@ export default function ItineraryView({
                 {day.fatigue_level && (
                   <span className="inline-flex items-center space-x-1 text-sm text-[#89532d] bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
                     <Activity className="w-3 h-3 text-[#89532d]" />
-                    <span>{day.fatigue_level} ({day.fatigue_score}/100)</span>
+                    <span>{plainPlannerText(day.fatigue_level)} ({day.fatigue_score}/100)</span>
                   </span>
                 )}
                 <div className="text-sm font-semibold text-[#526653]">
@@ -1000,10 +1010,10 @@ export default function ItineraryView({
                   type="button"
                   onClick={() => setRebalanceDayNumber(day.day_number)}
                   className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#89532d] border border-amber-500/40 text-sm font-bold transition-all active:scale-95 shadow-sm hover:border-amber-400"
-                  title="Feeling fatigued, running late, or heat exhausted? Dynamically rebalance remaining stops with rest buffers."
+                  title="Need a rest or running late? Adjust your remaining stops."
                 >
                   <Zap className="w-3.5 h-3.5 text-[#89532d] fill-amber-400/20" />
-                  <span>I&apos;m Tired / Rebalance</span>
+                  <span>Make this day easier</span>
                 </button>
               </div>
             </div>
@@ -1068,7 +1078,7 @@ export default function ItineraryView({
                         )}
 
 
-                        {act.rating != null && act.rating_evidence ? <span className="text-sm text-[#425d4c]" title={act.rating_evidence}>★ {act.rating.toFixed(2)}/5 · {act.review_count ?? 0} sampled ratings · historical</span> : <span className="text-sm text-[#526653]">No matched rating evidence</span>}
+                        {act.rating != null && act.rating_evidence ? <span className="text-sm text-[#425d4c]" title={act.rating_evidence}>★ {act.rating.toFixed(2)}/5 · {act.review_count ?? 0} older rating samples</span> : <span className="text-sm text-[#526653]">Rating not available</span>}
                         {act.meal_type && <span className="text-sm font-semibold text-[#89532d]">{act.meal_type.charAt(0).toUpperCase() + act.meal_type.slice(1)} meal</span>}
                         {act.is_locked && (
                           <span className="text-sm text-[#89532d] bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded font-semibold inline-flex items-center space-x-0.5">
@@ -1085,7 +1095,7 @@ export default function ItineraryView({
                         {act.verification_status && (
                           <span className="text-sm text-emerald-700 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title={act.source_reference?.startsWith('User-confirmed') ? act.source_reference : act.last_verified_date ? `Listed review date: ${act.last_verified_date}` : 'No verified review date is available'}>
                             <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />
-                            <span>{act.verification_status === 'verified' ? 'Reviewed data' : act.verification_status === 'curated_seed' ? 'Curated estimate' : 'Estimated data'}</span>
+                            <span>{act.verification_status === 'verified' ? 'Reviewed data' : act.verification_status === 'curated_seed' ? 'Planning estimate' : 'Estimated data'}</span>
                           </span>
                         )}
                         {act.crowd_forecast && (
@@ -1300,7 +1310,7 @@ export default function ItineraryView({
       </div>
 
 <section className="itinerary-evidence-grid" aria-label="Budget and schedule details">
-      <details className="itinerary-disclosure"><summary>Budget breakdown <span>See lodging, transport, meals and remaining budget</span></summary><div className="disclosure-body">
+      <details className="itinerary-disclosure"><summary>Budget breakdown <span>See stay, travel, meal costs and money left</span></summary><div className="disclosure-body">
       {/* Feature 2: Smart Expense Simulator & Category Allocation */}
       {plan.expense_breakdown && (
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl space-y-3">
@@ -1309,11 +1319,11 @@ export default function ItineraryView({
               <Wallet className="w-5 h-5 text-[#89532d]" />
               <div>
                 <h4 className="font-bold text-base text-[#243e33]">Where your budget goes</h4>
-                <p className="text-sm text-[#526653]">Reconciled on-ground plan: Direct Subtotal + Unallocated Amount = Target On-Ground Budget</p>
+                <p className="text-sm text-[#526653]">Your planned costs and money left over add up to your destination budget.</p>
               </div>
             </div>
             <div className="text-right">
-              <span className="text-sm text-[#526653]">On-Ground Budget: </span>
+              <span className="text-sm text-[#526653]">Destination budget: </span>
               <span className="text-base font-bold text-[#89532d]">₹{plan.expense_breakdown.total_inr.toLocaleString('en-IN')}</span>
               <span className="text-sm text-[#596b57] block">₹{plan.expense_breakdown.per_person_inr.toLocaleString('en-IN')} / traveler</span>
             </div>
@@ -1321,7 +1331,7 @@ export default function ItineraryView({
 
           <div className="budget-category-rows">
             <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Lodging</span>
+              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Stay</span>
               <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.lodging_inr.toLocaleString('en-IN')}</span>
             </div>
             <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
@@ -1369,7 +1379,7 @@ export default function ItineraryView({
           {plan.intercity_transport && (
             <div className="text-sm text-[#89532d]/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 leading-relaxed flex items-center justify-between flex-wrap gap-2">
               <div>
-                <span className="font-semibold text-[#243e33]">On-Ground Budget Scope:</span> Your ₹{(formData?.budget_inr ?? plan.expense_breakdown.budget_limit_inr ?? (plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr)).toLocaleString('en-IN')} cap constrains the on-ground subtotal, including scheduled dining. The remaining buffer is ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}; extra meal estimates are advisory and may exceed it.
+                <span className="font-semibold text-[#243e33]">What your budget covers:</span> Your ₹{(formData?.budget_inr ?? plan.expense_breakdown.budget_limit_inr ?? (plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr)).toLocaleString('en-IN')} budget covers your stay, local travel, visits and planned meals. Money left: ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}. Extra meals may cost more than this.
               </div>
               <span className="text-sm bg-[#fffdf5] px-2 py-0.5 rounded border border-amber-500/30 text-[#89532d] font-medium">
                 Inter-City Travel is Additive
@@ -1380,7 +1390,7 @@ export default function ItineraryView({
       )}
 
       </div></details>
-      <details className="itinerary-disclosure"><summary>Schedule checks & data assumptions <span>View the calculations and evidence behind this plan</span></summary><div className="disclosure-body">
+      <details className="itinerary-disclosure"><summary>Plan checks & data <span>See what we checked and which details are estimates</span></summary><div className="disclosure-body">
       {/* Stage 8: Independent Verification & Real-World Physics Audit */}
       {plan.verification_report && (
         <div className="bg-[#fffdf5] border border-emerald-500/20 rounded-2xl p-5 shadow-xl">
@@ -1389,12 +1399,12 @@ export default function ItineraryView({
               <ShieldCheck className="w-5 h-5 text-emerald-700" />
               <div>
                 <h4 className="font-bold text-base text-[#243e33]">Schedule & budget checks</h4>
-                <p className="text-sm text-[#526653]">Audits internal schedule math, opening windows, straight-line road estimates & local budget caps against curated seed data (not live ticket inventory)</p>
+                <p className="text-sm text-[#526653]">Checks times, estimated travel and costs using the data we have. These checks do not confirm live tickets or current venue conditions.</p>
               </div>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm font-bold text-emerald-700 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">
-                Audit Score: {plan.verification_report.audit_score}/100 (Seed Baseline)
+                Check score: {plan.verification_report.audit_score}/100 (using available data)
               </span>
             </div>
           </div>

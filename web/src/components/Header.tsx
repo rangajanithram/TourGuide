@@ -6,7 +6,7 @@ import LogoutButton from '@/components/auth/LogoutButton';
 export default function Header() {
   const { user } = useAuth();
   return (
-    <header className="sticky top-0 z-40 border-b border-[#c6d2c0] bg-[#fffdf5]/90 backdrop-blur-xl">
+    <header className="site-header sticky top-0 z-40 border-b border-[#c6d2c0] bg-[#fffdf5]/90 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-3">
         <Link href="/guide" aria-label="TripWeave field guide" className="flex items-center gap-2 font-bold text-lg text-[#243e33]">
           <Compass size={26} />
@@ -24,7 +24,7 @@ export default function Header() {
           <Link href="/discover" aria-label="Discover places" className="flex items-center gap-1 px-2 py-2 text-[#243e33]"><Search size={17}/><span className="hidden md:inline">Discover</span></Link>
           <Link href="/trips" aria-label="My trips" className="flex items-center gap-1.5 rounded-full border border-[#c6d2c0] bg-[#f4f7f0] px-3 py-1.5 font-medium text-[#243e33] hover:bg-[#e7efe1] transition">
             <BookmarkCheck size={17} />
-            <span>My trips</span>
+            <span className="hidden sm:inline">My trips</span>
           </Link>
           <Link href="/account" aria-label="My profile" className="flex items-center gap-1.5 rounded-full border border-[#c6d2c0] px-3 py-1.5 text-[#243e33] hover:bg-[#e7efe1] transition">
             <User size={17} />

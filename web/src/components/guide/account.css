@@ -1,10 +1,10 @@
 .account-page {
   min-height: 100svh;
-  background: #f3f1e7;
-  color: #294333;
+  background: var(--ui-raised,#f3f1e7);
+  color: var(--ui-ink,#294333);
   font-family: var(--font-geist-sans),sans-serif;
   padding: 0 5%;
-  color-scheme: light;
+  color-scheme: var(--ui-scheme,light);
   background-image: radial-gradient(#87997020 .6px,transparent .6px);
   background-size: 8px 8px;
 }
@@ -28,7 +28,7 @@
   cursor: pointer;
 }
 .account-page :focus-visible {
-  outline: 3px solid #b57648;
+  outline: 3px solid var(--ui-line,#b57648);
   outline-offset: 4px;
 }
 .account-header {
@@ -51,7 +51,7 @@
 .account-header>a>span {
   font-size: 7px;
   letter-spacing: 2px;
-  border-left: 1px solid #bfc9b5;
+  border-left: 1px solid var(--ui-line,#bfc9b5);
   padding-left: 14px;
   margin-left: 8px;
 }
@@ -67,8 +67,8 @@
   grid-template-columns: 1fr 1fr;
   min-height: 690px;
   position: relative;
-  background: #fffdf5;
-  border: 1px solid #dce0ce;
+  background: var(--ui-surface,#fffdf5);
+  border: 1px solid var(--ui-line,#dce0ce);
   border-radius: 22px;
   overflow: clip;
   box-shadow: 0 25px 70px #3e533316;
@@ -77,7 +77,7 @@
   grid-column: 1;
   grid-row: 1;
   padding: 45px 42px 28px;
-  background: radial-gradient(ellipse at 70% 55%,#e7edd3,#dbe4c9);
+  background: radial-gradient(ellipse at 70% 55%,var(--ui-raised,#e7edd3),var(--ui-raised,#dbe4c9));
   position: relative;
   transition: transform .85s cubic-bezier(.65,0,.2,1);
   z-index: 2;
@@ -95,7 +95,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #6c7d57;
+  color: var(--ui-muted,#6c7d57);
 }
 .account-story h1 {
   font: 400 clamp(35px,3.2vw,49px)/1.12 Georgia,serif;
@@ -103,13 +103,13 @@
   margin: 30px 0 20px;
 }
 .account-story h1 em {
-  color: #6e8052;
+  color: var(--ui-muted,#6e8052);
 }
 .account-story>p {
   font-size: 12px;
   line-height: 1.9;
   max-width: 360px;
-  color: #637458;
+  color: var(--ui-muted,#637458);
   margin: 0;
 }
 .account-world {
@@ -129,7 +129,7 @@
 .account-world .world-fallback {
   padding: 50px;
   font-size: 12px;
-  color: #607a4b;
+  color: var(--ui-muted,#607a4b);
   text-align: center;
 }
 .account-world .world-fallback span {
@@ -142,12 +142,12 @@
   gap: 8px;
   font-size: 6px;
   letter-spacing: 1px;
-  color: #77875e;
+  color: var(--ui-muted,#77875e);
 }
 .account-story-footer i {
   height: 1px;
   flex: 1;
-  background: #becbad;
+  background: var(--ui-raised,#becbad);
 }
 .account-form-panel {
   grid-column: 2;
@@ -169,18 +169,18 @@
 .account-form-panel>p {
   font-size: 12px;
   line-height: 1.8;
-  color: #7c8370;
+  color: var(--ui-muted,#7c8370);
   margin: 0 0 20px;
 }
 .account-preview {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  background: #f1f3e8;
-  border: 1px solid #e0e6d5;
+  background: var(--ui-raised,#f1f3e8);
+  border: 1px solid var(--ui-line,#e0e6d5);
   border-radius: 6px;
   padding: 10px;
-  color: #78826b;
+  color: var(--ui-muted,#78826b);
   font-size: 9px;
   line-height: 1.7;
   margin-bottom: 22px;
@@ -201,20 +201,20 @@
   gap: 8px;
   font-size: 10px;
   font-weight: 600;
-  color: #58654d;
+  color: var(--ui-muted,#58654d);
 }
 .account-form-panel input {
   width: 100%;
   min-height: 44px;
   padding: 12px 14px;
-  border: 1px solid #d9dece;
-  background: #fffef8;
+  border: 1px solid var(--ui-line,#d9dece);
+  background: var(--ui-surface,#fffef8);
   border-radius: 5px;
-  color: #304934;
+  color: var(--ui-ink,#304934);
   font-size: 12px;
 }
 .account-form-panel input::placeholder {
-  color: #9bA18d;
+  color: var(--ui-muted,#9bA18d);
 }
 .password-field {
   display: flex;
@@ -231,7 +231,7 @@
   height: 30px;
   background: none;
   border: 0;
-  color: #839171;
+  color: var(--ui-muted,#839171);
   display: grid;
   place-items: center;
 }
@@ -260,7 +260,7 @@
 .account-switch button {
   background: none;
   border: 0;
-  color: #996840;
+  color: var(--ui-warm,#996840);
   font-size: 10px;
   display: inline-flex;
   align-items: center;
@@ -273,12 +273,12 @@
   gap: 10px;
   font-size: 7px;
   letter-spacing: 1px;
-  color: #929b84;
+  color: var(--ui-muted,#929b84);
   margin: 24px 0 18px;
 }
 .account-divider>span {
   height: 1px;
-  background: #e5e7db;
+  background: var(--ui-raised,#e5e7db);
   flex: 1;
 }
 .account-guest {
@@ -287,7 +287,7 @@
   align-items: center;
   gap: 15px;
   padding: 12px;
-  border: 1px solid #cdd5be;
+  border: 1px solid var(--ui-line,#cdd5be);
   border-radius: 5px;
   font-size: 11px;
 }
@@ -299,9 +299,9 @@
 .account-form-panel .account-message {
   margin: 15px 0 0;
   padding: 10px;
-  background: #edf2e0;
+  background: var(--ui-raised,#edf2e0);
   font-size: 10px;
-  color: #4b6441;
+  color: var(--ui-ink,#4b6441);
 }
 .account-footer {
   display: flex;
@@ -310,7 +310,7 @@
   max-width: 1160px;
   margin: 25px auto;
   padding-bottom: 25px;
-  color: #7d8a70;
+  color: var(--ui-muted,#7d8a70);
   font-size: 8px;
   letter-spacing: 1px;
 }
@@ -423,7 +423,7 @@
 }
 /* Fit desktop forms into the available screen; retain natural scrolling on phones. */
 .account-page { display: flex; flex-direction: column; min-height: 100svh; padding: 0 4%; }
-.account-header { width: 100%; height: 66px; flex-shrink: 0; background: #f8f8ed99; backdrop-filter: blur(18px); border-bottom: 1px solid #ffffff80; }
+.account-header { width: 100%; height: 66px; flex-shrink: 0; background: var(--ui-surface,#f8f8ed99); backdrop-filter: blur(18px); border-bottom: 1px solid var(--ui-line,#ffffff80); }
 .account-shell { width: 100%; margin: auto; min-height: 0; }
 .account-story,.account-form-panel { transition: transform 1.8s cubic-bezier(.4,0,.2,1); }
 .account-story { padding: 28px 36px 20px; }
@@ -443,8 +443,8 @@
 .account-world { min-height: 170px; }
 .account-footer { width: 100%; margin: 14px auto; padding-bottom: 0; }
 .account-primary:active,.account-guest:active { transform: translateY(1px); }
-.account-guest:hover { background: #eaf0df; }
-.account-form-panel input:focus { border-color: #829a69; }
+.account-guest:hover { background: var(--ui-raised,#eaf0df); }
+.account-form-panel input:focus { border-color: var(--ui-line,#829a69); }
 @media(min-width:850px) and (min-height:680px) {
   .account-shell { max-height: none; }
 }
@@ -478,17 +478,17 @@
   width: 100%;
   padding: 11px 16px;
   border-radius: 12px;
-  background: #ffffff;
-  color: #3c4043;
-  border: 1px solid #dadce0;
+  background: var(--ui-surface,#ffffff);
+  color: var(--ui-ink,#3c4043);
+  border: 1px solid var(--ui-line,#dadce0);
   font-size: 13px;
   font-weight: 500;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(60,64,67,0.08);
 }
 .account-google-btn:hover {
-  background: #f8f9fa;
-  border-color: #c6c9cc;
+  background: var(--ui-surface,#f8f9fa);
+  border-color: var(--ui-line,#c6c9cc);
   box-shadow: 0 2px 6px rgba(60,64,67,0.15);
 }
 .account-google-btn:disabled {
@@ -497,9 +497,9 @@
 }
 
 .account-error-banner {
-  background: #fdf2f2;
-  border: 1px solid #f8b4b4;
-  color: #9b1c1c;
+  background: var(--ui-danger-surface,#fdf2f2);
+  border: 1px solid var(--ui-line,#f8b4b4);
+  color: var(--ui-danger,#9b1c1c);
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 12px;
@@ -511,9 +511,9 @@
 }
 
 .account-success-banner {
-  background: #def7ec;
-  border: 1px solid #84e1bc;
-  color: #03543f;
+  background: var(--ui-success-surface,#def7ec);
+  border: 1px solid var(--ui-line,#84e1bc);
+  color: var(--ui-blue,#03543f);
   padding: 10px 14px;
   border-radius: 10px;
   font-size: 12px;
@@ -538,23 +538,23 @@
   flex: 1;
   height: 100%;
   border-radius: 2px;
-  background: #e2e8f0;
+  background: var(--ui-raised,#e2e8f0);
   transition: background 0.25s ease;
 }
 .password-meter-segment.weak {
-  background: #ef4444;
+  background: var(--ui-danger-surface,#ef4444);
 }
 .password-meter-segment.medium {
-  background: #f59e0b;
+  background: var(--ui-warm-surface,#f59e0b);
 }
 .password-meter-segment.strong {
-  background: #10b981;
+  background: var(--ui-success-surface,#10b981);
 }
 .password-meter-text {
   font-size: 10px;
   display: flex;
   justify-content: space-between;
-  color: #64748b;
+  color: var(--ui-muted,#64748b);
 }
 
 .account-security-badge {
@@ -562,9 +562,9 @@
   align-items: center;
   gap: 6px;
   font-size: 10px;
-  color: #556b2f;
-  background: #eef4e8;
-  border: 1px solid #d4e2c8;
+  color: var(--ui-ink,#556b2f);
+  background: var(--ui-raised,#eef4e8);
+  border: 1px solid var(--ui-line,#d4e2c8);
   padding: 6px 10px;
   border-radius: 8px;
   margin-bottom: 10px;
@@ -595,13 +595,13 @@
   padding: 16px;
 }
 .google-modal-content {
-  background: #ffffff;
+  background: var(--ui-surface,#ffffff);
   border-radius: 16px;
   padding: 24px;
   max-width: 420px;
   width: 100%;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--ui-line,#e2e8f0);
 }
 .google-modal-header {
   display: flex;
@@ -618,7 +618,7 @@
 
 /* A stable frame keeps the railway and form in place as account modes change. */
 .account-page { background-size: auto; padding: 0 clamp(16px,4vw,64px); gap: 16px; }
-.account-header { width: 100%; height: 64px; min-height: 64px; margin: 16px auto 0; padding: 12px 24px; border: 1px solid #cbd5bf; border-radius: 18px; background: #f9faefb8; box-shadow: 0 5px 25px #29433308; }
+.account-header { width: 100%; height: 64px; min-height: 64px; margin: 16px auto 0; padding: 12px 24px; border: 1px solid var(--ui-line,#cbd5bf); border-radius: 18px; background: var(--ui-surface,#f9faefb8); box-shadow: 0 5px 25px #29433308; }
 .account-header>a { min-width: 0; }
 .account-header>a:last-child { flex-shrink: 0; min-height: 40px; }
 .account-shell { margin: auto; width: 100%; }
@@ -637,7 +637,7 @@
 @media(min-width:851px) {
   .account-page { height: 100svh; min-height: 660px; }
   .account-shell { height: min(650px,calc(100svh - 140px)); min-height: 520px; flex-shrink: 0; }
-  .account-form-panel { overflow-y: auto; scrollbar-width: thin; scrollbar-color: #a8b79b transparent; padding: 24px 32px; }
+  .account-form-panel { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--ui-muted,#a8b79b) transparent; padding: 24px 32px; }
   .account-story { padding: 28px 32px 20px; }
   .account-form-panel h2 { margin: 12px 0 6px; }
   .account-form-panel .account-switch { margin: 12px 0; }
