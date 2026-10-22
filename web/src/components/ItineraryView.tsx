@@ -453,7 +453,7 @@ export default function ItineraryView({
         <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
           {([['outbound_departure', 'Leave origin'], ['destination_arrival', 'Arrive at destination'], ['destination_departure', 'Leave destination'], ['return_arrival', 'Return to origin']] as const).map(([key, label]) => <div key={key}><dt className="text-sm text-[#596b57]">{label}</dt><dd className="font-semibold">{formData.journey_timing![key].slice(0,16).replace('T', ' · ')}</dd></div>)}
         </dl>
-        <p className="text-sm mt-4">Reserved buffers: {formData.journey_timing.arrival_buffer_minutes} minutes after arrival; {formData.journey_timing.departure_buffer_minutes} minutes before departure. Confirm transfers, tickets and hotel check-in yourself. Intercity fares are excluded from the destination budget.</p>
+        <p className="text-sm mt-4">Separate terminal transfers: {formData.journey_timing.arrival_transfer_minutes ?? 0} minutes on arrival and {formData.journey_timing.departure_transfer_minutes ?? 0} minutes on departure. Additional reserved buffers: {formData.journey_timing.arrival_buffer_minutes} minutes after arrival; {formData.journey_timing.departure_buffer_minutes} minutes before departure. Confirm transfers, tickets and hotel check-in yourself. Intercity fares are excluded from the destination budget.</p>
       </section>}
       {/* Modification & Version History Banner */}
       {planHistory.length > 0 && (

@@ -493,3 +493,12 @@ these are the first/last sightseeing dates. Request validation and independent
 verification apply the bounds, including reconstructed edit requests. Conflicting
 one-day windows are rejected. Terminal routes, luggage storage, hotel availability
 and check-in service duration remain outside this increment.
+
+### 2026-10-22 separate user-estimated terminal transfer durations
+
+Journey timing accepts optional arrival/departure transfer minutes, default zero
+for old snapshots. These are added to existing buffers before deriving daily
+bounds. Inputs explain how to avoid double-counting existing transfer buffers.
+The independent verifier recomputes the same bounds during generation and edits.
+Result timing shows both transfers separately. These are user estimates, not
+routed travel times; fares and terminal coordinates remain a later increment.

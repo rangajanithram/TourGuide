@@ -665,6 +665,8 @@ const timedTrip = {
 test('journey preflight preserves legacy requests and applies overnight transfer buffers', () => {
   assert.deepEqual(journeyWindow({ ...timedTrip, journey_timing: undefined }), { earliest: 60, latest: 720 });
   assert.deepEqual(journeyWindow(timedTrip), { earliest: 180, latest: 570 });
+  assert.deepEqual(journeyWindow({ ...timedTrip, journey_timing: { ...timedTrip.journey_timing, arrival_transfer_minutes: 30, departure_transfer_minutes: 45 } }), { earliest: 210, latest: 525 });
+  assert.throws(() => journeyWindow({ ...timedTrip, journey_timing: { ...timedTrip.journey_timing, arrival_transfer_minutes: -1 } }));
   assert.deepEqual(journeyWindow(JSON.parse(JSON.stringify(timedTrip))), { earliest: 180, latest: 570 });
 });
 test('journey preflight rejects invalid dates, order, offsets and unavailable sightseeing dates', () => {

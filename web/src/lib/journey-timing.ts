@@ -18,11 +18,11 @@ export function journeyWindow(form: Pick<TripFormData, 'journey_timing' | 'start
   });
   if (times.some((ms, i) => i > 0 && ms <= times[i-1])) throw new Error('Travel times must follow departure, destination arrival, destination departure, then return arrival.');
   if (times[3] - times[0] > 30 * 86400000) throw new Error('Travel timing can cover at most 30 days.');
-  for (const value of [journey.arrival_buffer_minutes, journey.departure_buffer_minutes]) {
+  for (const value of [journey.arrival_buffer_minutes, journey.departure_buffer_minutes, journey.arrival_transfer_minutes ?? 0, journey.departure_transfer_minutes ?? 0]) {
     if (!Number.isInteger(value) || value < 0 || value > 720) throw new Error('Enter transfer buffers between 0 and 720 minutes.');
   }
-  const ready = new Date(times[1] + journey.arrival_buffer_minutes * 60000 + 19800000).toISOString();
-  const leave = new Date(times[2] - journey.departure_buffer_minutes * 60000 + 19800000).toISOString();
+  const ready = new Date(times[1] + (journey.arrival_buffer_minutes + (journey.arrival_transfer_minutes ?? 0)) * 60000 + 19800000).toISOString();
+  const leave = new Date(times[2] - (journey.departure_buffer_minutes + (journey.departure_transfer_minutes ?? 0)) * 60000 + 19800000).toISOString();
   if (ready.slice(0,10) > form.start_date || leave.slice(0,10) < form.end_date) throw new Error('Sightseeing dates must fit between arrival plus buffer and departure minus buffer. Adjust dates or travel times.');
   const minute = (value: string) => Number(value.slice(11,13)) * 60 + Number(value.slice(14,16)) - 480;
   if (ready.slice(0,10) === form.start_date) earliest = Math.max(earliest, minute(ready));

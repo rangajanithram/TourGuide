@@ -283,6 +283,8 @@ export interface JourneyTiming {
   destination_arrival: string;
   destination_departure: string;
   return_arrival: string;
+  arrival_transfer_minutes?: number;
+  departure_transfer_minutes?: number;
   arrival_buffer_minutes: number;
   departure_buffer_minutes: number;
 }

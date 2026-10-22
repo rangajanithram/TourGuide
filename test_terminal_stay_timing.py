@@ -27,6 +27,18 @@ class TestStayTimingAndEnrichment(unittest.TestCase):
         self.assertTrue(result.updated_plan.planning_preferences.stay_choice.constrain_sightseeing_to_stay)
         self.assertTrue(result.updated_plan.verification_report.is_valid)
 
+    def test_separate_transfers_tighten_journey_window(self):
+        from test_journey_timing import timing
+        from tripweave.models import JourneyTiming
+        from datetime import date
+        base = JourneyTiming.model_validate(timing())
+        start, end = base.destination_arrival.date(), base.destination_departure.date()
+        before = base.local_window(start, end, 0, 720)
+        after = base.model_copy(update={"arrival_transfer_minutes": 30, "departure_transfer_minutes": 45}).local_window(start, end, 0, 720)
+        self.assertEqual(after, (before[0] + 30, before[1] - 45))
+        with self.assertRaises(ValueError):
+            JourneyTiming.model_validate({**base.model_dump(), "arrival_transfer_minutes": -1})
+
     def test_opt_in_stay_window(self):
         stay = StayChoice(kind="booked", base_name="Test", lat=17.4, lng=78.4,
                           check_in_time="14:00", check_out_time="11:00",

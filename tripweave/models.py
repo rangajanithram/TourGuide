@@ -71,6 +71,8 @@ class JourneyTiming(BaseModel):
     destination_arrival: datetime
     destination_departure: datetime
     return_arrival: datetime
+    arrival_transfer_minutes: int = Field(default=0, ge=0, le=720, strict=True)
+    departure_transfer_minutes: int = Field(default=0, ge=0, le=720, strict=True)
     arrival_buffer_minutes: int = Field(ge=0, le=720)
     departure_buffer_minutes: int = Field(ge=0, le=720)
 
@@ -90,8 +92,8 @@ class JourneyTiming(BaseModel):
         return self
 
     def local_window(self, start: date, end: date, earliest: int, latest: int):
-        ready = self.destination_arrival + timedelta(minutes=self.arrival_buffer_minutes)
-        leave = self.destination_departure - timedelta(minutes=self.departure_buffer_minutes)
+        ready = self.destination_arrival + timedelta(minutes=self.arrival_buffer_minutes + self.arrival_transfer_minutes)
+        leave = self.destination_departure - timedelta(minutes=self.departure_buffer_minutes + self.departure_transfer_minutes)
         if ready.date() > start or leave.date() < end:
             raise ValueError("Sightseeing dates must fit between arrival plus buffer and departure minus buffer. Adjust dates or travel times.")
         if ready.date() == start:
