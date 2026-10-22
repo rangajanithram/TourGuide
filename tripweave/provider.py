@@ -139,8 +139,8 @@ def merge_confirmed_stops(places, stops):
         key = "discovered:" + stop.place_id
         if key in result:
             raise ValueError("Duplicate discovered stop")
-        result[key] = Place(**{**stop.model_dump(), "place_id": key},
+        result[key] = Place(**{**stop.model_dump(), "place_id": key, "name": stop.name[:200]},
             tags=["food"] if stop.place_type == "restaurant" else ["discovery"],
-            verification_status="estimated", last_verified_date=None, source_reference="User-confirmed planning estimates; venue hours and fees unverified",
+            verification_status="estimated", last_verified_date=None, source_reference=("Geoapify/OpenStreetMap listing; user-confirmed planning estimates; venue hours, closures and fees unverified" if stop.place_id.startswith('auto:') else "User-confirmed planning estimates; venue hours and fees unverified"),
             catalog_origin="user_confirmed_discovery")
     return list(result.values())

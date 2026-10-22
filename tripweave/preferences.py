@@ -3,7 +3,7 @@ from tripweave.models import Place, TripRequest
 
 
 def preference_conflict(place: Place, request: TripRequest):
-    if place.meal_type:
+    if place.meal_type and not place.meal_venue_id:
         return None  # Reserved time at base; user chooses a suitable venue later.
     if place.place_type in {"hotel", "rest_break"}:
         return None

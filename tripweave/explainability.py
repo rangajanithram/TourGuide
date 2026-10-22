@@ -230,6 +230,10 @@ class ExplainabilityEngine:
         # Count every requested trip day, including days with no scheduled stops.
         days_count = max(1, request.days or len(plan.days))
         suggested_meals = daily_meal_pp * request.people_count * days_count
+        if request.meal_budget_per_person is not None and plan.meal_places:
+            # Every requested in-window meal is already a mandatory, costed stop.
+            # Do not add a second generic allowance for those same meals.
+            suggested_meals = dining_cost
         # Scheduled restaurant spend is already part of direct_subtotal; only
         # reserve the remaining meal allowance to avoid double-counting it.
         additional_meals = max(0, suggested_meals - dining_cost)

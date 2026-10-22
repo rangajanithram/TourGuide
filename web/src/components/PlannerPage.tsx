@@ -160,6 +160,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         const fallbackStart = fallbackPlanDays[0]?.date || '';
         const fallbackEnd = fallbackPlanDays[fallbackPlanDays.length - 1]?.date || fallbackStart;
         setActiveFormData({
+          discovery_policy:req.discovery_policy,
           meal_budget_per_person:req.meal_budget_per_person,
           external_stops: req.external_stops,
           whole_journey_budget_inr:req.whole_journey_budget_inr,
@@ -223,6 +224,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          discovery_policy:formData.discovery_policy,
           meal_budget_per_person:formData.meal_budget_per_person,
           external_stops: formData.external_stops,
           whole_journey_budget_inr:formData.whole_journey_budget_inr,

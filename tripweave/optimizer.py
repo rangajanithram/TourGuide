@@ -31,7 +31,8 @@ class TripOptimizer:
         group_profile: Optional[GroupProfile] = None,
         arrival_available_mins: int = 60,
         departure_deadline_mins: int = 720,
-        preferred_day_by_place: Optional[dict[str, int]] = None
+        preferred_day_by_place: Optional[dict[str, int]] = None,
+        weather_by_day: Optional[dict] = None
     ):
         self.arrival_available_mins = arrival_available_mins
         self.departure_deadline_mins = departure_deadline_mins
@@ -63,6 +64,7 @@ class TripOptimizer:
         self.locked_activities = list(locked_set)
         self.group_profile = group_profile
         self.preferred_day_by_place = preferred_day_by_place or {}
+        self.weather_by_day = weather_by_day or {}
 
         # Direct solver calibration for GroupProfile:
         is_elderly = (
@@ -151,7 +153,14 @@ class TripOptimizer:
                     if preferred_day is not None and preferred_day != vehicle_id:
                         day_penalty = 500
 
-                return int(base_time * 5 + base_cost + cluster_penalty + day_penalty)
+                weather_penalty = 0
+                if self.start_date and to_node != self.hotel_index:
+                    weather = self.weather_by_day.get((self.start_date + timedelta(days=vehicle_id)).isoformat())
+                    target = self.places[to_node]
+                    indoor = target.place_type == 'restaurant' or any(t.lower() in {'indoor', 'museum'} for t in target.tags)
+                    if weather and not indoor and (weather.heat_advisory or weather.precipitation_probability_pct >= 50):
+                        weather_penalty = 600
+                return int(base_time * 5 + base_cost + cluster_penalty + day_penalty + weather_penalty)
             return routing_cost_callback
 
         for vehicle_id in range(self.days):
@@ -161,7 +170,7 @@ class TripOptimizer:
         # 4. Add Time Dimension
         routing.AddDimension(
             time_callback_index,
-            120,    # MAXIMUM SLACK: Up to 120 minutes waiting allowed
+            720 if any(p.meal_type for p in self.places) else 120,
             720,    # Max 720 minutes (8:00 AM to 8:00 PM)
             False,  # Allow actual first-day availability
             "Time"
@@ -212,8 +221,9 @@ class TripOptimizer:
                 gh_start, gh_end = get_golden_hour_window(place.lat, place.lng, target_date=trip_mid_date)
                 ideal_arrival = min(max_arrival, max(min_arrival, gh_start - (place.duration_minutes // 2)))
                 # Soft preference with calibrated coefficient (2 pts/min), ensuring daytime visits are never dropped
-                time_dimension.SetCumulVarSoftLowerBound(index, ideal_arrival, 2)
-                time_dimension.SetCumulVarSoftUpperBound(index, min(max_arrival, gh_end), 2)
+                sunset_weight = 8 if 'sunset' in [interest.lower() for interest in self.interests] else 2
+                time_dimension.SetCumulVarSoftLowerBound(index, ideal_arrival, sunset_weight)
+                time_dimension.SetCumulVarSoftUpperBound(index, min(max_arrival, gh_end), sunset_weight)
 
             # --- Disjunction (Drop Penalty) ---
             # Crucial: If an activity is pinned, DO NOT add a disjunction!
@@ -226,6 +236,12 @@ class TripOptimizer:
                     base_drop_penalty += 1500
                 if place.golden_hour_recommended:
                     base_drop_penalty += 1000
+                if place.rating is not None and place.review_count and place.rating_evidence:
+                    # Shrink sparse samples toward a neutral prior; ratings never
+                    # override hours, pins, budget, accessibility or meal constraints.
+                    n = min(place.review_count, 500)
+                    quality = (place.rating * n + 3.5 * 20) / (n + 20)
+                    base_drop_penalty += int(max(0, quality - 3.5) * 400)
                 routing.AddDisjunction([index], base_drop_penalty)
 
         # --- Activity Dependencies (Blueprint Section 1 & 5) ---
@@ -278,6 +294,15 @@ class TripOptimizer:
             return 0 if self.places[manager.IndexToNode(index)].meal_type else 1
         count_callback = routing.RegisterUnaryTransitCallback(sightseeing_count)
         routing.AddDimension(count_callback, 0, max_stops_per_day, True, "ActivityCount")
+        count_dimension = routing.GetDimensionOrDie('ActivityCount')
+        for day in range(self.days):
+            earliest = self.arrival_available_mins if day == 0 else 60
+            latest = self.departure_deadline_mins if day == self.days - 1 else 720
+            if latest - earliest >= 90:
+                # Depot counts as one; prefer >=1 actual visit on every usable day.
+                # A soft bound keeps genuinely infeasible/tight days honest.
+                count_dimension.SetCumulVarSoftLowerBound(routing.End(day), 2, 2200)
+                routing.SetVehicleUsedWhenEmpty(True, day)
 
         # --- In-Solver Budget Dimension ---
         # Direct constraint: OR-Tools drops costly or out-of-reach stops during search
@@ -336,7 +361,9 @@ class TripOptimizer:
         # 4. Solve with Local Search
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
         search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
+            routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION
+            if any(p.meal_type for p in self.places)
+            else routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
         )
         search_parameters.local_search_metaheuristic = (
             routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
@@ -459,6 +486,8 @@ class TripOptimizer:
                     depends_on=list(getattr(place, "depends_on", [])),
                     detour_cost_inr=detour_val,
                     rating=getattr(place, "rating", None),
+                    rating_evidence=place.rating_evidence,
+                    meal_type=place.meal_type,
                     review_count=getattr(place, "review_count", None),
                     formatted_address=getattr(place, "formatted_address", None),
                     osm_url=getattr(place, "osm_url", None) or f"https://www.openstreetmap.org/?mlat={place.lat}&mlon={place.lng}#map=16/{place.lat}/{place.lng}"

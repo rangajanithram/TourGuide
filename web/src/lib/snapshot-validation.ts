@@ -136,6 +136,15 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if (form.arrival_available_mins !== undefined) integer(form.arrival_available_mins, 'arrival availability', 0, 719);
   if (form.departure_deadline_mins !== undefined) integer(form.departure_deadline_mins, 'departure deadline', 1, 720);
   if (form.meal_budget_per_person !== undefined) integer(form.meal_budget_per_person, 'meal estimate', 0, 10000);
+  if (form.discovery_policy !== undefined) {
+    const policy = form.discovery_policy;
+    integer(policy.visit_minutes, 'discovery visit estimate', 30, 240);
+    integer(policy.attraction_cost_inr, 'discovery attraction cost estimate', 0, 10000);
+    integer(policy.meal_cost_inr, 'discovery meal cost estimate', 0, 10000);
+    integer(policy.open_time_mins, 'discovery starting window', 0, 600);
+    integer(policy.close_time_mins, 'discovery ending window', 120, 720);
+    if (policy.close_time_mins - policy.open_time_mins < policy.visit_minutes) invalid('discovery time window');
+  }
   if (form.external_stops !== undefined) {
     if (!Array.isArray(form.external_stops) || form.external_stops.length > 15) invalid('external stops');
     const ids = new Set<string>();
@@ -156,6 +165,8 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if (form.start_location !== undefined && (typeof form.start_location !== 'string' || form.start_location.length > 160)) invalid('starting location');
   if ((form.locked_activities || []).length > 15) invalid('too many pins');
   for (const plan of Object.values(snapshot.variants) as TripPlan[]) {
+    const policy = form.discovery_policy, storedPolicy = plan.planning_preferences?.discovery_policy;
+    if (policy ? !storedPolicy || (Object.keys(policy) as (keyof typeof policy)[]).some(key => policy[key] !== storedPolicy[key]) : !!storedPolicy) invalid('discovery estimate policy mismatch');
     if (plan.days.some((day, index) => day.day_number !== index + 1 || day.date !== new Date(Date.parse(form.start_date) + index * 86400000).toISOString().slice(0,10))) invalid('day sequence');
     const booking = form.booked_transport, savedBooking = plan.booked_transport;
     if (booking ? (!savedBooking || plan.intercity_transport || (['version', 'outbound_mode', 'return_mode', 'total_fare_inr', 'paid_inr'] as const).some(key => booking[key] !== savedBooking[key])) : !!savedBooking) invalid('booked transport changed');

@@ -518,6 +518,7 @@ export default function ItineraryView({
         {actionsTarget ? createPortal(tripActions, actionsTarget) : tripActions}
       </div>
 
+      {plan.candidate_summary && <section className="booking-summary text-[#243e33]" aria-label="Planning evidence"><h3>How this plan was built</h3><p>{plan.candidate_summary.total_candidates} candidates considered · {plan.candidate_summary.confirmed_discovered_candidates} discovered inputs · {plan.candidate_summary.rated_candidates} candidates with historical rating evidence.</p><p>{plan.candidate_summary.notes}</p><p>Weather: {plan.candidate_summary.weather_used_in_ranking ? 'forecast or seasonal conditions used as a soft ranking signal' : 'unavailable; not used in ranking'}. Venue opening hours, costs, dietary suitability and accessibility still require confirmation where marked estimated.</p></section>}
       {/* Blueprint Section 1 & Product Spec Feature 1: Inter-City Transit Intelligence */}
       {plan.intercity_notice && <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-[#243e33]">{plan.intercity_notice}</p>}
       {plan.intercity_transport && (
@@ -1007,13 +1008,14 @@ export default function ItineraryView({
               </div>
             </div>
 
+            {day.planning_note && day.activities.length > 0 && <p className="itinerary-warning" role="status">{day.planning_note}</p>}
             {day.activities.length > 0 && <p className="day-progress" aria-live="polite">
               {day.activities.filter((act, index) => visitedActivities[`${day.day_number}:${act.place_id || act.place_name}:${index}`]?.visited).length} of {day.activities.length} stops visited
               <span>Tap a numbered circle as you go.</span>
             </p>}
             {/* Activities Timeline */}
             <div className="day-timeline">
-              {day.activities.length === 0 && <p className="rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-base text-[#304c3b]">Free time — no visits scheduled for this date. No activity or local route costs are included for this day; meals and personal expenses may still apply.</p>}
+              {day.activities.length === 0 && <p className="rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-base text-[#304c3b]">{day.planning_note || 'No visits fit this date under the current candidate pool and constraints. Add places or adjust your preferences. Meals and personal expenses may still apply.'}</p>}
               {day.activities.map((act, actIdx) => {
                 const actKey = `${day.day_number}:${act.place_id || act.place_name}:${actIdx}`;
                 const visitInfo = visitedActivities[actKey];
@@ -1066,6 +1068,8 @@ export default function ItineraryView({
                         )}
 
 
+                        {act.rating != null && act.rating_evidence ? <span className="text-sm text-[#425d4c]" title={act.rating_evidence}>★ {act.rating.toFixed(2)}/5 · {act.review_count ?? 0} sampled ratings · historical</span> : <span className="text-sm text-[#526653]">No matched rating evidence</span>}
+                        {act.meal_type && <span className="text-sm font-semibold text-[#89532d]">{act.meal_type.charAt(0).toUpperCase() + act.meal_type.slice(1)} meal</span>}
                         {act.is_locked && (
                           <span className="text-sm text-[#89532d] bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.5 rounded font-semibold inline-flex items-center space-x-0.5">
                             <Pin className="w-2.5 h-2.5 mr-0.5" />
@@ -1115,6 +1119,7 @@ export default function ItineraryView({
                       </span>
                     </div>
 
+                    {act.rating_evidence && <details className="stop-viewpoint"><summary>Rating source and limitations</summary><p className="text-sm text-[#425d4c]">{act.rating_evidence}. Written review text is not republished. This score summarizes the downloaded sample, not today’s platform rating.</p></details>}
                     {/* Special Experiences & Golden Hour Badges */}
                     {act.experience_tag && (
                       <div className="mb-2 inline-flex items-center space-x-1.5 text-sm font-medium text-[#89532d] bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg">
@@ -1137,7 +1142,7 @@ export default function ItineraryView({
 
                     {/* Interactive Customizer Action Bar */}
                     <div className="stop-action-bar">
-                      <div className="stop-actions">
+                      {act.meal_type ? <p className="text-sm text-[#425d4c]">Reserved meal. To change meal timing or the budget, adjust trip preferences and regenerate.</p> : <div className="stop-actions">
                         {/* Pin / Lock Button */}
                         <button
                           type="button"
@@ -1200,7 +1205,7 @@ export default function ItineraryView({
                           <Trash2 className="w-3 h-3 text-rose-700" />
                           <span>Drop</span>
                         </button>
-                      </div>
+                      </div>}
 
                       <div className="text-sm text-[#596b57] font-mono">
                         Stop #{actIdx + 1}

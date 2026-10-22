@@ -134,6 +134,8 @@ class ItineraryEditor:
         pace: PacePreference = PacePreference.BALANCED,
     ) -> Tuple[TripPlan, DayPlan, Any]:
         """Reconciles day costs, expense breakdown, fatigue report, and runs independent Stage 8 verification."""
+        if any(a.place_type not in {'restaurant', 'rest_break'} for a in updated_day.activities):
+            updated_day = updated_day.model_copy(update={'planning_note': None})
         day_activity_cost = sum(a.estimated_cost_inr for a in updated_day.activities)
         updated_day = updated_day.model_copy(update={"day_cost_inr": day_activity_cost})
 

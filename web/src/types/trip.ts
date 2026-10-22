@@ -48,6 +48,8 @@ export interface CrowdForecast {
 }
 
 export interface ScheduledActivity {
+  rating_evidence?: string | null;
+  meal_type?: 'breakfast' | 'lunch' | 'dinner' | null;
   place_id?: string | null;
   place_name: string;
   place_type?: string;
@@ -76,6 +78,7 @@ export interface ScheduledActivity {
 }
 
 export interface DayPlan {
+  planning_note?: string | null;
   day_number: number;
   date?: string | null;
   day_of_week?: string | null;
@@ -186,8 +189,11 @@ export interface SynthesisStage {
   detail: string;
 }
 
+export interface DiscoveryPlanningPolicy { visit_minutes: number; attraction_cost_inr: number; meal_cost_inr: number; open_time_mins: number; close_time_mins: number; }
+
 export interface TripPlan {
-  planning_preferences?: { stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null; journey_timing?: JourneyTiming | null; booked_transport?: BookedTransport | null };
+  candidate_summary?: { total_candidates: number; feasible_candidates: number; confirmed_discovered_candidates: number; rated_candidates: number; weather_used_in_ranking: boolean; notes: string };
+  planning_preferences?: { discovery_policy?: DiscoveryPlanningPolicy | null; stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null; journey_timing?: JourneyTiming | null; booked_transport?: BookedTransport | null };
   journey_timing?: JourneyTiming | null;
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
@@ -324,6 +330,7 @@ export interface TripFormData {
  stay_choice?: StayChoice;
  journey_timing?: JourneyTiming;
  external_stops?:ConfirmedDiscoveryStop[];
+ discovery_policy?: DiscoveryPlanningPolicy;
  meal_budget_per_person?:number;
  arrival_available_mins?:number; departure_deadline_mins?:number;
   max_visit_minutes?: number;

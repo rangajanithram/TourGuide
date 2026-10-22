@@ -191,6 +191,22 @@ class BookedTransport(BaseModel):
         return self
 
 
+class DiscoveryPlanningPolicy(BaseModel):
+    """Explicit user assumptions for otherwise unknown venue planning facts."""
+    model_config = ConfigDict(extra="forbid")
+    visit_minutes: int = Field(default=90, ge=30, le=240)
+    attraction_cost_inr: int = Field(default=200, ge=0, le=10000)
+    meal_cost_inr: int = Field(default=200, ge=0, le=10000)
+    open_time_mins: int = Field(default=60, ge=0, le=600)
+    close_time_mins: int = Field(default=720, ge=120, le=720)
+
+    @model_validator(mode="after")
+    def fits_visit(self):
+        if self.close_time_mins - self.open_time_mins < self.visit_minutes:
+            raise ValueError("Your discovery planning window must fit the visit duration.")
+        return self
+
+
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
     whole_journey_budget_inr: Optional[int] = Field(default=None, gt=0, le=5_000_000, strict=True)
@@ -205,6 +221,7 @@ class PlanningPreferences(BaseModel):
     max_visit_minutes: Optional[int] = Field(None, ge=30, le=480)
     avoid_climbing: bool = False
     food_preference: Literal["any", "vegetarian", "vegan", "halal", "own_meals"] = "any"
+    discovery_policy: Optional[DiscoveryPlanningPolicy] = None
 
 class TripRequest(PlanningPreferences):
     model_config = ConfigDict(extra="forbid")
@@ -333,6 +350,8 @@ class ViewpointRecommendation(BaseModel):
         return data
 
 class Place(BaseModel):
+    rating_evidence: Optional[str] = Field(default=None, max_length=280)
+    meal_venue_id: Optional[str] = None
     planning_day: Optional[int] = Field(default=None, ge=0, le=13)
     meal_type: Optional[Literal["breakfast", "lunch", "dinner"]] = None
     place_id: str
@@ -450,7 +469,9 @@ class ExpenseBreakdown(BaseModel):
     per_person_inr: int = Field(default=0, ge=0, le=5_000_000)
 
 class ScheduledActivity(BaseModel):
-    place_id: Optional[str] = Field(default=None, max_length=120)
+    rating_evidence: Optional[str] = Field(default=None, max_length=280)
+    meal_type: Optional[Literal["breakfast", "lunch", "dinner"]] = None
+    place_id: Optional[str] = Field(default=None, max_length=523)
     place_name: str = Field(..., min_length=1, max_length=200)
     place_type: str = Field(default="attraction", max_length=40, description="'attraction' or 'restaurant'")
     lat: float = Field(default=0.0, ge=-90.0, le=90.0, description="Activity latitude for map pin")
@@ -474,6 +495,7 @@ class ScheduledActivity(BaseModel):
 
 
 class DayPlan(BaseModel):
+    planning_note: Optional[str] = Field(default=None, max_length=500)
     day_number: int = Field(..., ge=1, le=14)
     date: Optional[str] = Field(default=None, max_length=32)           # e.g. "2026-10-16"
     day_of_week: Optional[str] = Field(default=None, max_length=32)    # e.g. "Friday"
@@ -493,6 +515,7 @@ class VerificationReport(BaseModel):
     metrics: Dict[str, str] = Field(default_factory=dict, description="Operational physics metrics")
 
 class TripPlan(BaseModel):
+    candidate_summary: Dict[str, Any] = Field(default_factory=dict)
     meal_places: List[Place] = Field(default_factory=list, max_length=42)
     planning_preferences: PlanningPreferences = Field(default_factory=PlanningPreferences)
     plan_name: str = Field(..., min_length=1, max_length=200)
@@ -544,7 +567,7 @@ class EditConsequenceRequest(BaseModel):
     day_number: int = Field(..., ge=1, le=14)
     activity_index: int = Field(..., ge=0, le=25)
     action: EditActionType
-    replacement_place_id: Optional[str] = Field(default=None, max_length=120)
+    replacement_place_id: Optional[str] = Field(default=None, max_length=523)
     people_count: int = Field(default=1, gt=0, le=20)
     transport_mode: TransportMode = Field(default=TransportMode.CAB)
     pace: PacePreference = Field(default=PacePreference.BALANCED)

@@ -29,6 +29,8 @@ from tripweave.transport import get_transport_provider
 from tripweave.editor import ItineraryEditor
 from tripweave.auth import get_current_user, UserProfile
 from tripweave import rail_reference
+from tripweave.planning_candidates import expand_request, meal_candidates
+from tripweave.rating_evidence import attach_rating_evidence
 
 # ---------------------------------------------------------------------------
 # Process-Local Production Protection Guardrails
@@ -222,7 +224,7 @@ def _build_single_plan(
 
     # Stage 1: Candidate Generation
     t_stage1 = time.perf_counter()
-    all_places = merge_confirmed_stops(get_database_places(request.destination), request.external_stops)
+    all_places = attach_rating_evidence(merge_confirmed_stops(get_database_places(request.destination), request.external_stops), request.destination)
     if request.locked_activities:
         catalog_names_ids = {p.place_id.lower() for p in all_places} | {p.name.lower() for p in all_places}
         for pin in request.locked_activities:
@@ -257,26 +259,12 @@ def _build_single_plan(
         )
     timings[5] = round(max(0.01, (time.perf_counter() - t_stage5) * 1000), 2)
 
-    meal_places = []
-    if request.meal_budget_per_person is not None and request.food_preference != "own_meals":
-        for day in range(request.days):
-            earliest = request.arrival_available_mins if day == 0 else 60
-            latest = request.departure_deadline_mins if day == request.days - 1 else 720
-            for meal, start, end in [("breakfast", 60, 180), ("lunch", 240, 420), ("dinner", 630, 720)]:
-                start, end = max(start, earliest), min(end, latest)
-                if end - start < 30:
-                    continue
-                meal_places.append(Place(place_id=f"meal:{day}:{meal}", name=f"{meal.title()} - arrange venue",
-                    place_type="restaurant", lat=selected_hotel_place.lat, lng=selected_hotel_place.lng,
-                    duration_minutes=30, estimated_cost_per_person_inr=request.meal_budget_per_person,
-                    open_time_mins=start, close_time_mins=end, planning_day=day, meal_type=meal,
-                    verification_status="estimated", last_verified_date=None,
-                    source_reference="Reserved meal time at base; user-confirmed budget; restaurant not selected"))
-        all_places.extend(meal_places)
+    meal_places = meal_candidates(request, all_places, selected_hotel_place)
+    all_places.extend(meal_places)
 
     # Stage 2: Hard Feasibility Filter (Budget & Operational Feasibility)
     t_stage2 = time.perf_counter()
-    sightseeing = [p for p in all_places if p.place_type != "hotel"]
+    sightseeing = [p for p in all_places if p.place_type != "hotel" and (not meal_places or p.meal_type or p.place_type != "restaurant" or p.place_id.lower() in pins or p.name.lower() in pins)]
     est_transport_budget = 300 * request.days
     if request.transport_pref and request.transport_pref.max_budget_inr:
         est_transport_budget = request.transport_pref.max_budget_inr
@@ -321,7 +309,12 @@ def _build_single_plan(
 
     # Stage 6: OR-Tools VRP Scheduling
     t_stage6 = time.perf_counter()
+    from tripweave.weather import WeatherProvider
+    weather_map = prefetched_weather or WeatherProvider.get_daily_forecasts(
+        selected_hotel.lat, selected_hotel.lng, start_date=request.start_date,
+        end_date=request.end_date, days=request.days)
     optimizer = TripOptimizer(
+        weather_by_day=weather_map,
         places=valid_places,
         days=request.days,
         hotel_id=selected_hotel.place_id,
@@ -344,6 +337,7 @@ def _build_single_plan(
     try:
         itinerary = optimizer.generate_plan()
         itinerary.meal_places = meal_places
+        itinerary.planning_preferences.discovery_policy = request.discovery_policy
         itinerary.booked_transport = request.booked_transport
         itinerary.planning_preferences.booked_transport = request.booked_transport
         itinerary.planning_preferences.whole_journey_budget_inr = request.whole_journey_budget_inr
@@ -399,18 +393,7 @@ def _build_single_plan(
             day.fatigue_level = matched["level"]
     timings[7] = round((time.perf_counter() - t_stage7) * 1000, 2)
 
-    # Weather Integration (Blueprint Section 12)
-    from tripweave.weather import WeatherProvider
-    if prefetched_weather:
-        weather_map = prefetched_weather
-    else:
-        weather_map = WeatherProvider.get_daily_forecasts(
-            selected_hotel.lat,
-            selected_hotel.lng,
-            start_date=request.start_date,
-            end_date=request.end_date,
-            days=request.days
-        )
+    # Attach the same forecasts used during scheduling.
     for day in itinerary.days:
         if day.date and day.date in weather_map:
             day.weather = weather_map[day.date]
@@ -440,6 +423,18 @@ def _build_single_plan(
 
         if itinerary.intercity_transport is None:
             itinerary.intercity_notice = "No reference transport options match your selected modes and dates. Arrange travel separately; intercity fares and schedules are unknown and excluded from the destination budget."
+
+    itinerary.candidate_summary = {
+        'total_candidates': sum(p.place_type != 'hotel' and not p.meal_type for p in all_places),
+        'feasible_candidates': len({p.meal_venue_id or p.place_id for p in valid_places if p.place_type != 'hotel' and (not p.meal_type or p.meal_venue_id)}),
+        'confirmed_discovered_candidates': len(request.external_stops),
+        'rated_candidates': sum(p.rating_evidence is not None and not p.meal_type for p in all_places),
+        'weather_used_in_ranking': bool(weather_map),
+        'notes': 'Historical sample ratings are soft ranking signals. Unknown ratings are neutral. Hours, prices and travel times may be estimates; all hard constraints still apply.'}
+    for day in itinerary.days:
+        visits = sum(a.place_type not in {'restaurant', 'rest_break'} for a in day.activities)
+        if visits == 0:
+            day.planning_note = 'No sightseeing fits this day in the available candidate pool under the current hours, travel windows, pace and budget. This does not mean the city has no places to visit. Enable automatic discovery, add candidates, or relax a constraint.'
 
     # Minimum Useful Plan Guarantee
     total_activities = sum(len(day.activities) for day in itinerary.days)
@@ -513,6 +508,7 @@ def generate_itinerary(request: TripRequest, current_user: UserProfile = Depends
     Enforces opening hours, day-of-week closures, golden hour, and budget limits.
     """
     _enforce_rate_limit(current_user, bucket="generate", limit=15, window_sec=60.0)
+    request = expand_request(request, _discovery, get_database_places(request.destination))
     with _solver_slot():
         return _build_single_plan(request, variant=PlanVariantType.BALANCED)
 
@@ -526,6 +522,7 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
     Never copies Balanced as a fake Budget/Comfort variant when constraints are tight.
     """
     _enforce_rate_limit(current_user, bucket="generate-variants", limit=12, window_sec=60.0)
+    request = expand_request(request, _discovery, get_database_places(request.destination))
     with _solver_slot():
         user_transport_cap = request.transport_pref.max_budget_inr if request.transport_pref else None
         unavailable_variants: Dict[str, str] = {}

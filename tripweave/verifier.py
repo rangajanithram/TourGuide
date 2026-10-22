@@ -437,8 +437,10 @@ class ItineraryVerifier:
         for meal in plan.meal_places:
             if meal.place_id not in scheduled_ids:
                 errors.append(f"Reserved {meal.meal_type} block missing on day {meal.planning_day + 1}.")
-        if plan.meal_places:
-            warnings.append("Meal venues are not selected. Reserved blocks use your budget estimate and base location; confirm a venue before travel.")
+        if any(not meal.meal_venue_id for meal in plan.meal_places):
+            warnings.append("Some meal venues are not selected. Those blocks use your budget estimate and base location; confirm venues before travel.")
+        if any(meal.meal_venue_id for meal in plan.meal_places):
+            warnings.append("Named meal venues use catalog or user-confirmed planning estimates; confirm current service hours, prices and dietary suitability.")
         score = 100 - (len(errors) * 35) - (len(warnings) * 5)
         score = max(0, min(100, score))
 

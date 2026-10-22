@@ -1,0 +1,882 @@
+[
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "10 downing street",
+    "rating": 3.8,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "13 dhaba",
+    "rating": 3.48,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "3b s buddies bar barbecue",
+    "rating": 4.76,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "ab s absolute barbecues",
+    "rating": 4.88,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "absolute sizzlers",
+    "rating": 3.62,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "al saba restaurant",
+    "rating": 3.15,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "american wild wings",
+    "rating": 3.97,
+    "review_count": 77,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "amul",
+    "rating": 3.94,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "arena eleven",
+    "rating": 4.12,
+    "review_count": 85,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "aromas 11six",
+    "rating": 3.46,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "asian meal box",
+    "rating": 2.58,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "b dubs",
+    "rating": 4.81,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "banana leaf multicuisine restaurant",
+    "rating": 3.69,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "barbeque nation",
+    "rating": 4.12,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "behrouz biryani",
+    "rating": 2.83,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "being hungry",
+    "rating": 3.66,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "beyond flavours",
+    "rating": 4.28,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "biryanis and more",
+    "rating": 3.74,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "cafe eclat",
+    "rating": 3.59,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "cascade radisson hyderabad hitec city",
+    "rating": 4.26,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "chinese pavilion",
+    "rating": 3.75,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "club rogue",
+    "rating": 2.88,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "collage hyatt hyderabad gachibowli",
+    "rating": 3.41,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "cream stone",
+    "rating": 3.85,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "delhi 39",
+    "rating": 2.98,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "deli 9 bistro",
+    "rating": 3.82,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "desi bytes",
+    "rating": 2.9,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "dine o china",
+    "rating": 3.37,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "diners pavilion",
+    "rating": 3.32,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "domino s pizza",
+    "rating": 3.09,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "driven cafe",
+    "rating": 3.75,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "dunkin donuts",
+    "rating": 3.1,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "eat fit",
+    "rating": 3.2,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "eat india company",
+    "rating": 3.26,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "faasos",
+    "rating": 3.03,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "feast sheraton hyderabad hotel",
+    "rating": 4.22,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "flechazo",
+    "rating": 4.66,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "frio bistro",
+    "rating": 3.61,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "gal punjab di",
+    "rating": 3.61,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "gd s",
+    "rating": 3.96,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "green bawarchi restaurant",
+    "rating": 3.49,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "hitech bawarchi food zone",
+    "rating": 3.05,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "hotel zara hi fi",
+    "rating": 2.4,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "hunger maggi point",
+    "rating": 3.12,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "hyderabad chefs",
+    "rating": 3.81,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "hyderabadi daawat",
+    "rating": 3.83,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "hyper local",
+    "rating": 3.64,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "jonathan s kitchen holiday inn express suites",
+    "rating": 3.54,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "karachi bakery",
+    "rating": 3.8,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "karachi cafe",
+    "rating": 3.71,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "kfc",
+    "rating": 2.85,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "khaan saab",
+    "rating": 3.8,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "komatose holiday inn express suites",
+    "rating": 3.69,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "kritunga restaurant",
+    "rating": 3.47,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "ks bakers",
+    "rating": 3.96,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "la la land bar kitchen",
+    "rating": 3.19,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "labonel",
+    "rating": 3.92,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "marsala food company",
+    "rating": 3.46,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "mathura vilas",
+    "rating": 2.82,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "mazzo marriott executive apartments",
+    "rating": 4.19,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "mohammedia shawarma",
+    "rating": 2.99,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "momos delight",
+    "rating": 3.73,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "mustang terrace lounge",
+    "rating": 3.31,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "norfest the dhaba",
+    "rating": 4.03,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "olive garden",
+    "rating": 3.76,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "over the moon brew company",
+    "rating": 4.34,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "owm nom nom",
+    "rating": 3.29,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "pakwaan grand",
+    "rating": 2.71,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "paradise",
+    "rating": 4.7,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "pista house",
+    "rating": 3.23,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "pot pourri",
+    "rating": 3.32,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "pourhouse7",
+    "rating": 3.86,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "prism club kitchen",
+    "rating": 4.21,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "royal spicy restaurant",
+    "rating": 3.74,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "sardarji s chaats more",
+    "rating": 3.25,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "shah ghouse hotel restaurant",
+    "rating": 3.21,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "shah ghouse spl shawarma",
+    "rating": 3.43,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "shanghai chef 2",
+    "rating": 3.06,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "shree santosh dhaba family restaurant",
+    "rating": 2.83,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "skyhy",
+    "rating": 3.37,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "squeeze the lime",
+    "rating": 3.81,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "t grill",
+    "rating": 3.17,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "tandoori food works",
+    "rating": 3.27,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "tempteys",
+    "rating": 3.85,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the chocolate room",
+    "rating": 2.83,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the fisherman s wharf",
+    "rating": 4.22,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the foodie monster kitchen",
+    "rating": 3.58,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the glass onion",
+    "rating": 3.83,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the indi grill",
+    "rating": 4.6,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the lal street bar exchange",
+    "rating": 3.45,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the old madras baking company",
+    "rating": 3.62,
+    "review_count": 99,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "the tilt bar republic",
+    "rating": 3.85,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "tiki shack",
+    "rating": 3.48,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "triptify",
+    "rating": 3.55,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "udipi s upahar",
+    "rating": 4.03,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "ulavacharu",
+    "rating": 3.23,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "urban asia kitchen bar",
+    "rating": 3.65,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "yum yum tree the arabian food court",
+    "rating": 3.56,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "zega sheraton hyderabad hotel",
+    "rating": 4.45,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "restaurant",
+    "name_key": "zing s northeast kitchen",
+    "rating": 3.65,
+    "review_count": 100,
+    "rating_evidence": "Hyderabad restaurant dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "birla mandir",
+    "rating": 4.6,
+    "review_count": 120,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "birla science museum",
+    "rating": 4.29,
+    "review_count": 79,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "cable bridge",
+    "rating": 3.11,
+    "review_count": 46,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "charminar",
+    "rating": 4.02,
+    "review_count": 110,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "golconda fort",
+    "rating": 4.55,
+    "review_count": 110,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "hussain sagar lake",
+    "rating": 4.03,
+    "review_count": 120,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "nehru zoological park",
+    "rating": 4.17,
+    "review_count": 120,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "ntr garden",
+    "rating": 3.73,
+    "review_count": 120,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "ramoji film city",
+    "rating": 4.18,
+    "review_count": 110,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  },
+  {
+    "city": "hyderabad",
+    "place_type": "attraction",
+    "name_key": "wonderla",
+    "rating": 4.73,
+    "review_count": 120,
+    "rating_evidence": "Hyderabad attraction dataset rating sample; historical, collection date unverified; sample mean, not current platform rating"
+  }
+]
