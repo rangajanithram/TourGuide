@@ -14,7 +14,7 @@ from fastapi import HTTPException
 
 CATEGORIES = {
     "all": "tourism,catering.restaurant,leisure.park,natural.mountain",
-    "attractions": "tourism.sights",
+    "attractions": "tourism",
     "restaurants": "catering.restaurant",
     "stays": "accommodation",
     "parks": "leisure.park",
@@ -31,6 +31,7 @@ class DiscoveryProvider:
         self.day = None
         self.requests = 0
         self.cache = {}
+        self.location_cache = {}
 
     def _get(self, path, params):
         if not self.key:
@@ -73,7 +74,19 @@ class DiscoveryProvider:
         return result
 
     def _search(self, location, category, query=None):
-        locations = self._get("v1/geocode/search", {"text": location, "limit": 1, "lang": "en"})
+        location_key = location.strip().casefold()
+        with self.lock:
+            cached = self.location_cache.get(location_key)
+        if cached and time.monotonic() - cached[0] < 300:
+            locations = deepcopy(cached[1])
+        else:
+            locations = self._get("v1/geocode/search", {"text": location, "limit": 1, "lang": "en"})
+            if locations:
+                with self.lock:
+                    self.location_cache = {k: v for k, v in self.location_cache.items() if time.monotonic() - v[0] < 300}
+                    if len(self.location_cache) >= 128:
+                        del self.location_cache[next(iter(self.location_cache))]
+                    self.location_cache[location_key] = (time.monotonic(), deepcopy(locations))
         if not locations:
             return {"location": location, "places": [], "fetched_at": datetime.now(timezone.utc).isoformat()}
         try:

@@ -911,11 +911,11 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         {isLoading && <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-sm"><span>{planningPhase === 'connecting' ? 'Checking the planning service. It may take about a minute to wake up.' : 'The backend is creating your itinerary. Your existing trip is kept until the new plan is ready.'}</span><button type="button" className="underline font-semibold" onClick={() => { requestVersion.current += 1; historyVersion.current += 1; activeRequest.current?.abort(); setIsLoading(false); }}>Cancel</button></div>}
         {/* Global Error Banner */}
         {error && (
-          <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-500/30 flex items-start space-x-3 text-red-800 text-sm">
+          <div role="alert" className="planning-notice mb-6">
             <AlertCircle className="w-5 h-5 text-red-700 shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold block">Trip planning notice</span>
-              <p className="text-xs text-red-800/90 mt-0.5 leading-relaxed">{error}</p>
+              <h2>We couldn’t complete this plan</h2>
+              <p>{error}</p><p className="notice-guidance">Review your budget, dates or must-visit places, then try again. Your saved trips are unchanged.</p>
             </div>
           </div>
         )}

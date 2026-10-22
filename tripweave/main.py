@@ -795,7 +795,7 @@ def discover_places(response: Response, location: str = Query(min_length=2, max_
                     category: Literal["all", "attractions", "restaurants", "stays", "parks", "hills"] = "attractions",
                     query: Optional[str] = Query(default=None, min_length=2, max_length=100),
                     current_user: UserProfile = Depends(get_current_user)):
-    _enforce_rate_limit(current_user, "discovery", limit=6)
+    _enforce_rate_limit(current_user, "discovery", limit=20)
     response.headers["Cache-Control"] = "private, no-store"
     if len(location.strip()) < 2:
         raise HTTPException(422, "Enter a location of at least two characters.")

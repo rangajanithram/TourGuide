@@ -4,6 +4,7 @@ import { plannerFetch } from '@/lib/planner-fetch';
 import { apiBaseUrl } from '@/lib/planner-network';
 import type { ConfirmedDiscoveryStop } from '@/types/trip';
 import PlaceSearch, { SearchOption } from './PlaceSearch';
+import ThemedSelect from './ThemedSelect';
 
 type Result = { id: string; name: string; address: string; lat: number; lng: number; category: string; osm_url?: string; formatted_address?: string };
 type CatalogOption = SearchOption & { lat?: number; lng?: number };
@@ -17,14 +18,13 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
-  const [browse, setBrowse] = useState(false);
   const [category, setCategory] = useState('all');
   const cache = useRef(new Map<string, Result[]>());
   useEffect(() => {
     const controller = new AbortController();
     const name = query.trim();
     setItems([]); setError(''); setBusy(false);
-    if ((!browse && name.length < 3) || disabled) return () => controller.abort();
+    if ((name.length > 0 && name.length < 3) || disabled) return () => controller.abort();
     const key = `${destination}:${category}:${name.toLowerCase()}`;
     const cached = cache.current.get(key);
     if (cached) { setItems(cached); return () => controller.abort(); }
@@ -42,26 +42,25 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
       } catch (failure) {
         if (!controller.signal.aborted) setError(failure instanceof Error ? failure.message : 'Live search is unavailable. Catalog matches are still available.');
       } finally { if (!controller.signal.aborted) setBusy(false); }
-    }, 900);
+    }, name.length >= 3 ? 750 : 150);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [query, destination, disabled, retry, browse, category]);
-  const live = items.filter(item => !selected.includes('discovered:' + item.id) && !catalog.some(place =>
-    place.label.trim().toLowerCase() === item.name.trim().toLowerCase() && place.lat !== undefined && place.lng !== undefined && Math.abs(place.lat-item.lat) < 0.002 && Math.abs(place.lng-item.lng) < 0.002));
+  }, [query, destination, disabled, retry, category]);
+  const catalogMatch = (item: Result) => catalog.find(place =>
+    place.label.trim().toLowerCase() === item.name.trim().toLowerCase() && place.lat !== undefined && place.lng !== undefined && Math.abs(place.lat-item.lat) < 0.002 && Math.abs(place.lng-item.lng) < 0.002);
+  const live = items.filter(item => !selected.includes('discovered:' + item.id) && !selected.includes(catalogMatch(item)?.value || ''));
   const options: SearchOption[] = [
-    ...catalog.filter(place => !selected.includes(place.value)).map(place => ({ ...place, description: 'Catalog · planning estimates available' })),
-    ...live.map(item => ({ value: 'discovered:' + item.id, label: item.name, description: `Live listing · ${item.address}` })),
+    ...live.map(item => ({ value: catalogMatch(item)?.value || 'discovered:' + item.id, label: item.name, description: `Live listing · ${item.address}` })),
+    ...(category === 'all' && !busy ? catalog.filter(place => !selected.includes(place.value) && query.trim().toLowerCase().split(/\s+/).every(word => place.label.toLowerCase().includes(word)) && !live.some(item => catalogMatch(item)?.value === place.value)).map(place => ({ ...place, description: 'Reference catalog · estimated planning facts' })) : []),
   ];
   const status = disabled ? 'You can select up to 15 places. Remove a pin to add another.' : busy ? 'Searching real places…' : error || (query.trim().length < 3 ? 'Type at least 3 characters to search real attractions, restaurants, parks and hills. Select places one at a time; your pins stay selected.' : 'Matching catalog and live listings near this city. Coverage depends on the source.');
-  return <div>
-    <label>Discover by type<select value={category} disabled={disabled} onChange={event => { setCategory(event.target.value); setChosen(null); setBrowse(true); }}><option value="all">Attractions and restaurants</option><option value="attractions">Tourist attractions</option><option value="restaurants">Restaurants and meal venues</option><option value="parks">Parks</option><option value="hills">Hills and viewpoints</option></select></label>
-    <p className="step-note">Add confirmed places as optional candidates to let the planner choose those that fit your dates, route and budget. Pin a place only when it must be included.</p>
-    <button type="button" disabled={disabled || busy} onClick={() => { setBrowse(true); setRetry(value => value + 1); }}>Browse nearby real places</button>
-    {browse && !busy && !error && query.trim().length < 3 && <div className="booking-chips" aria-label="Nearby real places">{live.map(item => <button type="button" key={item.id} disabled={disabled} onClick={() => setChosen(item)}>{item.name}</button>)}{items.length === 0 && <p>No nearby listings returned. Search by name or retry later.</p>}</div>}
-    <PlaceSearch label="Search and pin a place" value="" placeholder="Type an attraction, restaurant, park or hill…" options={options} disabled={disabled} onQueryChange={setQuery} status={status} onChange={id => {
+  return <div className="planner-place-discovery">
+    <div className="discovery-heading"><div><h4>Explore {destination.charAt(0).toUpperCase() + destination.slice(1)}</h4><p>Search this destination and add places one at a time. Your selections stay below.</p></div><span>{busy ? 'Searching…' : `${live.length} live matches`}</span></div>
+    <div className="discovery-categories" aria-label="Place categories">{[{value:'all',label:'All places'},{value:'attractions',label:'Attractions'},{value:'restaurants',label:'Restaurants'},{value:'parks',label:'Parks'},{value:'hills',label:'Hills & viewpoints'}].map(option => <button key={option.value} type="button" aria-pressed={category === option.value} disabled={disabled} onClick={() => { setCategory(option.value); setChosen(null); }}>{option.label}</button>)}</div>
+    <PlaceSearch label="Search and pin a place" value="" placeholder="Type an attraction, restaurant, park or hill…" options={options} filterLocally={false} disabled={disabled} onQueryChange={setQuery} status={status} onChange={id => {
       const item = items.find(place => 'discovered:' + place.id === id);
       if (item) setChosen(item); else onPin(id);
     }} />
-    {error && <button type="button" onClick={() => setRetry(value => value + 1)} disabled={busy}>Retry live search</button>}
+    {error && <div className="discovery-recovery" role="status"><p>Live destination search is unavailable. Reference catalog matches are labeled separately. {error}</p><button type="button" onClick={() => setRetry(value => value + 1)} disabled={busy}>Retry live search</button></div>}
     {chosen && <ConfirmPlace key={chosen.id} place={chosen} disabled={disabled} onCancel={() => setChosen(null)} onConfirm={(stop, mandatory) => { onConfirm(stop, mandatory); setChosen(null); }} />}
     <p className="catalog-caption">Live listings: <a href="https://www.geoapify.com/">Geoapify</a> / <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Hours and prices may need your confirmation.</p>
   </div>;
@@ -73,15 +72,17 @@ function ConfirmPlace({ place, disabled, onCancel, onConfirm }: { place: Result;
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [mandatory, setMandatory] = useState(true);
+  const [meal, setMeal] = useState('');
   const [error, setError] = useState('');
   return <section className="booking-summary" aria-label={`Confirm estimates for ${place.name}`}>
     <h4>{place.name}</h4><p>{place.address}</p>
     <p>This listing is missing verified planning facts. Confirm your estimates to include it; these remain labeled as estimates in the itinerary.</p>
-    {place.category === 'restaurants' && <label>Meal window<select defaultValue="" onChange={event => {
+    {place.category === 'restaurants' && <div><p className="font-semibold">Meal window</p><ThemedSelect label="Meal window" value={meal} options={[{value:'',label:'Choose a meal window (optional)'},{value:'breakfast',label:'Breakfast · 08:00–10:00'},{value:'lunch',label:'Lunch · 12:00–15:00'},{value:'dinner',label:'Dinner · 18:00–20:00'}]} onChange={value => {
+      setMeal(value);
       const windows: Record<string, [string, string]> = { breakfast: ['08:00', '10:00'], lunch: ['12:00', '15:00'], dinner: ['18:00', '20:00'] };
-      const window = windows[event.target.value];
+      const window = windows[value];
       if (window) { setStart(window[0]); setEnd(window[1]); }
-    }}><option value="">Choose your own visit window</option><option value="breakfast">Breakfast · 08:00–10:00</option><option value="lunch">Lunch · 12:00–15:00</option><option value="dinner">Dinner · 18:00–20:00</option></select><span className="step-note">These are your planning windows, not verified restaurant service hours. Confirm service and dietary needs with the venue. A restaurant visit does not replace a separately reserved base meal.</span></label>}
+    }} /><p className="step-note">These are your planning windows, not verified restaurant service hours. Confirm service and dietary needs with the venue. A restaurant visit does not replace a separately reserved base meal.</p></div>}
     <div className="booking-grid">
       <label>Visit length (minutes)<input type="number" min={15} max={480} value={duration} onChange={event => setDuration(event.target.value)} /></label>
       <label>Cost per person (₹, enter 0 if free)<input type="number" min={0} max={100000} value={cost} onChange={event => setCost(event.target.value)} /></label>

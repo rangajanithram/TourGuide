@@ -521,7 +521,7 @@ export default function ItineraryView({
       {/* Blueprint Section 1 & Product Spec Feature 1: Inter-City Transit Intelligence */}
       {plan.intercity_notice && <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-[#243e33]">{plan.intercity_notice}</p>}
       {plan.intercity_transport && (
-        <div className="bg-[#fffdf5] border border-amber-500/30 rounded-2xl p-5 shadow-xl relative overflow-hidden space-y-4">
+        <div className="intercity-panel bg-[#fffdf5] border border-amber-500/30 rounded-2xl p-5 shadow-xl relative space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[#89532d]">
@@ -553,8 +553,8 @@ export default function ItineraryView({
           </div>
 
           {/* Recommended Route Detail */}
-          <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-4 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="intercity-recommendation">
+            <div className="transit-leg">
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="text-sm font-bold uppercase tracking-wider text-[#89532d] bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
@@ -589,7 +589,7 @@ export default function ItineraryView({
 
             {/* Return Leg Detail */}
             {plan.intercity_transport.return_option && (
-              <div className="pt-3 border-t border-[#c6d2c0] flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="transit-leg">
                 <div>
                   <div className="flex items-center space-x-2">
                     <span className="text-sm font-bold uppercase tracking-wider text-cyan-700 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
@@ -626,12 +626,12 @@ export default function ItineraryView({
               </div>
             )}
 
-            <div className="text-sm text-[#425d4c] leading-relaxed bg-[#fffdf5] p-3 rounded-lg border border-[#d6dfd0]">
+            <div className="transit-advice">
               {plan.intercity_transport.transit_advice}
             </div>
 
             {/* Inbound & Return Destination Last-Mile Transfers */}
-            <div className="space-y-2">
+            <div className="transit-transfers">
               {plan.intercity_transport.last_mile && (
                 <div className="flex items-start space-x-2.5 text-sm text-emerald-800 bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-lg">
                   <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
@@ -694,7 +694,7 @@ export default function ItineraryView({
               const projectedTotalMax = baseDirectMax + mealAllowance;
 
               return (
-                <div className="bg-[#fffdf5] border border-amber-500/20 rounded-lg p-3.5 text-sm space-y-3 mt-2">
+                <div className="transit-outlay bg-[#fffdf5] border border-amber-500/20 rounded-lg p-4 text-sm space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
                     <div>
                       <div className="flex items-center space-x-2 flex-wrap">
@@ -722,7 +722,7 @@ export default function ItineraryView({
                   </div>
 
                   {/* 4-Column Breakdown Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#d6dfd0] text-sm text-[#526653]">
+                  <div className="transit-cost-grid grid grid-cols-2 gap-4 pt-4 border-t border-[#d6dfd0] text-sm text-[#526653]">
                     <div>
                       <span className="text-[#596b57] block">On-Ground Subtotal</span>
                       <span className="font-semibold text-[#294333]">₹{plan.total_cost_inr.toLocaleString('en-IN')}</span>
@@ -1125,13 +1125,14 @@ export default function ItineraryView({
 
                     {/* Recommended Viewpoint Pro-Tip */}
                     {act.recommended_viewpoint && (
-                      <div className="text-sm bg-[#fffdf5] border border-[#d6dfd0] rounded-lg p-2.5 text-[#425d4c] mt-2">
-                        <div className="flex items-center space-x-1.5 text-[#89532d] font-semibold mb-0.5">
+                      <details className="stop-viewpoint text-sm text-[#425d4c] mt-2">
+                        <summary className="flex items-center gap-2 text-[#89532d] font-semibold">
                           <Camera className="w-3.5 h-3.5" />
-                          <span>Viewpoint: {act.recommended_viewpoint.viewpoint_name || act.recommended_viewpoint.name}</span>
-                        </div>
+                          <span>Viewpoint details</span>
+                        </summary>
+                        <p className="mt-2 font-semibold">{act.recommended_viewpoint.viewpoint_name || act.recommended_viewpoint.name}</p>
                         <p className="text-sm text-[#526653] pl-5">{act.recommended_viewpoint.description}</p>
-                      </div>
+                      </details>
                     )}
 
                     {/* Interactive Customizer Action Bar */}
