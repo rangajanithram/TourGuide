@@ -5,6 +5,7 @@ import ThemedSelect from './ThemedSelect';
 import PlannerDiscovery from './PlannerDiscovery';
 import JourneyTimingFields from './JourneyTimingFields';
 import BookedTransportFields from './BookedTransportFields';
+import RailReference from './RailReference';
 import { validateBookedTransport } from '../lib/booked-transport';
 import StayChoiceFields from './StayChoiceFields';
 import { validateStayChoice } from '../lib/stay-choice';
@@ -132,6 +133,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
         })}</div>
       </fieldset>}
       <StayChoiceFields value={form.stay_choice} onChange={value => update('stay_choice', value)} />
+      {form.origin_city && form.origin_city !== form.destination && <RailReference key={`${form.origin_city}:${form.destination}`} originCity={form.origin_city} destinationCity={form.destination} />}
       <p className="catalog-caption">{catalog?.source}. Search currently covers supported cities only.</p>
     </section>}
     {step === 1 && <section className="trip-step booking-section" aria-label="Travel style">

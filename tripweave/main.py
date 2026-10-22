@@ -28,6 +28,7 @@ from tripweave.optimizer import TripOptimizer, InfeasibleItineraryError
 from tripweave.transport import get_transport_provider
 from tripweave.editor import ItineraryEditor
 from tripweave.auth import get_current_user, UserProfile
+from tripweave import rail_reference
 
 # ---------------------------------------------------------------------------
 # Process-Local Production Protection Guardrails
@@ -763,6 +764,31 @@ from typing import Literal
 from fastapi import Query, Response
 from tripweave.discovery import DiscoveryProvider
 _discovery = DiscoveryProvider(settings.geoapify_api_key, settings.discovery_daily_requests)
+
+
+@app.get('/api/reference/rail/stations', tags=['Historical Reference'])
+def reference_rail_stations(response: Response, query: str = Query(min_length=2, max_length=80),
+                            current_user: UserProfile = Depends(get_current_user)):
+    _enforce_rate_limit(current_user, 'rail-reference', limit=40)
+    response.headers['Cache-Control'] = 'private, no-store'
+    try:
+        return {'stations': rail_reference.stations(query), 'historical': True}
+    except (OSError, ValueError, KeyError):
+        raise HTTPException(503, 'Historical railway data is temporarily unavailable.')
+
+
+@app.get('/api/reference/rail/routes', tags=['Historical Reference'])
+def reference_rail_routes(response: Response, origin: str = Query(pattern=r'^[A-Z0-9]{1,10}$'),
+                          destination: str = Query(pattern=r'^[A-Z0-9]{1,10}$'),
+                          current_user: UserProfile = Depends(get_current_user)):
+    _enforce_rate_limit(current_user, 'rail-reference', limit=40)
+    response.headers['Cache-Control'] = 'private, no-store'
+    try:
+        return rail_reference.routes(origin, destination)
+    except ValueError as error:
+        raise HTTPException(422, str(error))
+    except (OSError, KeyError):
+        raise HTTPException(503, 'Historical railway data is temporarily unavailable.')
 
 @app.get("/api/discovery", tags=["Place Discovery"])
 def discover_places(response: Response, location: str = Query(min_length=2, max_length=150),

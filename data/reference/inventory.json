@@ -1,0 +1,1062 @@
+{
+  "files": [
+    {
+      "file": "attractions-india/Top Indian Places to Visit.csv",
+      "bytes": 35604,
+      "sha256": "6a50ecc038ae3bec81965d0127c0ca79d7c0109cdb1d7ca6f293491d32b8fe5d",
+      "columns": [
+        "",
+        "Zone",
+        "State",
+        "City",
+        "Name",
+        "Type",
+        "Establishment Year",
+        "time needed to visit in hrs",
+        "Google review rating",
+        "Entrance Fee in INR",
+        "Airport with 50km Radius",
+        "Weekly Off",
+        "Significance",
+        "DSLR Allowed",
+        "Number of google review in lakhs",
+        "Best Time to visit"
+      ],
+      "rows": 325
+    },
+    {
+      "file": "Hotel Price Data of Cities in India (MakeMyTrip)/bangalore.csv",
+      "bytes": 8766,
+      "sha256": "58a1812a3a09dda01309c4be12375f60e000d7c2d61f70d9570a6a70347ebb94",
+      "columns": [
+        "Hotel Name",
+        "Rating",
+        "Rating Description",
+        "Reviews",
+        "Star Rating",
+        "Location",
+        "Nearest Landmark",
+        "Distance to Landmark",
+        "Price",
+        "Tax"
+      ],
+      "rows": 101
+    },
+    {
+      "file": "Hotel Price Data of Cities in India (MakeMyTrip)/chennai.csv",
+      "bytes": 8304,
+      "sha256": "e2e6ef657211426d917d7a26d3289d1bb40d84f1dd908f1e856c0c8ba37e80cf",
+      "columns": [
+        "Hotel Name",
+        "Rating",
+        "Rating Description",
+        "Reviews",
+        "Star Rating",
+        "Location",
+        "Nearest Landmark",
+        "Distance to Landmark",
+        "Price",
+        "Tax"
+      ],
+      "rows": 101
+    },
+    {
+      "file": "Hotel Price Data of Cities in India (MakeMyTrip)/delhi.csv",
+      "bytes": 10151,
+      "sha256": "ef8b7f9ea5d8b111f571539940c59d69443146b7db6b2ad84a74e30d75951d16",
+      "columns": [
+        "Hotel Name",
+        "Rating",
+        "Rating Description",
+        "Reviews",
+        "Star Rating",
+        "Location",
+        "Nearest Landmark",
+        "Distance to Landmark",
+        "Price",
+        "Tax"
+      ],
+      "rows": 101
+    },
+    {
+      "file": "Hotel Price Data of Cities in India (MakeMyTrip)/hyderabad.csv",
+      "bytes": 5913,
+      "sha256": "eb8fb0992ae535525d3a7714d7b96500fa3c7fa2ad654ee675a01c6bb4336229",
+      "columns": [
+        "Hotel Name",
+        "Rating",
+        "Rating Description",
+        "Reviews",
+        "Star Rating",
+        "Location",
+        "Nearest Landmark",
+        "Distance to Landmark",
+        "Price",
+        "Tax"
+      ],
+      "rows": 75
+    },
+    {
+      "file": "Hotel Price Data of Cities in India (MakeMyTrip)/kolkata.csv",
+      "bytes": 9136,
+      "sha256": "28508b4045e2de2a5ffe40505ed614c80c0eb4d01dcb174ecc316f36430f4e4f",
+      "columns": [
+        "Hotel Name",
+        "Rating",
+        "Rating Description",
+        "Reviews",
+        "Star Rating",
+        "Location",
+        "Nearest Landmark",
+        "Distance to Landmark",
+        "Price",
+        "Tax"
+      ],
+      "rows": 101
+    },
+    {
+      "file": "Hotel Price Data of Cities in India (MakeMyTrip)/mumbai.csv",
+      "bytes": 12373,
+      "sha256": "2902388ad00e297704ba2b9981d4f4f1594aacbb498dd57452b7ab900462da01",
+      "columns": [
+        "Hotel Name",
+        "Rating",
+        "Rating Description",
+        "Reviews",
+        "Star Rating",
+        "Location",
+        "Nearest Landmark",
+        "Distance to Landmark",
+        "Price",
+        "Tax"
+      ],
+      "rows": 101
+    },
+    {
+      "file": "hotels-india/booking_com-travel_sample.csv",
+      "bytes": 12242581,
+      "sha256": "d11e2a46013ef806e4659811015f9cb45bcbb2590be2c25db557256e05145976",
+      "columns": [
+        "address",
+        "city",
+        "country",
+        "crawl_date",
+        "hotel_brand",
+        "hotel_description",
+        "hotel_facilities",
+        "hotel_star_rating",
+        "image_count",
+        "latitude",
+        "locality",
+        "longitude",
+        "pageurl",
+        "property_id",
+        "property_name",
+        "property_type",
+        "province",
+        "qts",
+        "room_count",
+        "room_type",
+        "similar_hotel",
+        "site_review_count",
+        "site_review_rating",
+        "site_stay_review_rating",
+        "sitename",
+        "special_tag",
+        "state",
+        "uniq_id",
+        "zone"
+      ],
+      "rows": 6000
+    },
+    {
+      "file": "hotels-india/goibibo_com-travel_sample.csv",
+      "bytes": 9788502,
+      "sha256": "53f761e45332f501b649ee2b8b7953004f9a2231f8081b96805ca8c724fda9b5",
+      "columns": [
+        "additional_info",
+        "address",
+        "area",
+        "city",
+        "country",
+        "crawl_date",
+        "guest_recommendation",
+        "hotel_brand",
+        "hotel_category",
+        "hotel_description",
+        "hotel_facilities",
+        "hotel_star_rating",
+        "image_count",
+        "latitude",
+        "locality",
+        "longitude",
+        "pageurl",
+        "point_of_interest",
+        "property_id",
+        "property_name",
+        "property_type",
+        "province",
+        "qts",
+        "query_time_stamp",
+        "review_count_by_category",
+        "room_area",
+        "room_count",
+        "room_facilities",
+        "room_type",
+        "similar_hotel",
+        "site_review_count",
+        "site_review_rating",
+        "site_stay_review_rating",
+        "sitename",
+        "state",
+        "uniq_id"
+      ],
+      "rows": 4000
+    },
+    {
+      "file": "railways-india/government-timetable/Train_details_22122017.csv",
+      "bytes": 16704995,
+      "sha256": "ca6b9a677212601e303f8ba8ea3f7639133a9ffa7f6208649cbae3140de84235",
+      "columns": [
+        "Train No",
+        "Train Name",
+        "SEQ",
+        "Station Code",
+        "Station Name",
+        "Arrival time",
+        "Departure Time",
+        "Distance",
+        "Source Station",
+        "Source Station Name",
+        "Destination Station",
+        "Destination Station Name"
+      ],
+      "rows": 186124
+    },
+    {
+      "file": "railways-india/README.md",
+      "bytes": 2209,
+      "sha256": "1b9219e95969f2325427a35a15da4027f64c9e793ff360606e0ac94af4c206ae"
+    },
+    {
+      "file": "railways-india/schedules.json",
+      "bytes": 82174280,
+      "sha256": "105d63816acb177eac30a7d156eb2d312625a42ddebd273edee810d2989878ec"
+    },
+    {
+      "file": "railways-india/stations.json",
+      "bytes": 1864683,
+      "sha256": "9bd5e1da3a859e5359a95f40b6009aa468efb177da4faac57ffdcd7daeb4df18"
+    },
+    {
+      "file": "railways-india/trains.json",
+      "bytes": 14768598,
+      "sha256": "e434d9c56016ccdf2291ccd446586ef87a7fab101084efa5f68871ab27800167"
+    },
+    {
+      "file": "restaurants-bengaluru/zomato.csv",
+      "bytes": 574072999,
+      "sha256": "4b0c91c37585310d509873dc399fdf739c7d222fcf7a693e4461b23d25a9d43d",
+      "columns": [
+        "url",
+        "address",
+        "name",
+        "online_order",
+        "book_table",
+        "rate",
+        "votes",
+        "phone",
+        "location",
+        "rest_type",
+        "dish_liked",
+        "cuisines",
+        "approx_cost(for two people)",
+        "reviews_list",
+        "menu_item",
+        "listed_in(type)",
+        "listed_in(city)"
+      ],
+      "rows": 51717
+    },
+    {
+      "file": "restaurants-hyderabad/Restaurant names and Metadata.csv",
+      "bytes": 18007,
+      "sha256": "c499c936bdee67a516182cdcc973dcbcf86453c73d7c7a392d21ae308b5188ec",
+      "columns": [
+        "Name",
+        "Links",
+        "Cost",
+        "Collections",
+        "Cuisines",
+        "Timings"
+      ],
+      "rows": 105
+    },
+    {
+      "file": "restaurants-hyderabad/Restaurant reviews.csv",
+      "bytes": 3584915,
+      "sha256": "dc1a898eae256f33e9016476e5b9655016d294d77d42ca4a3054ac9aa2f07521",
+      "columns": [
+        "Restaurant",
+        "Reviewer",
+        "Review",
+        "Rating",
+        "Metadata",
+        "Time",
+        "Pictures"
+      ],
+      "rows": 10000
+    },
+    {
+      "file": "ToursitPlaces-Hyderabad/reviews.csv",
+      "bytes": 354512,
+      "sha256": "504e13cad96fe7b9820386d64395ead3dac501973b3d534779882f51327cfee7",
+      "columns": [
+        "Name",
+        "Date",
+        "Place You Want to Review About",
+        "On a Scale of 1-5 Rate the Place",
+        "Who Was Your Company During Your Visit",
+        "A Detailed Review of the Place"
+      ],
+      "rows": 1055
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/agency.txt",
+      "bytes": 223,
+      "sha256": "8c76a48fcba13f9897ba2d3c8c0f09844de311a2af789b5c5c8b9464a8e8a4b5",
+      "columns": [
+        "agency_id",
+        "agency_name",
+        "agency_url",
+        "agency_timezone",
+        "agency_lang",
+        "agency_phone",
+        "agency_fare_url"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/areas.txt",
+      "bytes": 1863,
+      "sha256": "18ee8b7f316d8e8b63f3f10417661c6d4efbea5ae6ad7dcfb34ab9d1c893fde4",
+      "columns": [
+        "area_id",
+        "area_name"
+      ],
+      "rows": 83
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/attributions.txt",
+      "bytes": 228,
+      "sha256": "32943f9ca5490879d921764b7f5ec17493e4398aba188ca068f79c7493b5e8ce",
+      "columns": [
+        "attribution_id",
+        "organization_name",
+        "is_producer",
+        "is_operator",
+        "is_authority",
+        "attribution_url"
+      ],
+      "rows": 2
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/calendar.txt",
+      "bytes": 246,
+      "sha256": "c52b68b27e3d284520d2ba57bc83ab2291a502a3b6e5658e982f05bd5a69fc5e",
+      "columns": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "start_date",
+        "end_date",
+        "service_id"
+      ],
+      "rows": 4
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/calendar_dates.txt",
+      "bytes": 1246,
+      "sha256": "37cbfa395a9f82d281576e2a182340634e05e1d2bbe2dd02869526c6812371e9",
+      "columns": [
+        "service_id",
+        "date",
+        "exception_type"
+      ],
+      "rows": 64
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/fare_attributes.txt",
+      "bytes": 315,
+      "sha256": "e6a9bfd4acf45a8d9e731f65f0083321e0654a5bd7170954325b2ff6c17b991f",
+      "columns": [
+        "fare_id",
+        "price",
+        "currency_type",
+        "payment_method",
+        "transfers",
+        "transfer_duration",
+        "agency_id"
+      ],
+      "rows": 9
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/fare_leg_rules.txt",
+      "bytes": 1623688,
+      "sha256": "9a244a48728a8ed913e1f7987a747c5e3512c55a4657a727fbc1acdd2186167f",
+      "columns": [
+        "leg_group_id",
+        "network_id",
+        "from_area_id",
+        "to_area_id",
+        "from_timeframe_group_id",
+        "fare_product_id"
+      ],
+      "rows": 40836
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/fare_media.txt",
+      "bytes": 125,
+      "sha256": "7781bd2c81a2bbb1fa178ca08884e34c5df15b0e0d316e1592786e7a44b7ca7c",
+      "columns": [
+        "fare_media_id",
+        "fare_media_name",
+        "fare_media_type"
+      ],
+      "rows": 4
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/fare_products.txt",
+      "bytes": 1829,
+      "sha256": "f4dad07a49cb4ff65bb7c1d440cddde36a2fb85b2ba60246890ddc0c0bbd3e22",
+      "columns": [
+        "fare_product_id",
+        "fare_product_name",
+        "fare_media_id",
+        "amount",
+        "currency"
+      ],
+      "rows": 39
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/fare_rules.txt",
+      "bytes": 120901,
+      "sha256": "2416021435110bb1fbc0043f9c7a92e08aa7da47159dea2362ab444c0e3de9ad",
+      "columns": [
+        "fare_id",
+        "origin_id",
+        "destination_id"
+      ],
+      "rows": 6806
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/feed_info.txt",
+      "bytes": 235,
+      "sha256": "dfc339800a391aa3d2110175172929a46affcbb99a46ab93d4640bd92602c8ca",
+      "columns": [
+        "feed_publisher_name",
+        "feed_publisher_url",
+        "feed_lang",
+        "feed_start_date",
+        "feed_end_date",
+        "feed_version",
+        "feed_contact_url"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/levels.txt",
+      "bytes": 3744,
+      "sha256": "bf4c1bc7f063cedefce1a80f4f951f4f4842c6e549b55cee50c0f0580e0fa45c",
+      "columns": [
+        "level_id",
+        "level_index",
+        "level_name"
+      ],
+      "rows": 162
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/pathways.txt",
+      "bytes": 20506,
+      "sha256": "5721ef1d11cb6da56086c5f9e5a782c311eb1d21c6632ca7472684e917223a00",
+      "columns": [
+        "pathway_id",
+        "from_stop_id",
+        "to_stop_id",
+        "pathway_mode",
+        "is_bidirectional",
+        "traversal_time"
+      ],
+      "rows": 486
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/routes.txt",
+      "bytes": 555,
+      "sha256": "1f3ba284c6d875cf20250de6f0a649d1b22f7ec7cc573d946f601f52f4ad995b",
+      "columns": [
+        "route_long_name",
+        "route_short_name",
+        "agency_id",
+        "route_desc",
+        "route_type",
+        "route_id",
+        "route_color",
+        "route_text_color"
+      ],
+      "rows": 3
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/shapes.txt",
+      "bytes": 157554,
+      "sha256": "259e95975cfa9df28754dd07df0945449ede3e45b28a75f892e34db9cb442f18",
+      "columns": [
+        "shape_id",
+        "shape_pt_lat",
+        "shape_pt_lon",
+        "shape_pt_sequence",
+        "shape_dist_traveled"
+      ],
+      "rows": 4541
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/stop_areas.txt",
+      "bytes": 2352,
+      "sha256": "67e0c2600192e185a672972eca0cbd8e3fd670301863d20ea4f1540623da3ef1",
+      "columns": [
+        "area_id",
+        "stop_id"
+      ],
+      "rows": 170
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/stop_times.txt",
+      "bytes": 5388883,
+      "sha256": "73844cf029352278e6a48429a000e22dde0dc1b2be8f2368974584a1ee21b00a",
+      "columns": [
+        "trip_id",
+        "arrival_time",
+        "departure_time",
+        "stop_id",
+        "stop_sequence",
+        "stop_headsign",
+        "shape_dist_traveled",
+        "timepoint"
+      ],
+      "rows": 88906
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/stops.txt",
+      "bytes": 37751,
+      "sha256": "ff4e4a68097ef52ec994445e65421b03df40531980b1999178df7a2a026ebfd3",
+      "columns": [
+        "stop_name",
+        "parent_station",
+        "stop_code",
+        "zone_id",
+        "stop_id",
+        "stop_lat",
+        "stop_lon",
+        "location_type",
+        "wheelchair_boarding",
+        "level_id",
+        "platform_code"
+      ],
+      "rows": 488
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/timeframes.txt",
+      "bytes": 440,
+      "sha256": "5ff93b203194b4b331efca987f393f9b0d131fdf0454cfac5c08e87a402839a7",
+      "columns": [
+        "timeframe_group_id",
+        "start_time",
+        "end_time",
+        "service_id"
+      ],
+      "rows": 12
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/transfers.txt",
+      "bytes": 642,
+      "sha256": "d8b85101fdb6248a8e726f525d635afbeef7ef9b2b26bafd5cb8ba6e6f75da11",
+      "columns": [
+        "from_stop_id",
+        "to_stop_id",
+        "from_route_id",
+        "to_route_id",
+        "transfer_type",
+        "min_transfer_time"
+      ],
+      "rows": 16
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/translations.txt",
+      "bytes": 20273,
+      "sha256": "3b896ef9f47a367610c3b0906317cd57986bcd7294a81bb9a48e77e2a8323851",
+      "columns": [
+        "table_name",
+        "field_name",
+        "language",
+        "translation",
+        "record_id",
+        "field_value"
+      ],
+      "rows": 270
+    },
+    {
+      "file": "transit-bengaluru/bmrcl-metro/trips.txt",
+      "bytes": 156426,
+      "sha256": "a8096154f945627bb4a017d54e4eeb1e60c39a23d66f33bc6018c7c6dfd8679b",
+      "columns": [
+        "route_id",
+        "service_id",
+        "trip_headsign",
+        "direction_id",
+        "shape_id",
+        "trip_id",
+        "wheelchair_accessible"
+      ],
+      "rows": 3279
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/agency.txt",
+      "bytes": 124,
+      "sha256": "2aa83aa8ae30292902f4d194c1b13fd698843b332a8c206a5b4faf7588b9695c",
+      "columns": [
+        "agency_id",
+        "agency_name",
+        "agency_url",
+        "agency_timezone",
+        "agency_lang"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/attributions.txt",
+      "bytes": 239,
+      "sha256": "a8729eb6b7ab952056275a2d068cecf497745f54b5be9ea104bf03ca8c36aa5a",
+      "columns": [
+        "attribution_id",
+        "organization_name",
+        "is_producer",
+        "is_operator",
+        "is_authority",
+        "attribution_url"
+      ],
+      "rows": 2
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/calendar.txt",
+      "bytes": 122,
+      "sha256": "5c480e03f7bca284946382720b0cf1b931c4ee89e9821afa5098b84610a76126",
+      "columns": [
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "start_date",
+        "end_date",
+        "service_id"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/fare_attributes.txt",
+      "bytes": 2653,
+      "sha256": "81a22395611ac910e66fac5f9244a30a28b239ebec2a11ea4236143d899486c8",
+      "columns": [
+        "fare_id",
+        "price",
+        "currency_type",
+        "payment_method",
+        "transfers",
+        "transfer_duration",
+        "agency_id"
+      ],
+      "rows": 110
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/fare_rules.txt",
+      "bytes": 3389134,
+      "sha256": "f462b4597cc0ca4f3fc8022694dd18bc659ba47b5393db21c69df00c257ef12f",
+      "columns": [
+        "fare_id",
+        "route_id",
+        "origin_id",
+        "destination_id"
+      ],
+      "rows": 170161
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/feed_info.txt",
+      "bytes": 250,
+      "sha256": "d7b4f919cb04e4bf0bb4edb4f58666aec43efffdbadac2974ad450bd9ef06ff1",
+      "columns": [
+        "feed_publisher_name",
+        "feed_publisher_url",
+        "feed_lang",
+        "feed_start_date",
+        "feed_end_date",
+        "feed_version",
+        "feed_contact_email",
+        "feed_contact_url"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/routes.txt",
+      "bytes": 281498,
+      "sha256": "a3e8dbb6de0dfdd09e1858988165dc5d357b613b550797276b76f1ff82185595",
+      "columns": [
+        "route_long_name",
+        "route_short_name",
+        "agency_id",
+        "route_type",
+        "route_id"
+      ],
+      "rows": 4434
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/shapes.txt",
+      "bytes": 114299176,
+      "sha256": "62bf5ca803ecdaae8f2ae51fd6796bf29ad395bf70894da3775b4f0d5aa74ddd",
+      "columns": [
+        "shape_id",
+        "shape_pt_lat",
+        "shape_pt_lon",
+        "shape_pt_sequence",
+        "shape_dist_traveled"
+      ],
+      "rows": 2492304
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/stop_times.txt",
+      "bytes": 81380169,
+      "sha256": "5fa2d23470df4b9961446c2c182a5b04da534ea55fcf4d4d4fa319767fec2803",
+      "columns": [
+        "trip_id",
+        "arrival_time",
+        "departure_time",
+        "stop_id",
+        "stop_sequence",
+        "stop_headsign"
+      ],
+      "rows": 1540686
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/stops.txt",
+      "bytes": 920413,
+      "sha256": "bc3cceb62c79b5fdd3bf6f4879a80c9c84bd60f2a73a3b7f3cedea2bcd410d81",
+      "columns": [
+        "stop_name",
+        "parent_station",
+        "zone_id",
+        "stop_id",
+        "stop_desc",
+        "stop_lat",
+        "stop_lon",
+        "location_type",
+        "platform_code"
+      ],
+      "rows": 9960
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/translations.txt",
+      "bytes": 1350738,
+      "sha256": "35d9aa11864f47e7fc6b581fdef94a5b99606f2475b04f7b44e342ec63f5a758",
+      "columns": [
+        "table_name",
+        "field_name",
+        "record_id",
+        "language",
+        "translation"
+      ],
+      "rows": 9503
+    },
+    {
+      "file": "transit-bengaluru/bmtc-bus/trips.txt",
+      "bytes": 2719889,
+      "sha256": "d7d4571366e72caa7eee17300216bdc8a261939866ed96205d168662d543de00",
+      "columns": [
+        "route_id",
+        "service_id",
+        "trip_headsign",
+        "direction_id",
+        "shape_id",
+        "trip_id"
+      ],
+      "rows": 57836
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/agency.txt",
+      "bytes": 247,
+      "sha256": "f4a43dba5cb7ec24676dcc905f38f5387b6f642f8536ed888847461db2ff44f9",
+      "columns": [
+        "agency_id",
+        "agency_name",
+        "agency_url",
+        "agency_timezone",
+        "agency_lang",
+        "agency_fare_url",
+        "agency_email",
+        "agency_phone"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/calendar.txt",
+      "bytes": 193,
+      "sha256": "3606b806a79af8244a29b90abbd1999aeac5d80ed6b7a1b18db1aa5d25075b21",
+      "columns": [
+        "service_id",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+        "start_date",
+        "end_date"
+      ],
+      "rows": 3
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/fare_attributes.txt",
+      "bytes": 263,
+      "sha256": "687c50949ecb92a2c7dbb8c42bf7a343d51640e98da6136fdcbb56541af3bf2a",
+      "columns": [
+        "fare_id",
+        "price",
+        "currency_type",
+        "payment_method",
+        "transfers",
+        "agency_id"
+      ],
+      "rows": 10
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/fare_rules.txt",
+      "bytes": 43182,
+      "sha256": "cbd81a91f42cc8e536c9667245159cd74d8096121b2ccef01999ba41b2ad9666",
+      "columns": [
+        "origin_id",
+        "destination_id",
+        "fare_id"
+      ],
+      "rows": 3249
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/feed_info.txt",
+      "bytes": 209,
+      "sha256": "5034c4323221cc4ef758067492b0170610e21094beb6810db9352778bad5aa26",
+      "columns": [
+        "feed_publisher_name",
+        "feed_publisher_url",
+        "feed_lang",
+        "feed_contact_url",
+        "feed_start_date",
+        "feed_end_date"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/routes.txt",
+      "bytes": 342,
+      "sha256": "988c9902a29215934cff4d52753ea6b084d14d6fd8464638eb97d8960757c8b7",
+      "columns": [
+        "route_id",
+        "agency_id",
+        "route_short_name",
+        "route_long_name",
+        "route_type",
+        "route_color",
+        "route_text_color",
+        "route_sort_order"
+      ],
+      "rows": 3
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/shapes.txt",
+      "bytes": 90070,
+      "sha256": "b678f94210a6c3de80257271ae498972f9fc5291c9038a81d71743912e1e70fc",
+      "columns": [
+        "shape_id",
+        "shape_pt_lat",
+        "shape_pt_lon",
+        "shape_pt_sequence",
+        "shape_dist_traveled"
+      ],
+      "rows": 2450
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/stop_times.txt",
+      "bytes": 2635233,
+      "sha256": "33184a1200bc5d6acb14964a3c31dd3976e626a4561ed04abac0ac862e264407",
+      "columns": [
+        "trip_id",
+        "stop_sequence",
+        "stop_id",
+        "arrival_time",
+        "departure_time",
+        "timepoint",
+        "shape_dist_traveled"
+      ],
+      "rows": 61558
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/stops.txt",
+      "bytes": 42278,
+      "sha256": "5ce3b2b973be573b820fe4797afe3a65ec9756ca2fc8f34b752c078de466dc0c",
+      "columns": [
+        "stop_id",
+        "stop_name",
+        "stop_lat",
+        "stop_lon",
+        "zone_id",
+        "location_type",
+        "parent_station",
+        "platform_code"
+      ],
+      "rows": 705
+    },
+    {
+      "file": "transit-hyderabad/hmrl-metro/trips.txt",
+      "bytes": 129693,
+      "sha256": "1e335b6497bfb629260cd9b2e68b7da72c9187e0409bef3dda9a97e3c2e12b81",
+      "columns": [
+        "service_id",
+        "route_id",
+        "trip_id",
+        "direction_id",
+        "trip_headsign",
+        "block_id",
+        "shape_id"
+      ],
+      "rows": 2839
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/agency.txt",
+      "bytes": 160,
+      "sha256": "f0932d924ad7e945c13a7419f203b2f84f2edd8e854bba5808cec3452cfef1fc",
+      "columns": [
+        "agency_id",
+        "agency_name",
+        "agency_url",
+        "agency_timezone",
+        "agency_lang"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/calendar.txt",
+      "bytes": 128,
+      "sha256": "896bc404c7e2286acad9b59067d62ac43c813065886a84380256c6a499a9bb84",
+      "columns": [
+        "service_id",
+        "start_date",
+        "end_date",
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/feed_info.txt",
+      "bytes": 266,
+      "sha256": "9edb7bb65b63a8df90919ffe1a6569bbc7a571bbc79c59319ecc72abf8150017",
+      "columns": [
+        "feed_publisher_name",
+        "feed_publisher_url",
+        "feed_contact_email",
+        "feed_contact_url",
+        "feed_lang",
+        "feed_start_date",
+        "feed_end_date",
+        "feed_version"
+      ],
+      "rows": 1
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/routes.txt",
+      "bytes": 327537,
+      "sha256": "0bff97e21a7944bfe1ad279425bca47e4dd985287b0b83dfe6a15ebab9b15950",
+      "columns": [
+        "route_id",
+        "route_short_name",
+        "route_long_name",
+        "agency_id",
+        "route_type"
+      ],
+      "rows": 4133
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/shapes.txt",
+      "bytes": 92506117,
+      "sha256": "f1573e5a25c682f78963db7b485ed2b0f8e1d489a961f883a342ffce6b9cddc0",
+      "columns": [
+        "shape_id",
+        "shape_pt_lat",
+        "shape_pt_lon",
+        "shape_pt_sequence"
+      ],
+      "rows": 3011781
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/stop_times.txt",
+      "bytes": 59052513,
+      "sha256": "0f44395de70caf88f39790e82f79c20be06972b4991cb368e13c0d9d9316c09e",
+      "columns": [
+        "trip_id",
+        "stop_sequence",
+        "stop_id",
+        "departure_time",
+        "arrival_time",
+        "timepoint",
+        "shape_dist_traveled"
+      ],
+      "rows": 1286284
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/stops.txt",
+      "bytes": 469008,
+      "sha256": "4ebf14447fbef0005dcbdb483359d7468d146988ee070934b67493ed2229549b",
+      "columns": [
+        "stop_id",
+        "stop_name",
+        "zone_id",
+        "stop_lat",
+        "stop_lon",
+        "stop_desc"
+      ],
+      "rows": 5177
+    },
+    {
+      "file": "transit-hyderabad/tgsrtc-bus/trips.txt",
+      "bytes": 3475442,
+      "sha256": "fb3fce34b5e7ec3d1bd8c33130ffe56eaced2be03b834914d94d35c5b052faae",
+      "columns": [
+        "route_id",
+        "trip_id",
+        "service_id",
+        "direction_id",
+        "trip_short_name",
+        "shape_id"
+      ],
+      "rows": 51985
+    }
+  ],
+  "note": "Inventory only. Download availability does not establish reuse permission. Review text and reviewer identities are excluded from published bundles."
+}
