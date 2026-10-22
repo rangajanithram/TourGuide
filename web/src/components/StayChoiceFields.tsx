@@ -23,6 +23,8 @@ export default function StayChoiceFields({ value, onChange }: { value?: StayChoi
         {value.kind === 'booked' && <>
           <label>Total stay cost for the whole group (₹)<input type="number" min={0} max={5000000} value={value.total_stay_cost_inr} onChange={event => onChange({ ...value, total_stay_cost_inr: Number(event.target.value) })} /><span className="step-note">Enter the full stay total, including any known taxes. This is not a per-night rate.</span></label>
           <ThemedSelect label="Stay cost in your destination budget" value={value.budget_treatment} options={[{ value: 'include', label: 'Count this stay inside my budget' }, { value: 'already_paid', label: 'Already paid; my budget is for remaining costs' }]} onChange={treatment => onChange({ ...value, budget_treatment: treatment as StayChoice['budget_treatment'] })} />
+          <label><input type="checkbox" checked={value.constrain_sightseeing_to_stay === true} onChange={event => onChange({ ...value, constrain_sightseeing_to_stay: event.target.checked })} /> Start the first day after check-in and return to base before checkout on the last day</label>
+          <p className="step-note">Enable only when these check-in/out dates match your first and last sightseeing dates. This reserves the room-access window; confirm luggage storage and terminal transfers separately.</p>
           <label>Check-in time (optional)<input type="time" value={value.check_in_time || ''} onChange={event => onChange({ ...value, check_in_time: event.target.value || undefined })} /></label>
           <label>Check-out time (optional)<input type="time" value={value.check_out_time || ''} onChange={event => onChange({ ...value, check_out_time: event.target.value || undefined })} /></label>
         </>}

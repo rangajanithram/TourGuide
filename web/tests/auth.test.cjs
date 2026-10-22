@@ -694,6 +694,8 @@ test('stay input validates costs, coordinate bounds and prepaid scope', () => {
   assert.throws(() => validateStayChoice({ ...bookedStay, check_in_time: '25:00' }, 15000), /HH:MM format/);
   for (const changes of [{ lat: NaN }, { lng: 200 }, { total_stay_cost_inr: -1 }, { kind: 'family_friends' }, { base_name: ' ' }, { version: 2 }]) assert.throws(() => validateStayChoice({ ...bookedStay, ...changes }, 15000));
   assert.throws(() => validateStayChoice(bookedStay, 3000), /entire destination budget/);
+  assert.throws(() => validateStayChoice({ ...bookedStay, constrain_sightseeing_to_stay: true }, 15000), /confirmed check-in/);
+  assert.doesNotThrow(() => validateStayChoice({ ...bookedStay, constrain_sightseeing_to_stay: true, check_in_time: '14:00', check_out_time: '11:00' }, 15000));
   for (const allows_bag_drop of [undefined, null, false, true]) assert.doesNotThrow(() => validateStayChoice({ ...bookedStay, allows_bag_drop }, 15000));
   assert.throws(() => validateStayChoice({ ...bookedStay, allows_bag_drop: 'yes' }, 15000), /luggage storage/);
 });
@@ -703,6 +705,11 @@ test('saved request keeps a confirmed stay and rejects base or cost changes', ()
   snapshot.variants.balanced.hotel_summary = { ...snapshot.variants.balanced.hotel_summary, hotel_name: bookedStay.base_name, accommodation_kind: 'booked', lat: bookedStay.lat, lng: bookedStay.lng, total_cost_inr: 3000, reported_stay_total_inr: 3000, excluded_prepaid_cost_inr: 0 };
   const saved = snapshotValidator.validateTripRequest(form, snapshot);
   assert.deepEqual(snapshotValidator.validateTripRequest(JSON.parse(JSON.stringify(saved)), snapshot).stay_choice, bookedStay);
+  const constrained = { ...bookedStay, constrain_sightseeing_to_stay: true, check_in_time: '14:00', check_out_time: '11:00' };
+  assert.throws(() => snapshotValidator.validateTripRequest({ ...form, stay_choice: constrained }, snapshot), /stay scheduling constraint/);
+  snapshot.variants.balanced.planning_preferences = { stay_choice: constrained };
+  assert.doesNotThrow(() => snapshotValidator.validateTripRequest({ ...form, stay_choice: constrained }, snapshot));
+  delete snapshot.variants.balanced.planning_preferences;
   snapshot.variants.balanced.hotel_summary.lat = 17.4;
   assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /base or lodging budget scope/);
   snapshot.variants.balanced.hotel_summary.lat = bookedStay.lat;

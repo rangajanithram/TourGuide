@@ -115,6 +115,7 @@ class StayChoice(BaseModel):
     budget_treatment: Literal["include", "already_paid"] = "include"
     check_in_time: Optional[str] = Field(default=None, max_length=16)
     check_out_time: Optional[str] = Field(default=None, max_length=16)
+    constrain_sightseeing_to_stay: bool = Field(default=False, strict=True)
     allows_bag_drop: Optional[bool] = Field(default=None, strict=True)
 
     @field_validator("check_in_time", "check_out_time")
@@ -130,6 +131,18 @@ class StayChoice(BaseModel):
                 raise ValueError("Stay time must be a valid 24-hour time.")
             return f"{h:02d}:{m:02d}"
         return value
+
+    def sightseeing_window(self, days, earliest, latest):
+        if not self.constrain_sightseeing_to_stay:
+            return earliest, latest
+        if self.kind != "booked" or not self.check_in_time or not self.check_out_time:
+            raise ValueError("Stay scheduling requires a booked stay and confirmed check-in and check-out times.")
+        minute = lambda value: int(value[:2]) * 60 + int(value[3:]) - 480
+        earliest = max(earliest, minute(self.check_in_time))
+        latest = min(latest, minute(self.check_out_time))
+        if earliest >= 720 or latest <= 0 or (days == 1 and earliest >= latest):
+            raise ValueError("Stay times leave no sightseeing window. Adjust dates or disable the stay constraint after arranging luggage storage.")
+        return earliest, latest
 
     @field_validator("base_name")
     @classmethod
@@ -221,6 +234,9 @@ class TripRequest(PlanningPreferences):
                 raise ValueError("Choose a different origin city to add intercity travel timing.")
             self.arrival_available_mins, self.departure_deadline_mins = self.journey_timing.local_window(
                 self.start_date, self.end_date, self.arrival_available_mins, self.departure_deadline_mins)
+        if self.stay_choice:
+            self.arrival_available_mins, self.departure_deadline_mins = self.stay_choice.sightseeing_window(
+                self.days, self.arrival_available_mins, self.departure_deadline_mins)
         return self
 
     @model_validator(mode="before")

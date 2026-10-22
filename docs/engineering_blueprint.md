@@ -483,3 +483,13 @@ apply them in generation and independent verification, preserve them through
 edit/save/reopen, and reject impossible connections with actionable feedback.
 Then expand automatic real-place candidates using free services and confirmed
 planning estimates. Do not mark either increment complete from schema tests alone.
+
+### Optional booked-stay sightseeing bounds
+
+`stay_choice.constrain_sightseeing_to_stay` defaults false. When enabled, both
+confirmed times are required: the first daily route begins after check-in and
+the last daily route returns to base before checkout. The user confirms that
+these are the first/last sightseeing dates. Request validation and independent
+verification apply the bounds, including reconstructed edit requests. Conflicting
+one-day windows are rejected. Terminal routes, luggage storage, hotel availability
+and check-in service duration remain outside this increment.

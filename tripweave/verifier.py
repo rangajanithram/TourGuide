@@ -129,6 +129,13 @@ class ItineraryVerifier:
                 errors.append(f"Journey timing conflict: {error}")
 
 
+        if request.stay_choice:
+            try:
+                stay_window = StayChoice.model_validate(request.stay_choice)
+                earliest_bound, latest_bound = stay_window.sightseeing_window(len(plan.days), earliest_bound, latest_bound)
+            except (ValueError, TypeError) as error:
+                errors.append(f"Stay timing conflict: {error}")
+
         place_lookup: Dict[str, Place] = {}
         for p in places_db:
             place_lookup[p.name.lower()] = p

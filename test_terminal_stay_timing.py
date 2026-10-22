@@ -9,6 +9,37 @@ from tripweave.feasibility import FeasibilityFilter
 
 
 class TestStayTimingAndEnrichment(unittest.TestCase):
+    def test_generated_stay_window_survives_pin_edit(self):
+        from tripweave.main import generate_itinerary
+        from tripweave.editor import ItineraryEditor
+        from tripweave.models import EditConsequenceRequest, EditActionType
+        req = TripRequest(destination="hyderabad", start_date="2026-11-02", days=2,
+                          budget_inr=15000, people_count=2,
+                          stay_choice=StayChoice(kind="booked", base_name="Test base",
+                              lat=17.385, lng=78.4867, check_in_time="12:00",
+                              check_out_time="14:00", constrain_sightseeing_to_stay=True))
+        plan = generate_itinerary(req)
+        self.assertTrue(plan.verification_report.is_valid)
+        result = ItineraryEditor.preview_edit(EditConsequenceRequest(destination="hyderabad",
+            plan=plan, day_number=1, activity_index=0, action=EditActionType.PIN,
+            people_count=2, budget_limit_inr=15000))
+        self.assertTrue(result.is_feasible)
+        self.assertTrue(result.updated_plan.planning_preferences.stay_choice.constrain_sightseeing_to_stay)
+        self.assertTrue(result.updated_plan.verification_report.is_valid)
+
+    def test_opt_in_stay_window(self):
+        stay = StayChoice(kind="booked", base_name="Test", lat=17.4, lng=78.4,
+                          check_in_time="14:00", check_out_time="11:00",
+                          constrain_sightseeing_to_stay=True)
+        request = TripRequest(destination="hyderabad", days=2, budget_inr=15000,
+                              people_count=2, stay_choice=stay)
+        self.assertEqual(request.arrival_available_mins, 360)
+        self.assertEqual(request.departure_deadline_mins, 180)
+        with self.assertRaises(ValueError):
+            TripRequest(destination="hyderabad", days=1, budget_inr=15000,
+                        people_count=2, stay_choice=stay)
+        self.assertEqual(stay.model_copy(update={"constrain_sightseeing_to_stay": False}).sightseeing_window(2, 60, 720), (60, 720))
+
     def test_unknown_stay_facts_remain_unknown(self):
         stay = StayChoice(kind="booked", base_name="Test base", lat=17.4, lng=78.4)
         self.assertIsNone(stay.allows_bag_drop)

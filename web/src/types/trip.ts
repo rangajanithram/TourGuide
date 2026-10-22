@@ -187,7 +187,7 @@ export interface SynthesisStage {
 }
 
 export interface TripPlan {
-  planning_preferences?: { whole_journey_budget_inr?: number | null };
+  planning_preferences?: { stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null };
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
   hotel_summary?: HotelStaySummary | null;
@@ -296,6 +296,7 @@ export interface StayChoice {
   budget_treatment: 'include' | 'already_paid';
   check_in_time?: string | null;
   check_out_time?: string | null;
+  constrain_sightseeing_to_stay?: boolean;
   allows_bag_drop?: boolean | null;
 }
 export interface BookedTransport {

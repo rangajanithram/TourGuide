@@ -821,7 +821,7 @@ export default function ItineraryView({
                   )}
                   <span className="text-xs text-[#526653] inline-flex items-center gap-1">
                     <Clock className="w-3 h-3" />
-                    Check-in: {hotel.check_in_time || 'Not confirmed'} • Check-out: {hotel.check_out_time || 'Not confirmed'} (reference only; not scheduled)
+                    Check-in: {hotel.check_in_time || 'Not confirmed'} • Check-out: {hotel.check_out_time || 'Not confirmed'} (confirm with your stay)
                   </span>
                   {Number.isFinite(hotel.lat) && Number.isFinite(hotel.lng) && (
                     <a href={`https://www.openstreetmap.org/?mlat=${hotel.lat}&mlon=${hotel.lng}#map=16/${hotel.lat}/${hotel.lng}`} target="_blank" rel="noopener noreferrer" className="text-xs text-[#243e33] underline hover:text-[#385e4e] inline-flex items-center gap-0.5">
