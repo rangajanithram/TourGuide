@@ -533,3 +533,18 @@ admission flow as named search. Existing selections remain visible and are not
 silently replaced. Requests use the bounded free provider and its recovery states.
 This does not automatically admit missing facts or establish worldwide scheduling.
 Live authenticated acceptance is still required after deployment.
+## 2026-10-22 real candidate and meal venue selection
+
+The unified planner now filters real discovery by attractions, restaurants,
+parks and hills. Confirmed optional candidates are automatically considered by
+the existing solver alongside pins and catalog places. Restaurant confirmation
+provides breakfast/lunch/dinner planning-window shortcuts; users still confirm
+visit duration, cost and service window. These are not evidence of service hours.
+Separate base-meal reservations are not automatically replaced by restaurant
+visits; the UI discloses this to prevent an implied substitution.
+
+External dependency gate: the configured Geoapify discovery integration does not
+supply a dated room-offer or review feed. Real review text/ratings and hotel room
+availability cannot be declared implemented from model fields or hotel listings.
+A permitted provider account/contract and contract tests are required before
+those integrations can be completed. No paid service or review scraping enabled.

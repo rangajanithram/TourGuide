@@ -18,19 +18,20 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   const [browse, setBrowse] = useState(false);
+  const [category, setCategory] = useState('all');
   const cache = useRef(new Map<string, Result[]>());
   useEffect(() => {
     const controller = new AbortController();
     const name = query.trim();
     setItems([]); setError(''); setBusy(false);
     if ((!browse && name.length < 3) || disabled) return () => controller.abort();
-    const key = `${destination}:${name.toLowerCase()}`;
+    const key = `${destination}:${category}:${name.toLowerCase()}`;
     const cached = cache.current.get(key);
     if (cached) { setItems(cached); return () => controller.abort(); }
     setBusy(true);
     const timer = setTimeout(async () => {
       try {
-        const response = await plannerFetch(`${apiBaseUrl()}/api/discovery?${new URLSearchParams({ location: destination + ', India', category: 'all', ...(name.length >= 3 ? { query: name } : {}) })}`, { signal: controller.signal });
+        const response = await plannerFetch(`${apiBaseUrl()}/api/discovery?${new URLSearchParams({ location: destination + ', India', category, ...(name.length >= 3 ? { query: name } : {}) })}`, { signal: controller.signal });
         const body = await response.json();
         if (!Array.isArray(body.places)) throw new Error('Place search returned an invalid response. Please retry.');
         if (!controller.signal.aborted) {
@@ -43,7 +44,7 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
       } finally { if (!controller.signal.aborted) setBusy(false); }
     }, 900);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [query, destination, disabled, retry, browse]);
+  }, [query, destination, disabled, retry, browse, category]);
   const live = items.filter(item => !selected.includes('discovered:' + item.id) && !catalog.some(place =>
     place.label.trim().toLowerCase() === item.name.trim().toLowerCase() && place.lat !== undefined && place.lng !== undefined && Math.abs(place.lat-item.lat) < 0.002 && Math.abs(place.lng-item.lng) < 0.002));
   const options: SearchOption[] = [
@@ -52,6 +53,8 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
   ];
   const status = disabled ? 'You can select up to 15 places. Remove a pin to add another.' : busy ? 'Searching real places…' : error || (query.trim().length < 3 ? 'Type at least 3 characters to search real attractions, restaurants, parks and hills. Select places one at a time; your pins stay selected.' : 'Matching catalog and live listings near this city. Coverage depends on the source.');
   return <div>
+    <label>Discover by type<select value={category} disabled={disabled} onChange={event => { setCategory(event.target.value); setChosen(null); setBrowse(true); }}><option value="all">Attractions and restaurants</option><option value="attractions">Tourist attractions</option><option value="restaurants">Restaurants and meal venues</option><option value="parks">Parks</option><option value="hills">Hills and viewpoints</option></select></label>
+    <p className="step-note">Add confirmed places as optional candidates to let the planner choose those that fit your dates, route and budget. Pin a place only when it must be included.</p>
     <button type="button" disabled={disabled || busy} onClick={() => { setBrowse(true); setRetry(value => value + 1); }}>Browse nearby real places</button>
     {browse && !busy && !error && query.trim().length < 3 && <div className="booking-chips" aria-label="Nearby real places">{live.map(item => <button type="button" key={item.id} disabled={disabled} onClick={() => setChosen(item)}>{item.name}</button>)}{items.length === 0 && <p>No nearby listings returned. Search by name or retry later.</p>}</div>}
     <PlaceSearch label="Search and pin a place" value="" placeholder="Type an attraction, restaurant, park or hill…" options={options} disabled={disabled} onQueryChange={setQuery} status={status} onChange={id => {
@@ -74,6 +77,11 @@ function ConfirmPlace({ place, disabled, onCancel, onConfirm }: { place: Result;
   return <section className="booking-summary" aria-label={`Confirm estimates for ${place.name}`}>
     <h4>{place.name}</h4><p>{place.address}</p>
     <p>This listing is missing verified planning facts. Confirm your estimates to include it; these remain labeled as estimates in the itinerary.</p>
+    {place.category === 'restaurants' && <label>Meal window<select defaultValue="" onChange={event => {
+      const windows: Record<string, [string, string]> = { breakfast: ['08:00', '10:00'], lunch: ['12:00', '15:00'], dinner: ['18:00', '20:00'] };
+      const window = windows[event.target.value];
+      if (window) { setStart(window[0]); setEnd(window[1]); }
+    }}><option value="">Choose your own visit window</option><option value="breakfast">Breakfast · 08:00–10:00</option><option value="lunch">Lunch · 12:00–15:00</option><option value="dinner">Dinner · 18:00–20:00</option></select><span className="step-note">These are your planning windows, not verified restaurant service hours. Confirm service and dietary needs with the venue. A restaurant visit does not replace a separately reserved base meal.</span></label>}
     <div className="booking-grid">
       <label>Visit length (minutes)<input type="number" min={15} max={480} value={duration} onChange={event => setDuration(event.target.value)} /></label>
       <label>Cost per person (₹, enter 0 if free)<input type="number" min={0} max={100000} value={cost} onChange={event => setCost(event.target.value)} /></label>
