@@ -7,10 +7,23 @@ export function journeyCosts(plan: TripPlan) {
   const ticketsPaid = plan.booked_transport?.paid_inr ?? 0;
   // Counted lodging is already in destination. Only excluded prepaid lodging is added.
   const prepaidStay = plan.hotel_summary?.excluded_prepaid_cost_inr ?? 0;
-  const total = destination + tickets + prepaidStay;
-  const paid = ticketsPaid + prepaidStay;
+  const timing = plan.planning_preferences?.journey_timing ?? plan.journey_timing;
+  const arrivalTransferCost = timing?.arrival_transfer_cost_inr ?? null;
+  const arrivalTransferPaid = timing?.arrival_transfer_paid_inr ?? 0;
+  const departureTransferCost = timing?.departure_transfer_cost_inr ?? null;
+  const departureTransferPaid = timing?.departure_transfer_paid_inr ?? 0;
+  const transfersCost = (arrivalTransferCost ?? 0) + (departureTransferCost ?? 0);
+  const transfersPaid = (arrivalTransferCost != null ? arrivalTransferPaid : 0) +
+                        (departureTransferCost != null ? departureTransferPaid : 0);
+  const total = destination + tickets + prepaidStay + transfersCost;
+  const paid = ticketsPaid + prepaidStay + transfersPaid;
   return {
-    destination, tickets, prepaidStay, total, paid,
+    destination, tickets, prepaidStay,
+    transfersCost, transfersPaid,
+    arrivalTransferCost, arrivalTransferPaid,
+    departureTransferCost, departureTransferPaid,
+    hasTransfers: arrivalTransferCost != null || departureTransferCost != null,
+    total, paid,
     remaining: total - paid,
     hasBookedTickets: Boolean(plan.booked_transport),
   };

@@ -59,7 +59,7 @@ class ItineraryVerifier:
         checks_passed = []
         warnings = []
         errors = []
-        tickets = prepaid = 0
+        tickets = prepaid = transfers_cost = 0
         cap = request.whole_journey_budget_inr
         if plan.planning_preferences.whole_journey_budget_inr != cap:
             errors.append("Combined journey budget conflict: the requested cap was changed.")
@@ -72,11 +72,13 @@ class ItineraryVerifier:
                     stay_cost = StayChoice.model_validate(request.stay_choice) if request.stay_choice else None
                     tickets = booking.total_fare_inr if booking else 0
                     prepaid = stay_cost.total_stay_cost_inr if stay_cost and stay_cost.budget_treatment == "already_paid" else 0
+                    timing = JourneyTiming.model_validate(request.journey_timing) if request.journey_timing else None
+                    transfers_cost = ((timing.arrival_transfer_cost_inr or 0) + (timing.departure_transfer_cost_inr or 0)) if timing else 0
                     if request.origin_city and request.origin_city.lower() != request.destination.lower() and not booking:
                         errors.append("Combined cap requires booked roundtrip fares for intercity travel.")
                 except (ValueError, TypeError):
                     errors.append("Combined cap could not validate confirmed costs.")
-                if plan.total_cost_inr + tickets + prepaid > cap:
+                if plan.total_cost_inr + tickets + prepaid + transfers_cost > cap:
                     errors.append("Combined journey budget exceeded: reduce planned costs or increase the cap.")
                 else:
                     checks_passed.append("Combined counted journey costs fit the requested cap, including already-paid costs.")

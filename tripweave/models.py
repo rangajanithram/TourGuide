@@ -73,6 +73,10 @@ class JourneyTiming(BaseModel):
     return_arrival: datetime
     arrival_transfer_minutes: int = Field(default=0, ge=0, le=720, strict=True)
     departure_transfer_minutes: int = Field(default=0, ge=0, le=720, strict=True)
+    arrival_transfer_cost_inr: Optional[int] = Field(default=None, ge=0, le=500_000, strict=True)
+    arrival_transfer_paid_inr: Optional[int] = Field(default=None, ge=0, le=500_000, strict=True)
+    departure_transfer_cost_inr: Optional[int] = Field(default=None, ge=0, le=500_000, strict=True)
+    departure_transfer_paid_inr: Optional[int] = Field(default=None, ge=0, le=500_000, strict=True)
     arrival_buffer_minutes: int = Field(ge=0, le=720)
     departure_buffer_minutes: int = Field(ge=0, le=720)
 
@@ -89,6 +93,18 @@ class JourneyTiming(BaseModel):
             raise ValueError("Travel times must follow departure, destination arrival, destination departure, then return arrival.")
         if self.return_arrival - self.outbound_departure > timedelta(days=30):
             raise ValueError("Travel timing can cover at most 30 days.")
+        if self.arrival_transfer_cost_inr is None:
+            if self.arrival_transfer_paid_inr is not None and self.arrival_transfer_paid_inr > 0:
+                raise ValueError("Paid arrival transfer amount requires an arrival transfer cost estimate.")
+        elif self.arrival_transfer_paid_inr is not None:
+            if self.arrival_transfer_paid_inr > self.arrival_transfer_cost_inr:
+                raise ValueError("Paid arrival transfer amount cannot exceed the whole-group arrival transfer fare.")
+        if self.departure_transfer_cost_inr is None:
+            if self.departure_transfer_paid_inr is not None and self.departure_transfer_paid_inr > 0:
+                raise ValueError("Paid departure transfer amount requires a departure transfer cost estimate.")
+        elif self.departure_transfer_paid_inr is not None:
+            if self.departure_transfer_paid_inr > self.departure_transfer_cost_inr:
+                raise ValueError("Paid departure transfer amount cannot exceed the whole-group departure transfer fare.")
         return self
 
     def local_window(self, start: date, end: date, earliest: int, latest: int):
@@ -198,7 +214,8 @@ class TripRequest(PlanningPreferences):
             return self.budget_inr
         tickets = self.booked_transport.total_fare_inr if self.booked_transport else 0
         prepaid = self.stay_choice.total_stay_cost_inr if self.stay_choice and self.stay_choice.budget_treatment == "already_paid" else 0
-        return min(self.budget_inr, self.whole_journey_budget_inr - tickets - prepaid)
+        transfers = ((self.journey_timing.arrival_transfer_cost_inr or 0) + (self.journey_timing.departure_transfer_cost_inr or 0)) if self.journey_timing else 0
+        return min(self.budget_inr, self.whole_journey_budget_inr - tickets - prepaid - transfers)
 
     origin_city: Optional[str] = Field(None, max_length=80, description="Optional departure city for inter-city travel recommendations (e.g. 'Bengaluru', 'Mumbai', 'Delhi')")
     destination: str = Field(..., min_length=2, max_length=80, description="Target city (e.g. 'Hyderabad', 'Delhi', 'Jaipur')")
@@ -228,7 +245,7 @@ class TripRequest(PlanningPreferences):
             if self.origin_city and self.origin_city.strip().lower() != self.destination.strip().lower() and not self.booked_transport:
                 raise ValueError("Book and enter both travel fares before setting a combined journey cost cap.")
             if self.destination_budget_available <= 0:
-                raise ValueError("Tickets and prepaid stay leave no destination budget. Increase the combined cap or reduce confirmed costs.")
+                raise ValueError("Tickets, transfers and prepaid stay leave no destination budget. Increase the combined cap or reduce confirmed costs.")
         if self.booked_transport and not self.journey_timing:
             raise ValueError("Booked transport requires your outbound and return travel timing.")
         if self.journey_timing:

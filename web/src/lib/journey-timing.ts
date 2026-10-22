@@ -21,6 +21,32 @@ export function journeyWindow(form: Pick<TripFormData, 'journey_timing' | 'start
   for (const value of [journey.arrival_buffer_minutes, journey.departure_buffer_minutes, journey.arrival_transfer_minutes ?? 0, journey.departure_transfer_minutes ?? 0]) {
     if (!Number.isInteger(value) || value < 0 || value > 720) throw new Error('Enter transfer buffers between 0 and 720 minutes.');
   }
+  if (journey.arrival_transfer_cost_inr != null) {
+    if (!Number.isInteger(journey.arrival_transfer_cost_inr) || journey.arrival_transfer_cost_inr < 0 || journey.arrival_transfer_cost_inr > 500000) {
+      throw new Error('Enter an arrival transfer cost between ₹0 and ₹5,00,000.');
+    }
+  }
+  if (journey.arrival_transfer_paid_inr != null) {
+    if (journey.arrival_transfer_cost_inr == null && journey.arrival_transfer_paid_inr > 0) {
+      throw new Error('Paid arrival transfer amount requires an arrival transfer cost estimate.');
+    }
+    if (!Number.isInteger(journey.arrival_transfer_paid_inr) || journey.arrival_transfer_paid_inr < 0 || (journey.arrival_transfer_cost_inr != null && journey.arrival_transfer_paid_inr > journey.arrival_transfer_cost_inr)) {
+      throw new Error('Paid arrival transfer amount cannot exceed the whole-group arrival transfer fare.');
+    }
+  }
+  if (journey.departure_transfer_cost_inr != null) {
+    if (!Number.isInteger(journey.departure_transfer_cost_inr) || journey.departure_transfer_cost_inr < 0 || journey.departure_transfer_cost_inr > 500000) {
+      throw new Error('Enter a departure transfer cost between ₹0 and ₹5,00,000.');
+    }
+  }
+  if (journey.departure_transfer_paid_inr != null) {
+    if (journey.departure_transfer_cost_inr == null && journey.departure_transfer_paid_inr > 0) {
+      throw new Error('Paid departure transfer amount requires a departure transfer cost estimate.');
+    }
+    if (!Number.isInteger(journey.departure_transfer_paid_inr) || journey.departure_transfer_paid_inr < 0 || (journey.departure_transfer_cost_inr != null && journey.departure_transfer_paid_inr > journey.departure_transfer_cost_inr)) {
+      throw new Error('Paid departure transfer amount cannot exceed the whole-group departure transfer fare.');
+    }
+  }
   const ready = new Date(times[1] + (journey.arrival_buffer_minutes + (journey.arrival_transfer_minutes ?? 0)) * 60000 + 19800000).toISOString();
   const leave = new Date(times[2] - (journey.departure_buffer_minutes + (journey.departure_transfer_minutes ?? 0)) * 60000 + 19800000).toISOString();
   if (ready.slice(0,10) > form.start_date || leave.slice(0,10) < form.end_date) throw new Error('Sightseeing dates must fit between arrival plus buffer and departure minus buffer. Adjust dates or travel times.');

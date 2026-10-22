@@ -137,6 +137,7 @@ export function formatItineraryForShare(plan: TripPlan, destination: string): st
   const costs = journeyCosts(plan);
   if (plan.planning_preferences?.whole_journey_budget_inr != null) summary += `Combined counted cost cap: ₹${plan.planning_preferences.whole_journey_budget_inr.toLocaleString('en-IN')}\n`;
   summary += `💰 Destination estimate: ₹${costs.destination.toLocaleString('en-IN')}\n`;
+  if (costs.hasTransfers) summary += `Terminal transfers (outside local sightseeing): ₹${costs.transfersCost.toLocaleString('en-IN')} (Paid: ₹${costs.transfersPaid.toLocaleString('en-IN')})\n`;
   summary += `Counted journey total: ₹${costs.total.toLocaleString('en-IN')} · Reported already paid: ₹${costs.paid.toLocaleString('en-IN')} · Estimated amount still to cover: ₹${costs.remaining.toLocaleString('en-IN')}\n`;
   summary += `${journeyCostCaveat}\n`;
   if (plan.hotel_summary) {

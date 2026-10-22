@@ -30,6 +30,31 @@ class JourneyBudgetTests(unittest.TestCase):
             lat=17.385, lng=78.4867, total_stay_cost_inr=2000, budget_treatment="include"))
         self.assertEqual(included.destination_budget_available, 4000)
 
+    def test_transfer_costs_reserved_in_combined_cap(self):
+        timed = timing()
+        timed["arrival_transfer_cost_inr"] = 400
+        timed["arrival_transfer_paid_inr"] = 200
+        timed["departure_transfer_cost_inr"] = 600
+        timed["departure_transfer_paid_inr"] = 0
+        req = request(timed, booked_transport=dict(outbound_mode="train", return_mode="flight",
+                      total_fare_inr=6000, paid_inr=4000), whole_journey_budget_inr=10000)
+        # 10000 - 6000 tickets - 1000 transfers = 3000 available
+        self.assertEqual(req.destination_budget_available, 3000)
+        plan = generate_itinerary(req)
+        self.assertLessEqual(plan.total_cost_inr + 6000 + 1000, 10000)
+        self.assertTrue(plan.verification_report.is_valid)
+
+    def test_transfer_cost_paid_validation(self):
+        timed = timing()
+        timed["arrival_transfer_cost_inr"] = 400
+        timed["arrival_transfer_paid_inr"] = 500  # exceeds cost
+        with self.assertRaises(ValueError):
+            request(timed)
+        no_cost = timing()
+        no_cost["arrival_transfer_paid_inr"] = 100  # paid without cost
+        with self.assertRaises(ValueError):
+            request(no_cost)
+
     def test_invalid_or_exhausted_cap(self):
         for cap in [True, 0, -1, 1.5, 6000, 5000001]:
             with self.subTest(cap=cap), self.assertRaises(ValueError):

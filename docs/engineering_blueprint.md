@@ -510,3 +510,14 @@ process-local entries. Returned values are copied to prevent mutation across
 requests. Failed searches are not cached; original fetched_at remains visible.
 This reduces repeated provider calls without asserting current availability.
 Automatic candidate selection and source-backed reviews remain unfinished.
+
+### 2026-10-22 terminal transfer fare accounting
+
+`arrival_transfer_cost_inr`, `arrival_transfer_paid_inr`, `departure_transfer_cost_inr`,
+and `departure_transfer_paid_inr` now capture whole-group user estimates for terminal↔base
+transfers outside local sightseeing travel. Paid amounts are validated against estimated
+fares. When an optional combined counted cost cap (`whole_journey_budget_inr`) is set,
+transfer fares are reserved alongside booked intercity tickets and prepaid lodging before
+solving. The independent verifier checks that combined counted costs fit the requested cap.
+The itinerary summary, cost breakdowns and text exports display transfer costs and report
+remaining cash needs cleanly, without implying a complete door-to-door quote.

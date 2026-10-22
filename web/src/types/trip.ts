@@ -187,7 +187,8 @@ export interface SynthesisStage {
 }
 
 export interface TripPlan {
-  planning_preferences?: { stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null };
+  planning_preferences?: { stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null; journey_timing?: JourneyTiming | null; booked_transport?: BookedTransport | null };
+  journey_timing?: JourneyTiming | null;
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
   hotel_summary?: HotelStaySummary | null;
@@ -285,6 +286,10 @@ export interface JourneyTiming {
   return_arrival: string;
   arrival_transfer_minutes?: number;
   departure_transfer_minutes?: number;
+  arrival_transfer_cost_inr?: number | null;
+  arrival_transfer_paid_inr?: number | null;
+  departure_transfer_cost_inr?: number | null;
+  departure_transfer_paid_inr?: number | null;
   arrival_buffer_minutes: number;
   departure_buffer_minutes: number;
 }

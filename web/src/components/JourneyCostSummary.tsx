@@ -15,6 +15,9 @@ export default function JourneyCostSummary({ plan }: { plan: TripPlan }) {
           <div className="flex flex-wrap justify-between gap-2"><dt>Destination estimate</dt><dd className="font-semibold">{rupees(costs.destination)}</dd></div>
           <div className="flex flex-wrap justify-between gap-2"><dt>Booked roundtrip tickets</dt><dd className="font-semibold">{costs.hasBookedTickets ? rupees(costs.tickets) : 'Not included'}</dd></div>
           <div className="flex flex-wrap justify-between gap-2"><dt>Prepaid stay excluded from destination</dt><dd className="font-semibold">{rupees(costs.prepaidStay)}</dd></div>
+          {costs.hasTransfers && (
+            <div className="flex flex-wrap justify-between gap-2"><dt>Terminal transfers (outside local sightseeing)</dt><dd className="font-semibold">{rupees(costs.transfersCost)}</dd></div>
+          )}
         </dl>
         <dl className="space-y-3 rounded-xl bg-[#edf1e6] p-4 text-base">
           <div className="flex flex-wrap justify-between gap-2"><dt>Counted journey total</dt><dd className="text-xl font-bold">{rupees(costs.total)}</dd></div>

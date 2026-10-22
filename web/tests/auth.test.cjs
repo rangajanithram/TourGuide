@@ -25,6 +25,7 @@ test('combined budget reserves full tickets and prepaid stays and rejects missin
     whole_journey_budget_inr: 10000, booked_transport: { total_fare_inr: 6000, paid_inr: 4000 } };
   assert.equal(validateJourneyBudget(form), 4000);
   assert.equal(validateJourneyBudget({ ...form, stay_choice: { budget_treatment: 'already_paid', total_stay_cost_inr: 2000 } }), 2000);
+  assert.equal(validateJourneyBudget({ ...form, journey_timing: { arrival_transfer_cost_inr: 500, departure_transfer_cost_inr: 500 } }), 3000);
   assert.throws(() => validateJourneyBudget({ ...form, booked_transport: undefined }), /booked roundtrip/);
   assert.throws(() => validateJourneyBudget({ ...form, whole_journey_budget_inr: 6000 }), /no destination budget/);
 });
@@ -37,6 +38,20 @@ test('combined journey costs count included stay once and subtract reported tick
   assert.equal(costs.total, 12051);
   assert.equal(costs.paid, 4000);
   assert.equal(costs.remaining, 8051);
+  const costsWithTransfers = costsModule.journeyCosts({
+    total_cost_inr: 6051,
+    hotel_summary: { total_cost_inr: 2400 },
+    booked_transport: { total_fare_inr: 6000, paid_inr: 4000 },
+    planning_preferences: {
+      journey_timing: {
+        arrival_transfer_cost_inr: 500, arrival_transfer_paid_inr: 200,
+        departure_transfer_cost_inr: 500, departure_transfer_paid_inr: 0,
+      }
+    }
+  });
+  assert.equal(costsWithTransfers.total, 13051);
+  assert.equal(costsWithTransfers.paid, 4200);
+  assert.equal(costsWithTransfers.remaining, 8851);
 });
 test('prepaid excluded stay is counted in journey total and already paid exactly once', () => {
   const costs = costsModule.journeyCosts({
@@ -670,7 +685,7 @@ test('journey preflight preserves legacy requests and applies overnight transfer
   assert.deepEqual(journeyWindow(JSON.parse(JSON.stringify(timedTrip))), { earliest: 180, latest: 570 });
 });
 test('journey preflight rejects invalid dates, order, offsets and unavailable sightseeing dates', () => {
-  for (const changes of [{ outbound_departure: '2026-10-19T11:00+05:30' }, { destination_arrival: '2026-02-30T10:00+05:30' }, { destination_arrival: '2026-10-19T10:00' }, { arrival_buffer_minutes: 600 }, { departure_buffer_minutes: -1 }, { version: 2 }]) {
+  for (const changes of [{ outbound_departure: '2026-10-19T11:00+05:30' }, { destination_arrival: '2026-02-30T10:00+05:30' }, { destination_arrival: '2026-10-19T10:00' }, { arrival_buffer_minutes: 600 }, { departure_buffer_minutes: -1 }, { version: 2 }, { arrival_transfer_cost_inr: -1 }, { arrival_transfer_cost_inr: 200, arrival_transfer_paid_inr: 300 }, { arrival_transfer_paid_inr: 100 }]) {
     assert.throws(() => journeyWindow({ ...timedTrip, journey_timing: { ...timedTrip.journey_timing, ...changes } }));
   }
   assert.throws(() => journeyWindow({ ...timedTrip, start_date: '2026-10-18' }), /Sightseeing dates/);
