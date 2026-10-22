@@ -5,7 +5,7 @@ import { apiBaseUrl } from '@/lib/planner-network';
 import type { ConfirmedDiscoveryStop } from '@/types/trip';
 import PlaceSearch, { SearchOption } from './PlaceSearch';
 
-type Result = { id: string; name: string; address: string; lat: number; lng: number; category: string };
+type Result = { id: string; name: string; address: string; lat: number; lng: number; category: string; osm_url?: string; formatted_address?: string };
 type CatalogOption = SearchOption & { lat?: number; lng?: number };
 export default function PlannerDiscovery({ destination, catalog, selected, onPin, onConfirm, disabled }: {
   destination: string; catalog: CatalogOption[]; selected: string[];
@@ -56,31 +56,45 @@ export default function PlannerDiscovery({ destination, catalog, selected, onPin
       if (item) setChosen(item); else onPin(id);
     }} />
     {error && <button type="button" onClick={() => setRetry(value => value + 1)} disabled={busy}>Retry live search</button>}
-    {chosen && <ConfirmPlace key={chosen.id} place={chosen} disabled={disabled} onCancel={() => setChosen(null)} onConfirm={stop => { onConfirm(stop, true); setChosen(null); }} />}
+    {chosen && <ConfirmPlace key={chosen.id} place={chosen} disabled={disabled} onCancel={() => setChosen(null)} onConfirm={(stop, mandatory) => { onConfirm(stop, mandatory); setChosen(null); }} />}
     <p className="catalog-caption">Live listings: <a href="https://www.geoapify.com/">Geoapify</a> / <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>. Hours and prices may need your confirmation.</p>
   </div>;
 }
 
-function ConfirmPlace({ place, disabled, onCancel, onConfirm }: { place: Result; disabled: boolean; onCancel: () => void; onConfirm: (stop: ConfirmedDiscoveryStop) => void }) {
+function ConfirmPlace({ place, disabled, onCancel, onConfirm }: { place: Result; disabled: boolean; onCancel: () => void; onConfirm: (stop: ConfirmedDiscoveryStop, mandatory: boolean) => void }) {
   const [duration, setDuration] = useState('');
   const [cost, setCost] = useState('');
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
+  const [mandatory, setMandatory] = useState(true);
   const [error, setError] = useState('');
   return <section className="booking-summary" aria-label={`Confirm estimates for ${place.name}`}>
     <h4>{place.name}</h4><p>{place.address}</p>
-    <p>This listing is missing verified planning facts. Confirm your estimates to pin it; these remain labeled as estimates in the itinerary.</p>
+    <p>This listing is missing verified planning facts. Confirm your estimates to include it; these remain labeled as estimates in the itinerary.</p>
     <div className="booking-grid">
       <label>Visit length (minutes)<input type="number" min={15} max={480} value={duration} onChange={event => setDuration(event.target.value)} /></label>
       <label>Cost per person (₹, enter 0 if free)<input type="number" min={0} max={100000} value={cost} onChange={event => setCost(event.target.value)} /></label>
       <label>Earliest planned visit<input type="time" min="08:00" max="20:00" value={start} onChange={event => setStart(event.target.value)} /></label>
       <label>Finish by<input type="time" min="08:00" max="20:00" value={end} onChange={event => setEnd(event.target.value)} /></label>
     </div>
+    <label className="booking-check"><input type="checkbox" checked={mandatory} onChange={event => setMandatory(event.target.checked)} /> Make this stop a must-visit (pinned)</label>
     {error && <p role="alert">{error}</p>}
     <div className="trip-step-actions"><button type="button" onClick={onCancel}>Cancel</button><button type="button" className="booking-submit" disabled={disabled} onClick={() => {
       const minute = (time: string) => Number(time.slice(0,2))*60 + Number(time.slice(3))-480;
       if (!cost || !duration || !Number.isInteger(Number(cost)) || Number(cost)<0 || Number(cost)>100000 || !Number.isInteger(Number(duration)) || Number(duration)<15 || Number(duration)>480 || !start || !end || minute(start)<0 || minute(end)>720 || minute(end)-minute(start)<Number(duration)) { setError('Enter a duration, cost and time window that fits your visit between 08:00 and 20:00.'); return; }
-      onConfirm({ place_id: place.id, name: place.name, lat: place.lat, lng: place.lng, place_type: place.category === 'restaurants' ? 'restaurant' : 'attraction', duration_minutes: Number(duration), estimated_cost_per_person_inr: Number(cost), open_time_mins: minute(start), close_time_mins: minute(end) });
-    }}>Confirm estimates and pin</button></div>
+      onConfirm({
+        place_id: place.id,
+        name: place.name,
+        lat: place.lat,
+        lng: place.lng,
+        place_type: place.category === 'restaurants' ? 'restaurant' : 'attraction',
+        duration_minutes: Number(duration),
+        estimated_cost_per_person_inr: Number(cost),
+        open_time_mins: minute(start),
+        close_time_mins: minute(end),
+        formatted_address: place.address || place.formatted_address || null,
+        osm_url: place.osm_url || `https://www.openstreetmap.org/?mlat=${place.lat}&mlon=${place.lng}#map=16/${place.lat}/${place.lng}`,
+      }, mandatory);
+    }}>{mandatory ? 'Confirm estimates and pin' : 'Confirm as optional candidate'}</button></div>
   </section>;
 }

@@ -521,3 +521,7 @@ transfer fares are reserved alongside booked intercity tickets and prepaid lodgi
 solving. The independent verifier checks that combined counted costs fit the requested cap.
 The itinerary summary, cost breakdowns and text exports display transfer costs and report
 remaining cash needs cleanly, without implying a complete door-to-door quote.
+
+### 2026-10-22 real-place candidate admission and metadata linking
+
+Discovered stops from free-tier Geoapify now construct direct OpenStreetMap links (`osm_url`) and carry `formatted_address`. The planner discovery UI allows travelers to confirm estimates for visit duration, fee, and time windows before admission to the solver candidate pool, with the option to mark the confirmed stop as a mandatory pin or an optional candidate. Confirmed external stops propagate through the optimizer, editor, verifier, and UI without inventing missing operating hours or prices.

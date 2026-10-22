@@ -276,6 +276,10 @@ export type PlanVersionSummary = Pick<PlanVersionRecord,
 export interface ConfirmedDiscoveryStop {
  place_id:string; name:string; lat:number; lng:number; place_type:'attraction'|'restaurant';
  duration_minutes:number; estimated_cost_per_person_inr:number; open_time_mins:number; close_time_mins:number;
+ rating?: number | null;
+ review_count?: number | null;
+ formatted_address?: string | null;
+ osm_url?: string | null;
 }
 export interface JourneyTiming {
   version: 1;

@@ -106,7 +106,8 @@ class DiscoveryProvider:
                 continue
             categories = props.get("categories", [])
             is_food = isinstance(categories, list) and any(isinstance(c, str) and c.startswith("catering.restaurant") for c in categories)
+            osm_url = f"https://www.openstreetmap.org/?mlat={lat}&mlon={lng}#map=16/{lat}/{lng}"
             places.append({"lat": lat, "lng": lng,"id": str(props.get("place_id", ""))[:512], "name": name[:250],
-                "address": str(props.get("formatted", ""))[:600], "category": "restaurants" if is_food else category})
+                "address": str(props.get("formatted", ""))[:600], "category": "restaurants" if is_food else category, "osm_url": osm_url, "formatted_address": str(props.get("formatted", ""))[:300]})
         return {"location": str(center.get("formatted", location))[:600], "places": places,
             "fetched_at": datetime.now(timezone.utc).isoformat()}
