@@ -60,6 +60,15 @@ class ItineraryVerifier:
         warnings = []
         errors = []
         tickets = prepaid = transfers_cost = 0
+        try:
+            requested_timing = JourneyTiming.model_validate(request.journey_timing) if request.journey_timing else None
+            saved_timing = plan.planning_preferences.journey_timing
+            for key in ("arrival_transfer_cost_inr", "arrival_transfer_paid_inr", "departure_transfer_cost_inr", "departure_transfer_paid_inr"):
+                if getattr(requested_timing, key, None) != getattr(saved_timing, key, None):
+                    errors.append("Transfer accounting conflict: requested transfer fares or payments changed.")
+                    break
+        except (ValueError, TypeError):
+            errors.append("Transfer accounting could not validate journey timing.")
         cap = request.whole_journey_budget_inr
         if plan.planning_preferences.whole_journey_budget_inr != cap:
             errors.append("Combined journey budget conflict: the requested cap was changed.")
@@ -394,7 +403,7 @@ class ItineraryVerifier:
         else:
             checks_passed.append("Grand Total Reconciled: Sum of activities, transit, and lodging matches total cost.")
 
-        if type(cap) is int and computed_grand_total + tickets + prepaid > cap:
+        if type(cap) is int and computed_grand_total + tickets + prepaid + transfers_cost > cap:
             errors.append("Recomputed costs exceed the combined journey budget.")
         if plan.total_cost_inr > request.budget_inr or computed_grand_total > request.budget_inr:
             errors.append(

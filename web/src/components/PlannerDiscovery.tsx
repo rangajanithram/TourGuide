@@ -92,8 +92,7 @@ function ConfirmPlace({ place, disabled, onCancel, onConfirm }: { place: Result;
         estimated_cost_per_person_inr: Number(cost),
         open_time_mins: minute(start),
         close_time_mins: minute(end),
-        formatted_address: place.address || place.formatted_address || null,
-        osm_url: place.osm_url || `https://www.openstreetmap.org/?mlat=${place.lat}&mlon=${place.lng}#map=16/${place.lat}/${place.lng}`,
+        formatted_address: (place.address || place.formatted_address || "").slice(0, 300) || null,
       }, mandatory);
     }}>{mandatory ? 'Confirm estimates and pin' : 'Confirm as optional candidate'}</button></div>
   </section>;

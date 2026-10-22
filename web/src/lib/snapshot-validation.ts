@@ -165,6 +165,9 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
       const excluded = stay.budget_treatment === 'already_paid' ? stay.total_stay_cost_inr : 0;
       if (!hotel || hotel.accommodation_kind !== stay.kind || hotel.hotel_name !== stay.base_name.trim() || hotel.lat !== stay.lat || hotel.lng !== stay.lng || hotel.total_cost_inr !== included || hotel.excluded_prepaid_cost_inr !== excluded || hotel.reported_stay_total_inr !== stay.total_stay_cost_inr) invalid('confirmed base or lodging budget scope changed');
     }
+    for (const key of ['arrival_transfer_cost_inr', 'arrival_transfer_paid_inr', 'departure_transfer_cost_inr', 'departure_transfer_paid_inr'] as const) {
+      if ((form.journey_timing?.[key] ?? null) !== (plan.planning_preferences?.journey_timing?.[key] ?? null)) invalid('transfer fares or payments changed');
+    }
     const savedStay = plan.planning_preferences?.stay_choice;
     if (!!savedStay?.constrain_sightseeing_to_stay !== !!form.stay_choice?.constrain_sightseeing_to_stay) invalid('stay scheduling constraint changed');
     if (form.stay_choice?.constrain_sightseeing_to_stay && (savedStay?.check_in_time !== form.stay_choice.check_in_time || savedStay?.check_out_time !== form.stay_choice.check_out_time)) invalid('stay scheduling times changed');

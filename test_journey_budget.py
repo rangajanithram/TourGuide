@@ -44,6 +44,17 @@ class JourneyBudgetTests(unittest.TestCase):
         self.assertLessEqual(plan.total_cost_inr + 6000 + 1000, 10000)
         self.assertTrue(plan.verification_report.is_valid)
 
+    def test_changed_transfer_payment_rejected_without_cap(self):
+        timed = timing()
+        timed["arrival_transfer_cost_inr"] = 400
+        timed["arrival_transfer_paid_inr"] = 200
+        req = request(timed)
+        plan = generate_itinerary(req)
+        plan.planning_preferences.journey_timing = plan.planning_preferences.journey_timing.model_copy(update={"arrival_transfer_paid_inr": 0})
+        report = ItineraryVerifier.verify(plan, req, get_places_provider().get_places("hyderabad"))
+        self.assertFalse(report.is_valid)
+        self.assertTrue(any("Transfer accounting conflict" in error for error in report.errors))
+
     def test_transfer_cost_paid_validation(self):
         timed = timing()
         timed["arrival_transfer_cost_inr"] = 400
