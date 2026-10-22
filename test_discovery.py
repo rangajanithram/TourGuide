@@ -24,7 +24,10 @@ class DiscoveryTests(unittest.TestCase):
     def test_allowance_prevents_second_call(self):
         provider=DiscoveryProvider('key',daily_limit=1,opener=lambda *a,**k:BytesIO(b'{"features":[]}'))
         provider.search('Paris','parks')
-        with self.assertRaises(HTTPException) as error: provider.search('Paris','parks')
+        cached = provider.search('Paris','parks')
+        cached['places'].append({'name': 'Changed'})
+        self.assertEqual(provider.search('Paris','parks')['places'], [])
+        with self.assertRaises(HTTPException) as error: provider.search('London','parks')
         self.assertEqual(error.exception.status_code,429)
     def test_provider_error_is_sanitized(self):
         def broken(*a,**k):raise ValueError('secret key in URL')

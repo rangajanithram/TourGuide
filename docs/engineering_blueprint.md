@@ -502,3 +502,11 @@ bounds. Inputs explain how to avoid double-counting existing transfer buffers.
 The independent verifier recomputes the same bounds during generation and edits.
 Result timing shows both transfers separately. These are user estimates, not
 routed travel times; fares and terminal coordinates remain a later increment.
+
+### Discovery reliability: bounded repeat-search caching
+
+Free-provider search results are reused for five minutes, with at most 128
+process-local entries. Returned values are copied to prevent mutation across
+requests. Failed searches are not cached; original fetched_at remains visible.
+This reduces repeated provider calls without asserting current availability.
+Automatic candidate selection and source-backed reviews remain unfinished.

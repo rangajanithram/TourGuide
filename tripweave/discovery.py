@@ -5,6 +5,8 @@ must be resolved before a discovered stop can enter a verified saved plan.
 """
 import json
 import threading
+import time
+from copy import deepcopy
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -28,6 +30,7 @@ class DiscoveryProvider:
         self.lock = threading.Lock()
         self.day = None
         self.requests = 0
+        self.cache = {}
 
     def _get(self, path, params):
         if not self.key:
@@ -55,6 +58,21 @@ class DiscoveryProvider:
             raise HTTPException(503, "Place-data service is unavailable. Please retry later.") from None
 
     def search(self, location, category, query=None):
+        key = (location.strip().casefold(), category, (query or "").strip().casefold())
+        now = time.monotonic()
+        with self.lock:
+            cached = self.cache.get(key)
+            if cached and now - cached[0] < 300:
+                return deepcopy(cached[1])
+        result = self._search(location, category, query)
+        with self.lock:
+            self.cache = {k: v for k, v in self.cache.items() if time.monotonic() - v[0] < 300}
+            if len(self.cache) >= 128:
+                del self.cache[next(iter(self.cache))]
+            self.cache[key] = (time.monotonic(), deepcopy(result))
+        return result
+
+    def _search(self, location, category, query=None):
         locations = self._get("v1/geocode/search", {"text": location, "limit": 1, "lang": "en"})
         if not locations:
             return {"location": location, "places": [], "fetched_at": datetime.now(timezone.utc).isoformat()}
