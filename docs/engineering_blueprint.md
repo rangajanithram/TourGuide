@@ -548,3 +548,14 @@ supply a dated room-offer or review feed. Real review text/ratings and hotel roo
 availability cannot be declared implemented from model fields or hotel listings.
 A permitted provider account/contract and contract tests are required before
 those integrations can be completed. No paid service or review scraping enabled.
+## 2026-10-22 accommodation and booked travel choice cards
+
+Accommodation strategy and booked outbound/return modes use responsive native
+radio cards with visible selection and keyboard focus. Choices retain the existing
+request contract; no new inventory or booking capability is implied.
+
+User requested local review/rating data. Google Maps/Search visibility alone is
+not reuse permission. No Google/Tripadvisor review text or copied ratings were
+added. Any future maintained review dataset must identify license/permission,
+source, checking date and rating scale; unknown reviews remain absent. Dynamic
+place discovery remains separate from any manually maintained metadata.

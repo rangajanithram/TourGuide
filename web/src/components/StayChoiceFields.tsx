@@ -1,13 +1,14 @@
 'use client';
 import type { StayChoice } from '../types/trip';
 import ThemedSelect from './ThemedSelect';
+import ChoiceCards from './ChoiceCards';
 
 export default function StayChoiceFields({ value, onChange }: { value?: StayChoice; onChange: (value: StayChoice | undefined) => void }) {
   return <section className="booking-section" aria-label="Accommodation and budget scope">
     <h4>Where will you stay?</h4>
-    <ThemedSelect label="Accommodation" value={value?.kind || 'planner_selected'} options={[
-      { value: 'planner_selected', label: 'Suggest a stay for me' }, { value: 'booked', label: 'I already booked a stay' },
-      { value: 'family_friends', label: 'Staying with family or friends' }, { value: 'no_stay', label: 'No accommodation arranged' },
+    <ChoiceCards label="Accommodation" value={value?.kind || 'planner_selected'} options={[
+      { value: 'planner_selected', label: 'Suggest a stay for me', description: 'Compare estimated stays through the itinerary options. Live rooms and prices are not confirmed.' }, { value: 'booked', label: 'I already booked a stay', description: 'Use your hotel location, whole-group price and check-in details.' },
+      { value: 'family_friends', label: 'Staying with family or friends', description: 'Plan from your confirmed base without a hotel charge.' }, { value: 'no_stay', label: 'No accommodation arranged', description: 'Use a meeting point; arrange overnight accommodation separately.' },
     ]} onChange={kind => onChange(kind === 'planner_selected' ? undefined : {
       version: 1, kind: kind as StayChoice['kind'], base_name: value?.base_name || '', lat: value?.lat ?? NaN, lng: value?.lng ?? NaN,
       total_stay_cost_inr: kind === 'booked' ? value?.total_stay_cost_inr || 0 : 0,
