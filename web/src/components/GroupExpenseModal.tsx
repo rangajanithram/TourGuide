@@ -1,5 +1,6 @@
 'use client';
 
+import { expenseBudgets } from '../lib/expense-budgets';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -205,21 +206,7 @@ export default function GroupExpenseModal({
   const settledTransfers = useMemo(() => ledger.settlements.filter(s => s.is_settled), [ledger.settlements]);
 
   // Planned allocations for budget comparison
-  const plannedBudget = useMemo(() => {
-    const hotelCost = plan.hotel_summary?.total_cost_inr || 0;
-    const transitCost = plan.estimated_transport_cost_inr || 0;
-    const activitiesCost = plan.days.reduce((acc, d) => acc + d.day_cost_inr, 0);
-    const mealsCost = plan.expense_breakdown?.suggested_meals_inr || plan.expense_breakdown?.estimated_meals_inr || 0;
-    const totalPlanCost = plan.total_cost_inr || (hotelCost + transitCost + activitiesCost + mealsCost);
-
-    return {
-      dining: mealsCost,
-      transit: transitCost,
-      lodging: hotelCost,
-      activities: activitiesCost,
-      total: totalPlanCost
-    };
-  }, [plan]);
+  const plannedBudget = useMemo(() => expenseBudgets(plan), [plan]);
 
   if (!isOpen || !isMounted) return null;
 

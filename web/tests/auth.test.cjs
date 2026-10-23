@@ -760,3 +760,14 @@ test('saved bookings retain fares and reject changed snapshot bookings', () => {
   snapshot.variants.balanced.booked_transport = { ...booked_transport, paid_inr: 0 };
   assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /booked transport changed/);
 });
+
+
+test('expense category budgets never count meals as attractions or add unscheduled meal guidance', () => {
+  const { expenseBudgets } = load('lib/expense-budgets.ts');
+  const budget = expenseBudgets({ total_cost_inr: 11746, hotel_summary: {total_cost_inr:2400}, estimated_transport_cost_inr:3746,
+    expense_breakdown:{suggested_meals_inr:7200}, days:[{day_cost_inr:5600, activities:[
+      {place_type:'restaurant',estimated_cost_inr:3600},{place_type:'attraction',estimated_cost_inr:2000}
+    ]}] });
+  assert.deepEqual(budget,{dining:3600,activities:2000,lodging:2400,transit:3746,total:11746});
+  assert.equal(budget.dining+budget.activities+budget.lodging+budget.transit,budget.total);
+});

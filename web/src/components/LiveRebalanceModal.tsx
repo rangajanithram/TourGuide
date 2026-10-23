@@ -2,6 +2,7 @@
 import { plannerFetch } from '@/lib/planner-fetch';
 import { apiBaseUrl } from '@/lib/planner-network';
 
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import React, { useState, useEffect } from 'react';
 import { X, Zap, Coffee, Bed, Footprints, Sparkles, AlertCircle, MapPin } from 'lucide-react';
 import { TripPlan, TirednessSeverity, RebalanceTiredRequest, RebalanceTiredResponse } from '../types/trip';
@@ -61,6 +62,7 @@ export default function LiveRebalanceModal({
   budgetLimit,
   onApplyUpdate,
 }: LiveRebalanceModalProps) {
+  const dialogRef = useDialogFocus(isOpen, onClose);
   const [selectedDayNumber, setSelectedDayNumber] = useState<number>(initialDayNumber);
   const [currentTimeStr, setCurrentTimeStr] = useState<string>(() => {
     const now = new Date();
@@ -159,7 +161,7 @@ export default function LiveRebalanceModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-[#fffdf5] border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl text-[#243e33] max-h-[92vh] flex flex-col overflow-hidden">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Make this day easier" tabIndex={-1} className="relative w-full max-w-2xl bg-[#fffdf5] border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl text-[#243e33] max-h-[92vh] flex flex-col overflow-hidden">
         {/* Glow Accent */}
         <div className="absolute top-0 right-0 w-72 h-72 bg-amber-500/10 rounded-full blur-3xl pointer-events-none -mr-16 -mt-16"></div>
 

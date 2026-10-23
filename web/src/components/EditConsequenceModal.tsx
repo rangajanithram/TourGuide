@@ -2,6 +2,7 @@
 import { plannerFetch } from '@/lib/planner-fetch';
 import { apiBaseUrl } from '@/lib/planner-network';
 
+import { useDialogFocus } from '../hooks/useDialogFocus';
 import React, { useState, useEffect } from 'react';
 import {
   X, ArrowRightLeft, Trash2, Sun, AlertTriangle, CheckCircle2,
@@ -39,6 +40,7 @@ export default function EditConsequenceModal({
   budgetLimitInr,
   onApplyUpdate
 }: EditConsequenceModalProps) {
+  const dialogRef = useDialogFocus(isOpen, onClose);
   const [action, setAction] = useState<EditActionType>(initialAction);
   const [candidates, setCandidates] = useState<PlaceCandidate[]>([]);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string>('');
@@ -156,7 +158,7 @@ export default function EditConsequenceModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Edit this stop" tabIndex={-1} className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-[#d6dfd0] bg-[#eef1e5]">
           <div className="flex items-center space-x-2.5">
@@ -170,7 +172,7 @@ export default function EditConsequenceModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            aria-label="Close dialog" onClick={onClose}
             className="p-1 rounded-lg text-[#526653] hover:text-[#243e33] hover:bg-[#c6d2c0] transition-colors"
           >
             <X className="w-4 h-4" />

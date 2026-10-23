@@ -1,5 +1,6 @@
 """Bounded automatic discovery and meal resolution under explicit user assumptions."""
 import hashlib
+import re
 from datetime import timedelta
 from fastapi import HTTPException
 from tripweave.models import ConfirmedDiscoveryStop, Place
@@ -19,6 +20,8 @@ def expand_request(request, discovery, existing):
     for category in ('attractions', 'restaurants'):
         listings.extend(discovery.search(request.destination + ', India', category)['places'][:12 if category == 'attractions' else 3])
     for item in listings:
+        if item.get('category') != 'restaurants' and re.search(r'\b(graveyard|cemetery|burial ground|crematorium)\b', item['name'], re.IGNORECASE):
+            continue
         if len(stops) >= 15:
             break
         if any(p.name.strip().casefold() == item['name'].strip().casefold() and

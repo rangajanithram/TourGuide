@@ -389,7 +389,7 @@ export default function ItineraryView({
             ) : (
               <>
                 <Link2 className="w-3.5 h-3.5 text-black" />
-                <span>Copy trip link</span>
+                <span>Copy basic settings link</span>
               </>
             )}
           </button>
@@ -1114,7 +1114,7 @@ export default function ItineraryView({
                           </span>
                         )}
                         {act.detour_cost_inr !== undefined && act.detour_cost_inr !== null && (
-                          <span className="text-sm text-sky-800 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title="Blueprint Section 6: Evaluated route detour penalty in rupees">
+                          <span className="text-sm text-sky-800 bg-sky-500/10 border border-sky-500/20 px-1.5 py-0.5 rounded font-medium inline-flex items-center space-x-0.5" title="Estimated extra travel cost for this stop">
                             <span>Detour: +₹{act.detour_cost_inr}</span>
                           </span>
                         )}
@@ -1437,7 +1437,7 @@ export default function ItineraryView({
 
       </div></details>
       </section>
-      {/* Blueprint Stage 10 & Spec Feature 1: Why Not X? Candidate Omission Audit */}
+      {/* Blueprint Stage 10 & Spec Feature 1: Places not included */}
       {currentPlan.decision_trace?.excluded_places && currentPlan.decision_trace.excluded_places.length > 0 && (
         <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl">
           <button
@@ -1448,9 +1448,9 @@ export default function ItineraryView({
             <div className="flex items-center space-x-2.5">
               <HelpCircle className="w-5 h-5 text-[#89532d]" />
               <div>
-                <h4 className="font-bold text-base text-[#243e33]">Why Not X? Candidate Omission Audit</h4>
+                <h4 className="font-bold text-base text-[#243e33]">Places not included</h4>
                 <p className="text-sm text-[#526653]">
-                  {currentPlan.decision_trace.excluded_places.length} attractions evaluated but omitted from this itinerary
+                  {currentPlan.decision_trace.excluded_places.length} places considered but not included
                 </p>
               </div>
             </div>

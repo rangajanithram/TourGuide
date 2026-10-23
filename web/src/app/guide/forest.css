@@ -400,3 +400,7 @@
 
 /* Leave room for the shared site theme button. */
 .journey-guide .scene-controls { bottom:82px; }
+
+.manual-tabs { flex-wrap:wrap; gap:8px 16px; }
+.manual-tabs button { font-size:15px; min-height:44px; color:var(--muted); }
+.manual-panel article p { font-size:16px; line-height:1.7; }

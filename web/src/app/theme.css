@@ -110,3 +110,7 @@ html[data-theme=dark] :is(.bg-cyan-50,.bg-cyan-100,.bg-cyan-200) { background-co
 html[data-theme=dark] :is(.text-gray-500,.text-gray-600,.text-gray-700,.text-slate-500,.text-slate-600,.text-slate-700) { color:var(--ui-muted); }
 html[data-theme=dark] :is(.bg-white,.bg-gray-50,.bg-slate-50) { background:var(--ui-surface); }
 html[data-theme=dark] :is(.text-gray-900,.text-slate-900) { color:var(--ui-ink); }
+
+/* Preserve the open form layout; dark utility fallbacks must not add a panel. */
+html[data-theme=dark] .planner-canvas .booking-form { background:transparent; }
+html[data-theme=dark] .booking-form input:is([type=radio],[type=checkbox]) { accent-color:#9ae5bf; }

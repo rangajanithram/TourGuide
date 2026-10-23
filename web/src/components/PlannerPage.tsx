@@ -887,7 +887,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                 A trip that feels <span className="text-[#89532d]">like you</span>.
               </h1>
               <p className="text-sm sm:text-base text-[#526653] max-w-2xl leading-relaxed">
-                Choose your dates, local on-ground budget, and travel style. Compare distinct feasible itineraries, customize stops, and save your trip with full version history. Confirm live prices and opening hours before traveling.
+                Choose your dates, budget and travel style. Compare plans, change stops and save versions of your trip. Check current prices and opening hours before you go.
               </p>
             </div>
             <Link

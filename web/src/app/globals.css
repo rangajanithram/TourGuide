@@ -344,7 +344,7 @@ body { font-family: var(--font-geist-sans),Arial,sans-serif; }
 .trip-save-actions>button,.trip-save-actions>a { display:flex; justify-content:center; align-items:center; gap:8px; min-width:0; padding:12px; white-space:normal; text-align:center; }
 .trip-save-actions svg { flex-shrink:0; }
 .trip-persistence h2 { overflow-wrap:anywhere; }
-.result-board>.result-overview,.result-board>.result-variants { align-self:stretch; }
+.result-board>.result-overview,.result-board>.result-variants { align-self:start; }
 .day-progress { display:flex; flex-wrap:wrap; gap:4px 12px; font-size:14px; font-weight:600; color:var(--ui-ink,#294333); }
 .day-progress span { font-weight:400; color:var(--ui-muted,#526653); }
 .day-timeline { display:flex; flex-direction:column; gap:14px; padding-left:46px; }
@@ -488,3 +488,5 @@ body { font-family: var(--font-geist-sans),Arial,sans-serif; }
 @media(max-width:700px) { .plan-evidence,.journey-cost-columns { grid-template-columns:1fr; gap:16px; } .plan-evidence-counts { gap:8px; } .plan-evidence-counts dt { font-size:13px; } }
 
 @media(max-width:480px) { .site-header>div { padding-inline:16px; gap:8px; } .site-header nav { gap:4px; } .site-header nav>a { padding:8px 6px; } }
+
+.planner-intro p { font-size:16px; line-height:1.65; }
