@@ -4,6 +4,7 @@ import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./theme.css";
 import "./planner-visual.css";
+import "./planner-forms.css";
 import SiteFooter from "@/components/SiteFooter";
 import SiteTheme from "@/components/SiteTheme";
 import { themeScript } from "@/lib/site-theme";

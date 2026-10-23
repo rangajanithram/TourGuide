@@ -1,0 +1,78 @@
+/* Compact form groups, explicit recovery and keyboard-friendly date/time controls. */
+.planner-canvas .booking-form>.form-error-summary{grid-column:2}
+.planner-canvas .trip-step:not([aria-label="Places and food"]){max-width:1040px}
+.planner-canvas .trip-step>.booking-grid,.planner-canvas .trip-step>.planner-field,.planner-canvas .trip-step>.city-picker{max-width:920px}
+.planner-canvas .trip-step>.planner-field{max-width:450px}
+.planner-canvas .booking-summary,.planner-canvas .journey-timing,.planner-canvas #stay-settings{max-width:1040px}
+.planner-canvas .booking-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:22px}
+.planner-canvas .booking-section{align-content:start;gap:24px}
+.planner-canvas .booking-more{padding:20px;border:1px solid var(--ui-line,#c5d2bb);border-radius:14px;background:var(--ui-surface,#fffdf5);max-width:1040px}
+.booking-more>summary{padding-block:4px;min-height:32px;line-height:1.5}
+.booking-more>p{max-width:75ch;line-height:1.7;font-size:14px;color:var(--ui-muted,#526653);margin-block:12px}
+.planner-field{min-width:0;display:grid;align-content:start;gap:8px}
+.booking-form .planner-field>label{margin:0;line-height:1.5}
+.booking-form .planner-field>input{margin-top:0!important}
+.field-hint{font-size:13px;line-height:1.65;color:var(--ui-muted,#526653);font-weight:400;max-width:60ch}
+.booking-form .field-error,.place-drawer-body .field-error{display:flex;align-items:flex-start;gap:7px;font-size:14px;line-height:1.6;font-weight:550;color:var(--ui-danger,#982d2c);margin:4px 0}
+.field-error svg{flex-shrink:0;margin-top:3px}
+.booking-form [aria-invalid=true]:is(input,button){border-color:var(--ui-danger,#982d2c)!important;box-shadow:0 0 0 1px var(--ui-danger,#982d2c)}
+.planner-field[data-invalid=true]{border-left:3px solid var(--ui-danger,#982d2c);padding-left:12px}
+.form-error-summary{border:2px solid var(--ui-danger,#982d2c);background:var(--ui-danger-surface,#fff2ef);color:var(--ui-danger,#982d2c);padding:20px;border-radius:14px;margin-bottom:24px;scroll-margin-top:100px}
+.form-error-summary:focus{outline:3px solid var(--ui-warm,#89532d);outline-offset:3px}
+.form-error-summary>div{display:flex;align-items:center;gap:10px}.booking-form .form-error-summary h4{color:inherit;font-size:18px}
+.form-error-summary>p{font-size:14px;line-height:1.6;margin:10px 0}
+.form-error-summary ul{margin:0;padding-left:22px;list-style:disc}
+.form-error-summary li+li{margin-top:6px}.form-error-summary li>button{text-align:left;display:grid;gap:4px;padding:8px 0;font-size:14px;line-height:1.6;min-height:44px}
+.form-error-summary strong{text-decoration:underline;text-underline-offset:3px}
+.trip-stepper button[data-has-error=true]{color:var(--ui-danger,#982d2c)}
+.trip-stepper button>svg{flex-shrink:0}
+.continue-problem{padding:16px;border:1px solid var(--ui-danger,#982d2c);border-radius:12px;background:var(--ui-danger-surface,#fff2ef);color:var(--ui-danger,#982d2c);display:flex;align-items:flex-start;gap:12px;font-size:14px;line-height:1.6}
+.continue-problem>svg{flex-shrink:0;margin-top:3px}.continue-problem>div{flex:1}.continue-problem p{margin-top:3px}.continue-problem button{display:flex;gap:8px;align-items:center;text-decoration:underline;min-height:44px;font-weight:600}
+.planner-canvas .booking-step-title,.booking-form [id]{scroll-margin-top:110px}
+.booking-form .choice-group{max-width:1040px}
+.booking-form .choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.booking-form .choice-card{display:flex;align-items:flex-start;gap:12px;padding:18px;border:1px solid var(--ui-line,#bdccb3);border-radius:14px;background:var(--ui-surface,#fffdf5);position:relative;transition:border-color .18s,background-color .18s,box-shadow .18s,transform .18s}
+.booking-form .choice-card:hover{transform:translateY(-2px);box-shadow:0 5px 14px #132e2110}
+.booking-form .choice-card[data-checked=true]{background:var(--ui-success-surface,#edf3e7);border-color:var(--ui-success,#385e4e);box-shadow:inset 0 0 0 1px var(--ui-success,#385e4e)}
+.booking-form .choice-card input[type=radio]{appearance:none;-webkit-appearance:none;width:20px;height:20px;flex:0 0 20px;border:1.5px solid var(--ui-muted,#63755b);border-radius:50%;background:var(--ui-surface,#fffdf5);margin:2px 0 0;display:grid;place-content:center;transition:border-color .18s}
+.booking-form .choice-card input[type=radio]::before{content:"";width:10px;height:10px;background:var(--ui-success,#385e4e);border-radius:50%;transform:scale(0);transition:transform .18s}
+.booking-form .choice-card input[type=radio]:checked{border-color:var(--ui-success,#385e4e)}
+.booking-form .choice-card input[type=radio]:checked::before{transform:scale(1)}
+.choice-copy{display:block}.choice-copy>span:first-child{font-size:15px;line-height:1.5}.choice-copy>span+span{font-size:13px;line-height:1.6;font-weight:400}
+.booking-form input[type=checkbox]{appearance:none;-webkit-appearance:none;display:grid;place-content:center;width:20px;height:20px;flex:0 0 20px;min-height:20px;margin:1px 0 0;border:1.5px solid var(--ui-muted,#63755b);border-radius:5px;background:var(--ui-surface,#fffdf5);transition:background-color .18s,border-color .18s}
+.booking-form input[type=checkbox]::before{content:"";width:6px;height:11px;transform:rotate(45deg) scale(0);border:solid currentColor;border-width:0 2px 2px 0;margin-top:-3px}
+.booking-form input[type=checkbox]:checked{background:var(--ui-ink,#294333);color:var(--ui-surface,#fffdf5);border-color:var(--ui-ink,#294333)}
+.booking-form input[type=checkbox]:checked::before{transform:rotate(45deg) scale(1)}
+.booking-form label.booking-check{min-height:44px;line-height:1.6;align-items:flex-start;cursor:pointer}
+.booking-form label.toggle-choice{border:1px solid var(--ui-line,#c5d2bb);background:var(--ui-raised,#eff3e7);border-radius:12px;padding:16px;margin-block:16px}
+.toggle-choice>span{display:grid;gap:4px}.toggle-choice small{font-size:13px;font-weight:400;color:var(--ui-muted,#526653)}
+.transport-mode-choices{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.booking-form .mode-chip{display:flex;align-items:center;gap:10px;padding:12px 16px;min-height:48px;background:var(--ui-surface,#fffdf5);border:1px solid var(--ui-line,#c5d2bb);border-radius:12px;cursor:pointer}
+.mode-chip:has(input:checked){border-color:var(--ui-success,#385e4e);background:var(--ui-success-surface,#edf3e7)}
+.journey-leg-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:18px}
+.journey-leg{display:grid;align-content:start;gap:22px;min-width:0;padding:20px;border:1px solid var(--ui-line,#c5d2bb);background:var(--ui-raised,#eff3e7);border-radius:14px}
+.booking-form .journey-leg>h4{display:flex;align-items:center;gap:8px;font-size:16px}
+.journey-timing .transfer-fields{margin-top:20px;padding:16px;background:transparent}
+.timing-preview,.estimate-defaults{padding:14px 16px;border-radius:10px;background:var(--ui-success-surface,#edf3e7);border:1px solid var(--ui-line,#c5d2bb);color:var(--ui-ink,#243e33);font-size:14px;line-height:1.7;margin-top:16px}
+.planner-datetime-field{display:grid;gap:10px;min-width:0}.planner-datetime-field>small{font-size:12px;color:var(--ui-muted,#526653)}
+.date-trigger{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px;min-height:50px;background:var(--ui-surface,#fffdf5);border:1px solid var(--ui-line,#aaba9f);border-radius:10px;color:var(--ui-ink,#243e33);font-size:15px;text-align:left}
+.date-trigger>svg{flex-shrink:0;color:var(--ui-warm,#89532d)}.date-trigger>span:first-of-type{flex:1}.date-change{font-size:12px;color:var(--ui-muted,#526653)}
+.planner-time-field{display:flex;align-items:center;gap:8px;max-width:300px;min-width:0}.planner-time-field>.themed-select{min-width:0;flex:1}.planner-time-field .themed-select>button{padding:12px;min-height:48px;margin:0;font-size:15px}.clear-time{width:36px;height:44px;flex-shrink:0;display:grid;place-items:center;border-radius:8px;color:var(--ui-muted,#526653)}
+.calendar-backdrop{position:fixed;inset:0;z-index:250;display:flex;align-items:center;justify-content:center;padding:16px;background:#081b1780;backdrop-filter:blur(4px)}
+.calendar-dialog{width:min(100%,400px);max-height:calc(100dvh - 32px);overflow:auto;padding:22px;border-radius:20px;background:var(--ui-surface,#fffdf5);color:var(--ui-ink,#243e33);box-shadow:0 16px 70px #0005;border:1px solid var(--ui-line,#c5d2bb);animation:calendar-enter .2s ease}
+.calendar-dialog>header{display:flex;align-items:center;justify-content:space-between;gap:12px}.calendar-dialog header span{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--ui-warm,#89532d)}.calendar-dialog h2{font-size:18px;font-weight:700;margin:5px 0}.calendar-dialog button{min-width:42px;min-height:44px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center}.calendar-dialog header>button{background:var(--ui-raised,#eff3e7)}
+.calendar-month{display:flex;align-items:center;justify-content:space-between;margin-block:18px 10px}.calendar-month h3{font-size:16px;font-weight:650}.calendar-month button{border:1px solid var(--ui-line,#c5d2bb)}
+.calendar-dialog table{table-layout:fixed;width:100%;border-collapse:separate;border-spacing:2px}.calendar-dialog th{font-size:11px;font-weight:600;color:var(--ui-muted,#526653);padding-bottom:8px}.calendar-dialog td{text-align:center}.calendar-dialog td button{width:100%;min-width:0;height:44px;font-size:14px;border:1px solid transparent}.calendar-dialog td button[aria-current=date]{border-color:var(--ui-warm,#89532d)}.calendar-dialog td[aria-selected=true] button{background:var(--ui-ink,#294333);color:var(--ui-surface,#fffdf5);font-weight:700}.calendar-dialog button:hover:not(:disabled){background:var(--ui-raised,#eff3e7)}.calendar-dialog td[aria-selected=true] button:hover{background:#385e4e;color:white}.calendar-dialog button:disabled{opacity:.3;cursor:not-allowed}.calendar-dialog button:focus-visible{outline:3px solid var(--ui-warm,#89532d);outline-offset:1px}
+.calendar-dialog>p{font-size:12px;line-height:1.6;color:var(--ui-muted,#526653);margin-top:16px}.calendar-dialog>footer{display:flex;justify-content:space-between;gap:10px;padding-top:12px;margin-top:14px;border-top:1px solid var(--ui-line,#c5d2bb);font-size:13px;text-decoration:underline}
+.place-drawer.booking-form{display:flex;overflow:hidden}.place-drawer-scroll{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scroll-padding-bottom:20px}.place-drawer-scroll>.travel-image{aspect-ratio:16/8}.place-drawer footer{display:grid;gap:10px;padding:14px 24px;margin:0}.place-drawer footer>div{display:flex;justify-content:space-between;align-items:center;gap:12px}.place-drawer footer>div>button{border:1px solid var(--ui-line,#c5d2bb);border-radius:10px;padding:10px 14px;min-height:44px;font-size:13px;font-weight:600}.place-drawer footer .drawer-scroll-hint{font-size:13px;line-height:1.6;color:var(--ui-muted,#526653)}
+.place-drawer .estimate-defaults{display:grid;gap:5px;margin:0;font-size:14px}.optional-tag{display:inline-block;font-size:11px;font-weight:500;padding:4px 8px;border-radius:16px;background:var(--ui-raised,#eff3e7);margin-left:8px}.place-drawer .estimate-agreement{padding:12px;border-left:3px solid var(--ui-warm,#89532d);background:var(--ui-warm-surface,#fff1df);color:var(--ui-ink,#243e33)}
+.drawer-end-marker{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ui-muted,#526653);padding-block:8px}
+html[data-theme=dark] .planner-landscape{opacity:1;--terrain-start:#101e1c;--terrain-end:#20332e;--terrain-line:#95b6a2;--terrain-opacity:.26}
+html[data-theme=dark] .planner-landscape svg{opacity:1}
+html[data-theme=dark] .planner-theme{background:#10201b66}
+@keyframes calendar-enter{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:1100px){.journey-leg{padding:16px}.journey-leg-grid{gap:12px}}
+@media(max-width:900px){.planner-canvas .booking-form>.form-error-summary{grid-column:auto}.planner-canvas .trip-step{max-width:none}.planner-canvas .trip-stepper button>svg{display:none}.continue-problem{flex-wrap:wrap}.continue-problem button{margin-left:30px}}
+@media(max-width:700px){.planner-canvas .booking-grid,.booking-form .choice-grid,.journey-leg-grid{grid-template-columns:1fr}.planner-canvas .booking-more{padding:16px}.planner-canvas .booking-summary{padding:16px}.planner-canvas .booking-section{gap:20px}.place-drawer .booking-grid{grid-template-columns:1fr}.place-drawer footer{padding:12px 16px}.place-drawer footer>div>button{font-size:12px;padding:10px}.calendar-dialog{padding:16px}.calendar-dialog td button{height:42px;min-height:42px}.date-change{display:none}.form-error-summary{padding:16px}.booking-form .choice-card{padding:16px}.choice-copy>span:first-child{font-size:14px}.journey-leg{gap:18px}.planner-time-field{max-width:100%}}
+@media(prefers-reduced-motion:reduce){.calendar-dialog,.place-drawer{animation:none}.booking-form .choice-card,.booking-form .choice-card input::before,.booking-form input[type=checkbox]{transition:none}.booking-form .choice-card:hover{transform:none}}
+@media(forced-colors:active){.booking-form input[type=checkbox],.booking-form .choice-card input[type=radio]{appearance:auto}.booking-form input[type=checkbox]::before,.booking-form .choice-card input[type=radio]::before{display:none}}

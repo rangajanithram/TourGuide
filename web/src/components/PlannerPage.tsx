@@ -79,6 +79,12 @@ export default function Home({ preferences }: { preferences?: unknown }) {
   const [isLoading, setIsLoading] = useState(false);
   const [planningPhase, setPlanningPhase] = useState<'connecting' | 'generating'>('connecting');
   const [error, setError] = useState<string | null>(null);
+  const planningError = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!error) return;
+    const frame=requestAnimationFrame(()=>{planningError.current?.scrollIntoView({block:'center',behavior:'auto'});planningError.current?.focus({preventScroll:true});});
+    return()=>cancelAnimationFrame(frame);
+  }, [error]);
   const [activeFormData, setActiveFormData] = useState<TripFormData | null>(null);
   const [isSharedView, setIsSharedView] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
@@ -915,7 +921,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         {isLoading && <div role="status" className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#c6d2c0] bg-[#fffdf5] p-4 text-sm"><span>{planningPhase === 'connecting' ? 'Checking the planning service. It may take about a minute to wake up.' : 'The backend is creating your itinerary. Your existing trip is kept until the new plan is ready.'}</span><button type="button" className="underline font-semibold" onClick={() => { requestVersion.current += 1; historyVersion.current += 1; activeRequest.current?.abort(); setIsLoading(false); }}>Cancel</button></div>}
         {/* Global Error Banner */}
         {error && (
-          <div role="alert" className="planning-notice mb-6">
+          <div ref={planningError} tabIndex={-1} role="alert" className="planning-notice mb-6">
             <AlertCircle className="w-5 h-5 text-red-700 shrink-0 mt-0.5" />
             <div>
               <h2>We couldn’t complete this plan</h2>

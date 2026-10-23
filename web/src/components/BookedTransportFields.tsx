@@ -1,6 +1,7 @@
 'use client';
 import type { BookedTransport } from '../types/trip';
 import ChoiceCards from './ChoiceCards';
+import PlannerField from './PlannerField';
 const modes = [{ value: 'train', label: 'Train' }, { value: 'bus', label: 'Bus' }, { value: 'flight', label: 'Flight' }];
 export default function BookedTransportFields({ value, onChange }: { value?: BookedTransport; onChange: (value: BookedTransport | undefined) => void }) {
   return <fieldset className="booking-summary">
@@ -11,8 +12,8 @@ export default function BookedTransportFields({ value, onChange }: { value?: Boo
       <div className="booking-grid">
         <ChoiceCards label="Booked outbound mode" value={value.outbound_mode} options={modes} onChange={mode => onChange({ ...value, outbound_mode: mode as BookedTransport['outbound_mode'] })} />
         <ChoiceCards label="Booked return mode" value={value.return_mode} options={modes} onChange={mode => onChange({ ...value, return_mode: mode as BookedTransport['return_mode'] })} />
-        <label>Total ticket cost for everyone, both directions (₹)<input type="number" min={0} max={5000000} step={1} value={value.total_fare_inr} onChange={event => onChange({ ...value, total_fare_inr: Number(event.target.value) })} /></label>
-        <label>Ticket amount already paid (₹)<input type="number" min={0} max={value.total_fare_inr} step={1} value={value.paid_inr} onChange={event => onChange({ ...value, paid_inr: Number(event.target.value) })} /></label>
+        <PlannerField id="booking-total" label="Total ticket cost for everyone, both directions (₹)"><input type="number" min={0} max={5000000} step={1} value={value.total_fare_inr} onChange={event => onChange({ ...value, total_fare_inr: Number(event.target.value) })} /></PlannerField>
+        <PlannerField id="booking-paid" label="Ticket amount already paid (₹)"><input type="number" min={0} max={value.total_fare_inr} step={1} value={value.paid_inr} onChange={event => onChange({ ...value, paid_inr: Number(event.target.value) })} /></PlannerField>
       </div>
       <p>These fares are additional to your destination budget. Tickets, availability and payments are user-reported and are not verified by TripWeave.</p>
     </>}

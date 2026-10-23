@@ -789,3 +789,64 @@ test('travel art is local, labelled and does not use unrelated venue photographs
   assert.match(travelArtwork('hyderabad','hotel').alt,/fictional hotel/);
   assert.match(travelArtwork('unsupported-city').caption,/AI illustration/);
 });
+
+// Planner forms: optional place estimates stay explicit; errors point to real fields.
+const {resolvePlaceEstimates}=load('lib/place-estimates.ts');
+const {plannerIssues}=load('lib/planner-validation.ts',{
+  './journey-timing':load('lib/journey-timing.ts'),
+  './booked-transport':load('lib/booked-transport.ts'),
+  './journey-budget':load('lib/journey-budget.ts'),
+  './stay-choice':load('lib/stay-choice.ts'),
+});
+const validPlannerForm={destination:'hyderabad',origin_city:'',start_date:'2026-11-01',end_date:'2026-11-03',people_count:2,budget_inr:15000,pace:'balanced',transport_mode:'cab',interests:[]};
+const validationContext={today:'2026-10-24',cities:['hyderabad','bengaluru'],catalogReady:true};
+test('blank place fields resolve explicit estimates without rejecting optional answers',()=>{
+  const result=resolvePlaceEstimates({duration:'',cost:'',start:'',end:''},false);
+  assert.deepEqual(result.errors,{});
+  assert.deepEqual(result.values,{duration_minutes:90,estimated_cost_per_person_inr:200,open_time_mins:60,close_time_mins:720});
+  assert.equal(resolvePlaceEstimates({duration:'',cost:'',start:'',end:''},true).values.duration_minutes,45);
+});
+test('user overrides including zero remain intact and policy supplies blank defaults',()=>{
+  const input={duration:'60',cost:'0',start:'12:00',end:'13:00'};
+  const result=resolvePlaceEstimates(input,false);
+  assert.deepEqual(result.errors,{});assert.equal(result.values.estimated_cost_per_person_inr,0);
+  const custom=resolvePlaceEstimates({duration:'',cost:'',start:'',end:''},false,{visit_minutes:120,attraction_cost_inr:80,meal_cost_inr:100,open_time_mins:120,close_time_mins:600});
+  assert.equal(custom.values.duration_minutes,120);assert.equal(custom.values.open_time_mins,120);
+});
+test('entered invalid estimates and infeasible time windows still get specific errors',()=>{
+  assert.match(resolvePlaceEstimates({duration:'0',cost:'-1',start:'',end:''},false).errors.duration,/15 to 480/);
+  assert.match(resolvePlaceEstimates({duration:'',cost:'-1',start:'',end:''},false).errors.cost,/person/);
+  assert.match(resolvePlaceEstimates({duration:'90',cost:'',start:'19:30',end:'20:00'},false).errors.end,/enough time/);
+  assert.match(resolvePlaceEstimates({duration:'',cost:'',start:'07:00',end:''},false).errors.start,/08:00/);
+  assert.match(resolvePlaceEstimates({duration:'',cost:'',start:'25:00',end:''},false).errors.start,/valid time/);
+});
+test('a valid basic form has no issues; optional timings are not required',()=>{
+  assert.deepEqual(plannerIssues(validPlannerForm,validationContext),[]);
+});
+test('travel timing errors identify each field in Journey instead of blocking Places with a vague message',()=>{
+  const issues=plannerIssues({...validPlannerForm,origin_city:'bengaluru',journey_timing:{version:1,timezone:'Asia/Kolkata',outbound_departure:'',destination_arrival:'',destination_departure:'',return_arrival:'',arrival_buffer_minutes:0,departure_buffer_minutes:0}},validationContext);
+  assert.equal(issues.length,4);assert.ok(issues.every(issue=>issue.step===0&&issue.section==='Journey · Travel timing'));
+  assert.deepEqual(issues.map(issue=>issue.field),['timing-outbound_departure','timing-destination_arrival','timing-destination_departure','timing-return_arrival']);
+  assert.ok(issues.every(issue=>issue.message.includes('turn off')));
+});
+test('unfinished date/time and an invalid budget identify their exact controls',()=>{
+  const issues=plannerIssues({...validPlannerForm,budget_inr:0,origin_city:'bengaluru',journey_timing:{version:1,timezone:'Asia/Kolkata',outbound_departure:'2026-10-31T',destination_arrival:'2026-11-01T07:00+05:30',destination_departure:'2026-11-03T21:00+05:30',return_arrival:'2026-11-04T07:00+05:30',arrival_buffer_minutes:0,departure_buffer_minutes:0}},validationContext);
+  assert.ok(issues.some(issue=>issue.field==='trip-budget'));
+  assert.ok(issues.some(issue=>issue.field==='timing-outbound_departure'));
+});
+test('meal and review time errors stay in their own steps',()=>{
+  const issues=plannerIssues({...validPlannerForm,meal_budget_per_person:-1,arrival_available_mins:-30},validationContext);
+  assert.ok(issues.some(issue=>issue.field==='trip-meal-budget'&&issue.step===2));
+  assert.ok(issues.some(issue=>issue.field==='trip-arrival-ready'&&issue.step===3));
+  assert.equal(issues.filter(issue=>issue.step===0).length,0);
+});
+
+test('stay coordinates and booked fares identify the invalid input rather than a neighboring field',()=>{
+  const stay={version:1,kind:'family_friends',base_name:'Confirmed base',lat:NaN,lng:78.4,total_stay_cost_inr:0,budget_treatment:'include'};
+  assert.ok(plannerIssues({...validPlannerForm,stay_choice:stay},validationContext).some(issue=>issue.field==='stay-lat'));
+  const journey_timing={version:1,timezone:'Asia/Kolkata',outbound_departure:'2026-10-31T20:00+05:30',destination_arrival:'2026-11-01T07:00+05:30',destination_departure:'2026-11-03T21:00+05:30',return_arrival:'2026-11-04T07:00+05:30',arrival_buffer_minutes:0,departure_buffer_minutes:0};
+  const form={...validPlannerForm,origin_city:'bengaluru',journey_timing,booked_transport:{version:1,outbound_mode:'train',return_mode:'train',total_fare_inr:-1,paid_inr:0}};
+  assert.ok(plannerIssues(form,validationContext).some(issue=>issue.field==='booking-total'));
+  const badDate={...form,booked_transport:undefined,journey_timing:{...journey_timing,outbound_departure:'2026-02-30T20:00+05:30'}};
+  assert.ok(plannerIssues(badDate,validationContext).some(issue=>issue.field==='timing-outbound_departure'));
+});

@@ -2,9 +2,10 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Check, ChevronDown } from 'lucide-react';
 
-export default function ThemedSelect({ value, onChange, options, label, id, disabled = false }: {
+export default function ThemedSelect({ value, onChange, options, label, id, disabled = false, ...aria }: {
   value: string; onChange: (value: string) => void; options: { value: string; label: string }[];
   label: string; id?: string; disabled?: boolean;
+  'aria-invalid'?: boolean; 'aria-describedby'?: string;
 }) {
   const uid = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -18,13 +19,21 @@ export default function ThemedSelect({ value, onChange, options, label, id, disa
     document.addEventListener('pointerdown', close);
     return () => document.removeEventListener('pointerdown', close);
   }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    const list=root.current?.querySelector<HTMLElement>('[role="listbox"]');
+    const option=list?.querySelector<HTMLElement>(`[id="${uid}-${active}"]`);
+    if(!list||!option)return;
+    if(option.offsetTop<list.scrollTop)list.scrollTop=option.offsetTop;
+    else if(option.offsetTop+option.offsetHeight>list.scrollTop+list.clientHeight)list.scrollTop=option.offsetTop+option.offsetHeight-list.clientHeight;
+  }, [active,open,uid]);
   const start = () => { const rect = root.current?.getBoundingClientRect(); setAbove(Boolean(rect && window.innerHeight - rect.bottom < 280 && rect.top > 280)); setActive(Math.max(0, options.findIndex(option => option.value === value))); setOpen(true); };
   return <div className="themed-select" ref={root} onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget as Node)) setOpen(false); }}>
-    <button id={id} type="button" role="combobox" aria-label={label} aria-expanded={open} aria-controls={listId}
+    <button id={id} {...aria} type="button" role="combobox" aria-label={label} aria-expanded={open} aria-controls={listId}
       aria-haspopup="listbox" aria-activedescendant={open ? `${uid}-${active}` : undefined} disabled={disabled}
       onClick={() => open ? setOpen(false) : start()}
       onKeyDown={event => {
-        if (event.key === 'Escape') { setOpen(false); return; }
+        if (event.key === 'Escape' && open) { event.preventDefault(); event.stopPropagation(); setOpen(false); return; }
         if (['ArrowDown','ArrowUp','Home','End'].includes(event.key)) {
           event.preventDefault();
           if (!open) { start(); return; }

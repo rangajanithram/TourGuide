@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useId, useRef, useState } from 'react';
 export interface SearchOption { value: string; label: string; description?: string }
-export default function PlaceSearch({ label, value, options, onChange, placeholder = 'Type to search', disabled = false, onQueryChange, onPendingChange, status, filterLocally = true }: {
+export default function PlaceSearch({ label, value, options, onChange, placeholder = 'Type to search', disabled = false, onQueryChange, onPendingChange, status, filterLocally = true, id: providedId, error }: {
   label: string; value: string; options: SearchOption[]; onChange: (value: string) => void; placeholder?: string; disabled?: boolean;
   onQueryChange?: (query: string) => void; onPendingChange?: (pending: boolean) => void; status?: string;
   filterLocally?: boolean;
+  id?: string; error?: string;
 }) {
-  const id = useId();
+  const uid = useId(); const id=providedId||uid;
   const list = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -30,7 +31,7 @@ export default function PlaceSearch({ label, value, options, onChange, placehold
   const pick = (option: SearchOption) => { onChange(option.value); setQuery(''); setPending(false); onPendingChange?.(false); onQueryChange?.(''); setOpen(false); };
   return <div className="place-search" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
     <label htmlFor={id}>{label}</label>
-    <input id={id} role="combobox" autoComplete="off" aria-autocomplete="list" aria-expanded={open} aria-controls={`${id}-list`} aria-activedescendant={open && matches[active] ? `${id}-${active}` : undefined}
+    <input id={id} role="combobox" autoComplete="off" aria-invalid={!!error} aria-describedby={error?`${id}-error`:undefined} aria-autocomplete="list" aria-expanded={open} aria-controls={`${id}-list`} aria-activedescendant={open && matches[active] ? `${id}-${active}` : undefined}
       disabled={disabled} placeholder={placeholder} value={open || pending ? query : options.find(option => option.value === value)?.label || value}
       onFocus={() => { setOpen(true); setActive(0); }} onChange={event => { setQuery(event.target.value); setPending(true); onPendingChange?.(true); onQueryChange?.(event.target.value); setActive(0); setOpen(true); }}
       onKeyDown={event => {
@@ -43,6 +44,7 @@ export default function PlaceSearch({ label, value, options, onChange, placehold
         onMouseDown={event => event.preventDefault()} onMouseEnter={() => setActive(index)} onClick={() => pick(option)}>{option.label}{option.description && <small className="block">{option.description}</small>}</div>)}
       {!matches.length && <p role="status">{status || 'No matching places. Try another name.'}</p>}
     </div>}
+    {error&&<p id={`${id}-error`} className="field-error">{error}</p>}
     {status && <p className="step-note" role="status">{status}</p>}
   </div>;
 }
