@@ -490,3 +490,27 @@ body { font-family: var(--font-geist-sans),Arial,sans-serif; }
 @media(max-width:480px) { .site-header>div { padding-inline:16px; gap:8px; } .site-header nav { gap:4px; } .site-header nav>a { padding:8px 6px; } }
 
 .planner-intro p { font-size:16px; line-height:1.65; }
+
+/* Shared page frame and footer: no floating controls or blank bottom spacer. */
+.site-page { flex:1; min-width:0; display:flex; flex-direction:column; }
+.site-page>main,.site-page>.planner-theme { flex:1; }
+.site-page>.planner-theme,.site-page>.min-h-screen { min-height:0; }
+.site-footer { flex-shrink:0; border-top:1px solid var(--ui-line,#c6d2c0); background:var(--ui-surface,#fffdf5); color:var(--ui-ink,#243e33); }
+.site-footer-inner { max-width:1480px; margin:auto; padding:24px clamp(20px,4vw,80px); display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.site-footer-brand { display:inline-flex; align-items:center; gap:8px; font-size:17px; font-weight:700; }
+.site-footer p { margin:6px 0 0; font-size:14px; line-height:1.6; color:var(--ui-muted,#526653); }
+.site-footer nav { display:flex; flex-wrap:wrap; gap:8px 24px; font-size:14px; }
+.site-footer nav a { display:inline-flex; align-items:center; min-height:44px; text-underline-offset:4px; }
+.site-footer nav a:hover { text-decoration:underline; }
+.header-tools { display:flex; align-items:center; gap:16px; }
+.account-header .header-tools>a { display:flex; align-items:center; gap:6px; }
+.site-page .account-page { height:auto; min-height:calc(100svh - 120px); padding-bottom:24px; }
+@media(max-width:640px) {
+ .site-footer-inner { flex-direction:column; align-items:flex-start; gap:12px; padding-block:24px; }
+ .site-header>div { height:auto; flex-wrap:wrap; padding-block:8px; }
+ .site-header nav { order:3; width:100%; margin:0; justify-content:space-between; }
+ .site-header nav>a { min-height:44px; min-width:44px; justify-content:center; }
+ .site-header>div>.site-theme-toggle { margin-left:auto; }
+ .header-tools { gap:10px; }
+ .profile-page>header { flex-wrap:wrap; }
+}

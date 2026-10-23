@@ -398,9 +398,15 @@
 @media(max-width:540px) { .cloud-note { padding-left: 24px; padding-right: 24px; } .boarding-destination { max-width: none; width: 100%; } .boarding-stub { border-left: 0; border-top: 2px dashed #aeb796; border-radius: 0 0 18px 18px; } .boarding-stub::before,.boarding-stub::after { display: none; } }
 @media(prefers-reduced-motion:reduce) { .scroll-reveal { opacity: 1; transform: none; transition: none; } .manual-panel article { animation: none; } }
 
-/* Leave room for the shared site theme button. */
-.journey-guide .scene-controls { bottom:82px; }
+/* Theme control now lives in the header. */
 
 .manual-tabs { flex-wrap:wrap; gap:8px 16px; }
 .manual-tabs button { font-size:15px; min-height:44px; color:var(--muted); }
 .manual-panel article p { font-size:16px; line-height:1.7; }
+
+.journey-header>.site-theme-toggle { margin:0; }
+@media(max-width:540px) {
+ .journey-header { gap:10px; }
+ .journey-header .guide-account-link { display:none; }
+ .journey-header .nav-planner { margin-left:auto; min-height:44px; display:flex; align-items:center; }
+}

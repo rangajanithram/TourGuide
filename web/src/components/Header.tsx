@@ -1,4 +1,5 @@
 'use client';
+import ThemeToggle from './ThemeToggle';
 import Link from 'next/link';
 import { Compass, BookOpen, User, BookmarkCheck, PlusCircle, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -12,7 +13,7 @@ export default function Header() {
           <Compass size={26} />
           <span>TripWeave</span>
         </Link>
-        <nav aria-label="Main navigation" className="flex items-center gap-2 sm:gap-3 text-sm">
+        <nav aria-label="Main navigation" className="ml-auto flex items-center gap-2 sm:gap-3 text-sm">
           <Link href="/guide" aria-label="Field guide" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-[#243e33] hover:bg-[#e7efe1] transition">
             <BookOpen size={17} />
             <span className="hidden md:inline">Field guide</span>
@@ -32,6 +33,7 @@ export default function Header() {
           </Link>
           {user && <LogoutButton compact />}
         </nav>
+        <ThemeToggle />
       </div>
     </header>
   );

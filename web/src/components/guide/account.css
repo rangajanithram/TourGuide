@@ -55,7 +55,7 @@
   padding-left: 14px;
   margin-left: 8px;
 }
-.account-header>a:last-child {
+.account-header .header-tools>a {
   font-size: 11px;
   letter-spacing: 0;
   font-weight: 500;
@@ -369,7 +369,7 @@
   .account-header>a>span {
     display: none;
   }
-  .account-header>a:last-child {
+  .account-header .header-tools>a {
     font-size: 9px;
   }
   .account-shell {
@@ -620,7 +620,7 @@
 .account-page { background-size: auto; padding: 0 clamp(16px,4vw,64px); gap: 16px; }
 .account-header { width: 100%; height: 64px; min-height: 64px; margin: 16px auto 0; padding: 12px 24px; border: 1px solid var(--ui-line,#cbd5bf); border-radius: 18px; background: var(--ui-surface,#f9faefb8); box-shadow: 0 5px 25px #29433308; }
 .account-header>a { min-width: 0; }
-.account-header>a:last-child { flex-shrink: 0; min-height: 40px; }
+.account-header .header-tools>a { flex-shrink: 0; min-height: 40px; }
 .account-shell { margin: auto; width: 100%; }
 .account-form-panel,.account-story { min-height: 0; }
 .account-story h1,.account-form-panel h2 { font-family: var(--font-display),Georgia,serif; font-weight: 450; font-optical-sizing: auto; }
@@ -654,9 +654,11 @@
   .account-header { padding: 10px 14px; margin-top: 12px; }
   .account-header>a { font-size: 19px; gap: 6px; }
   .account-header>a>span { display: none; }
-  .account-header>a:last-child { font-size: 11px; }
+  .account-header .header-tools>a { font-size: 11px; }
   .account-form-panel form.signup-fields { grid-template-columns: 1fr; }
   .account-form-panel,.account-story { padding: 24px 20px; }
 }
 
 @media(max-width:850px) { .account-story,.account-form-panel { transition: none; } }
+
+@media(max-width:540px) { .account-header .header-tools>a>span { display:none; } .account-header .header-tools>a { min-width:32px; justify-content:center; } }

@@ -4,6 +4,7 @@ import { useRef, useState, useMemo, type FormEvent } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import ThemeToggle from '../ThemeToggle';
 import ExperienceMetrics from './ExperienceMetrics';
 import { useAuth } from '@/context/AuthContext';
 import { authErrorMessage, EMAIL_NOTICE } from '@/lib/auth-policy';
@@ -157,9 +158,9 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
           <Compass size={25} />
           TripWeave<span>THE FOREST LINE</span>
         </Link>
-        <Link href="/guide" aria-label="TripWeave field guide">
-          Explore the guide <ArrowRight size={16} />
-        </Link>
+        <div className="header-tools"><Link href="/guide" aria-label="TripWeave field guide">
+          <span>Explore the guide</span> <ArrowRight size={16} />
+        </Link><ThemeToggle /></div>
       </header>
 
       <div className={`account-shell ${signup ? 'account-signup' : ''}`}>
@@ -439,10 +440,7 @@ export default function AccountWelcome({ initialMode = 'login', initialNotice = 
         </section>
       </div>
 
-      <footer className="account-footer">
-        <span>LESS PLANNING FRICTION. MORE POSSIBILITY.</span>
-        <Link href="/guide" aria-label="TripWeave field guide">Explore the field guide ↗</Link>
-      </footer>
+
     </main>
   );
 }

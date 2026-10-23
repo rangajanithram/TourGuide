@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./theme.css";
+import SiteFooter from "@/components/SiteFooter";
 import SiteTheme from "@/components/SiteTheme";
 import { themeScript } from "@/lib/site-theme";
 
@@ -41,7 +42,8 @@ export default function RootLayout({
         className={`${displayFont.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SiteTheme><AuthProvider>
-          {children}
+          <div className="site-page">{children}</div>
+          <SiteFooter />
         </AuthProvider></SiteTheme>
       </body>
     </html>

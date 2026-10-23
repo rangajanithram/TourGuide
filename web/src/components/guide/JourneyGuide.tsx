@@ -5,11 +5,12 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useSiteTheme } from '../SiteTheme';
+import ThemeToggle from '../ThemeToggle';
 import ExperienceMetrics from './ExperienceMetrics';
 import JourneyLoading from '../JourneyLoading';
 import ThemedSelect from '../ThemedSelect';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowRight, Check, Compass, MapPin, Minus, Moon, Pause, Play, Plus, RotateCcw, Sun, Ticket, TrainFront, Users, Wallet, Route, Coffee, Sparkles, CloudFog, CloudRain } from 'lucide-react';
+import { ArrowDown, ArrowRight, Check, Compass, MapPin, Minus, Pause, Play, Plus, RotateCcw, Sun, Ticket, TrainFront, Users, Wallet, Route, Coffee, Sparkles, CloudFog, CloudRain } from 'lucide-react';
 
 const TravelWorld = dynamic(() => import('./NatureRailway'), { ssr: false, loading: () => <div className="world-loading"><JourneyLoading compact label="Growing your little world…" /></div> });
 const stations = [
@@ -29,7 +30,7 @@ const manuals = [
   { title: '2. Places & meals', icon: MapPin, steps: [ ['Set your style', 'Choose travel style, pace and local transport. Open comfort options for climbing, walking and visit length. Choose interests to help us pick stops.'], ['Search and pin', 'Search real places in your destination. Add several places one at a time. A pin means the place must fit. Confirm missing time and price estimates before adding a listing.'], ['Plan meals and extra stops', 'Set a per-person meal budget or arrange your own meals. Automatic real-place discovery needs your agreement to its estimates. A meal block without a named venue means you still need to find somewhere to eat.'] ] },
   { title: '3. Read your plan', icon: Route, steps: [ ['Compare plans', 'Create your trip and choose from the plans that fit. There may be fewer than three. If nothing fits, reduce pins, change dates or increase the budget.'], ['Follow each day', 'Read stops from top to bottom and use the day filters and map. Weather may be a forecast or seasonal estimate. Older rating samples are not current reviews.'], ['Check costs and warnings', 'Read Before you go, Budget breakdown and Plan checks. Prices, opening hours, travel times and hotel rooms are not booking confirmations. Check them before travel.'] ] },
   { title: '4. Save & change', icon: Coffee, steps: [ ['Save and reopen', 'Give the trip a title and choose Save trip. Open it from My trips to see the saved version without generating again. Rename or delete trips from My trips; deletion has no recovery option.'], ['Edit and save a revision', 'Use Pin, Swap, Sunset or Drop. Read the cost and time preview before Apply Changes. Choose Save revision to keep the edit. Make this day easier offers rest options; check its preview too.'], ['Restore an earlier version', 'Open View history, inspect an earlier version and restore it. Restoring creates a new revision. Edits you have not saved can be lost when leaving or reloading the page.'] ] },
-  { title: '5. Take it with you', icon: Users, steps: [ ['Share a readable copy', 'Use Copy Text to send the actual itinerary to your group, or Add to calendar to download a calendar file. The settings link only fills basic planner settings; it does not open your private saved trip or include every advanced choice.'], ['Track spending', 'Split costs on this device stores expenses in this browser. It does not sync with your group or another device. Marking a visit can record spending; check amounts before saving.'], ['Keep control', 'Confirm payments manually; a UPI link does not prove payment. Switch light or dark mode with the bottom-right button. If a service is slow, keep the tab open or cancel, then retry when it is ready.'] ] },
+  { title: '5. Take it with you', icon: Users, steps: [ ['Share a readable copy', 'Use Copy Text to send the actual itinerary to your group, or Add to calendar to download a calendar file. The settings link only fills basic planner settings; it does not open your private saved trip or include every advanced choice.'], ['Track spending', 'Split costs on this device stores expenses in this browser. It does not sync with your group or another device. Marking a visit can record spending; check amounts before saving.'], ['Keep control', 'Confirm payments manually; a UPI link does not prove payment. Switch light or dark mode with the theme button in the header. If a service is slow, keep the tab open or cancel, then retry when it is ready.'] ] },
 ];
 const faqs = [
   ['Can I book my trip here?', 'TripWeave is a planning prototype. It helps you understand an itinerary and its estimated cost; it does not confirm hotel, attraction, or transport bookings.'],
@@ -60,7 +61,7 @@ export default function JourneyGuide() {
   const progress = useRef(0);
   const progressBar = useRef<HTMLDivElement>(null);
   const [station, setStation] = useState(0);
-  const { dark: night, toggle: toggleTheme } = useSiteTheme();
+  const { dark: night } = useSiteTheme();
   const [weather, setWeather] = useState('clear');
   const [journeyVisible, setJourneyVisible] = useState(true);
   const [paused, setPaused] = useState(false);
@@ -129,7 +130,7 @@ export default function JourneyGuide() {
     <header className="journey-header">
       <Link className="journey-brand" href="/guide" aria-label="TripWeave field guide"><span><Compass size={23} strokeWidth={1.6} /></span>TripWeave<i /></Link>
       <nav aria-label="Guide navigation"><a href="#departure">The journey</a><a href="#user-manual">Field guide</a><a href="#questions">Good to know</a></nav>
-      <Link className="guide-account-link" href={user ? "/account" : "/login"}>{user ? "My profile" : "Log in / Sign up"}</Link><Link className="nav-planner" href={user || authLoading ? "/planner" : "/login"}>Open planner <ArrowRight size={16} /></Link>
+      <Link className="guide-account-link" href={user ? "/account" : "/login"}>{user ? "My profile" : "Log in / Sign up"}</Link><Link className="nav-planner" href={user || authLoading ? "/planner" : "/login"}>Open planner <ArrowRight size={16} /></Link><ThemeToggle />
     </header>
 
     <div className="journey-layout" ref={journey}>
@@ -200,7 +201,7 @@ export default function JourneyGuide() {
         <div className="scene-orbit orbit-one" /><div className="scene-orbit orbit-two" /><div className="scene-sun" />
         <TravelWorld weather={weather} progress={progress} night={night} paused={paused} rotation={rotation} />
         <div className="scene-postmark">TAKE THE<strong>scenic route.</strong><span>WITH TRIPWEAVE</span></div>
-        <div className="scene-controls" hidden={!journeyVisible}><div className="weather-icons" role="group" aria-label="Illustrated weather">{[{value:'clear',label:'Sunshine',icon:Sun},{value:'mist',label:'Mountain mist',icon:CloudFog},{value:'rain',label:'Gentle rain',icon:CloudRain}].map(item => <button key={item.value} onClick={() => setWeather(item.value)} aria-label={item.label} title={item.label} aria-pressed={weather === item.value}><item.icon size={19} /></button>)}</div><button onClick={() => toggleTheme()} aria-label={night ? 'Switch to daytime scenery' : 'Switch to evening scenery'} aria-pressed={night} title="Day / evening">{night ? <Sun size={18} /> : <Moon size={18} />}</button><button onClick={() => setRotation(value => value + Math.PI / 4)} aria-label="Rotate the miniature world" title="Rotate world"><RotateCcw size={18} /></button><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume ambient animation' : 'Pause ambient animation'} aria-pressed={paused} title="Pause / play">{paused ? <Play size={18} /> : <Pause size={18} />}</button></div>
+        <div className="scene-controls" hidden={!journeyVisible}><div className="weather-icons" role="group" aria-label="Illustrated weather">{[{value:'clear',label:'Sunshine',icon:Sun},{value:'mist',label:'Mountain mist',icon:CloudFog},{value:'rain',label:'Gentle rain',icon:CloudRain}].map(item => <button key={item.value} onClick={() => setWeather(item.value)} aria-label={item.label} title={item.label} aria-pressed={weather === item.value}><item.icon size={19} /></button>)}</div><button onClick={() => setRotation(value => value + Math.PI / 4)} aria-label="Rotate the miniature world" title="Rotate world"><RotateCcw size={18} /></button><button onClick={() => setPaused(!paused)} aria-label={paused ? 'Resume ambient animation' : 'Pause ambient animation'} aria-pressed={paused} title="Pause / play">{paused ? <Play size={18} /> : <Pause size={18} />}</button></div>
         <div className="scene-bottom"><div className="station-readout"><div><span>NOW EXPLORING</span><strong>{stations[station].city}</strong></div><p>{stations[station].coordinates}<span>0{station + 1} <i>/ 05</i></span></p></div>
           <div className="rail-progress"><div ref={progressBar} /></div>
           <nav className="station-navigation" aria-label="Journey stops">{stations.map((stop, i) => <a key={stop.id} className={station === i ? 'current' : ''} href={`#${stop.id}`} aria-current={station === i ? 'step' : undefined}><span>{i < station ? <Check size={12} /> : i + 1}</span><strong>{stop.city}</strong></a>)}</nav>
@@ -226,6 +227,6 @@ export default function JourneyGuide() {
     <section className="faq-section section-shell" id="questions"><div><div className="eyebrow">BEFORE YOU SET OFF</div><h2>Good questions.<br /><em>Honest answers.</em></h2><p>A little clarity makes a better travel companion.</p></div><div className="faq-list">{faqs.map(([question, answer]) => <details key={question}><summary>{question}<Plus size={17} /></summary><p>{answer}</p></details>)}</div></section>
 
     <section className="boarding-section section-shell"><div className="boarding-pass"><div className="boarding-main"><div className="eyebrow"><Ticket size={17} /> YOUR NEXT CHAPTER</div><h2>Shall we <em>go somewhere?</em></h2><p>You bring the curiosity. Let’s start putting the trip together.</p><div className="boarding-form"><div className="boarding-destination"><span>WHERE TO?</span><ThemedSelect id="journey-destination" label="Destination" value={destination} onChange={setDestination} options={stations.map(stop => ({ value: stop.city, label: stop.city }))} /></div><button className="journey-button" onClick={() => openExample(destination)}>Start my trip <ArrowRight size={18} /></button></div></div><div className="boarding-stub"><Compass size={58} strokeWidth={1} /><span>FOREST LINE · TW 001<br /><strong>CURIOUS TRAVELER</strong></span><div className="ticket-barcode" /><small>TRIPWEAVE · EXPLORER PASS<br />THE GOOD PART STARTS HERE</small></div></div></section>
-    <footer className="journey-footer"><Link className="journey-brand" href="/guide" aria-label="TripWeave field guide"><Compass size={21} />TripWeave</Link><span>Made for the journey. And the people on it.</span><a href="#departure">Back to departure ↑</a></footer>
+
   </main>;
 }

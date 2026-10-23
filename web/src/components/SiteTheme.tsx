@@ -1,7 +1,6 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { Moon, Sun } from 'lucide-react';
 
 type Theme = 'light' | 'dark';
 const ThemeContext = createContext({ dark: false, toggle: () => {} });
@@ -43,11 +42,5 @@ export default function SiteTheme({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(storageKey, next); } catch { /* Theme still works for this visit. */ }
   }, []);
   const dark = theme === 'dark';
-  return <ThemeContext.Provider value={{ dark, toggle }}>
-    {children}
-    <button type="button" className="site-theme-toggle" onClick={toggle} aria-label={`Switch to ${dark ? 'light' : 'dark'} mode`} title={`Switch to ${dark ? 'light' : 'dark'} mode`}>
-      {dark ? <Sun size={18} aria-hidden="true" /> : <Moon size={18} aria-hidden="true" />}
-      <span>{dark ? 'Light mode' : 'Dark mode'}</span>
-    </button>
-  </ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ dark, toggle }}>{children}</ThemeContext.Provider>;
 }

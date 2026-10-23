@@ -1091,9 +1091,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-[#d6dfd0] py-6 mt-12 bg-[#f3f4ea] text-center text-xs text-[#596b57]">
-        <p>TripWeave · A little planning. A world of possibility.</p>
-      </footer>
+
     </div>
   );
 }

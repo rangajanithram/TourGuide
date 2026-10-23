@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import ThemeToggle from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { requireVerifiedUser } from '@/lib/require-user';
 import ProfileSettings from '@/components/auth/ProfileSettings';
@@ -20,6 +21,7 @@ export default async function AccountPage() {
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/trips">My trips →</Link>
           <Link href="/planner">Create trip →</Link>
+          <ThemeToggle />
         </div>
       </header>
       <section>
