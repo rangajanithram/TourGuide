@@ -48,6 +48,7 @@ export interface CrowdForecast {
 }
 
 export interface ScheduledActivity {
+  meal_venue_id?: string | null;
   rating_evidence?: string | null;
   meal_type?: 'breakfast' | 'lunch' | 'dinner' | null;
   place_id?: string | null;
@@ -193,7 +194,7 @@ export interface DiscoveryPlanningPolicy { visit_minutes: number; attraction_cos
 
 export interface TripPlan {
   candidate_summary?: { total_candidates: number; feasible_candidates: number; confirmed_discovered_candidates: number; rated_candidates: number; weather_used_in_ranking: boolean; notes: string };
-  planning_preferences?: { discovery_policy?: DiscoveryPlanningPolicy | null; stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null; journey_timing?: JourneyTiming | null; booked_transport?: BookedTransport | null };
+  planning_preferences?: { preferred_activities?: string[]; discovery_policy?: DiscoveryPlanningPolicy | null; stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null; journey_timing?: JourneyTiming | null; booked_transport?: BookedTransport | null };
   journey_timing?: JourneyTiming | null;
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
@@ -324,6 +325,7 @@ export interface BookedTransport {
   paid_inr: number;
 }
 export interface TripFormData {
+ preferred_activities?: string[];
  whole_journey_budget_inr?: number;
  booked_transport?: BookedTransport;
  intercity_modes?: ('train' | 'bus' | 'flight')[];

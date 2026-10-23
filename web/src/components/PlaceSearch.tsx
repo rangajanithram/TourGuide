@@ -12,6 +12,13 @@ export default function PlaceSearch({ label, value, options, onChange, placehold
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [pending, setPending] = useState(false);
+  const previousValue = useRef(value);
+  useEffect(() => {
+    if (previousValue.current === value) return;
+    previousValue.current = value;
+    setQuery(''); setPending(false); setOpen(false); setActive(0);
+    onPendingChange?.(false);
+  }, [value, onPendingChange]);
   const matches = options.filter(option => !filterLocally || query.toLowerCase().trim().split(/\s+/).every(word => option.label.toLowerCase().includes(word))).slice(0, 12);
   useEffect(() => {
     const root = list.current;

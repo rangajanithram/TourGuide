@@ -161,6 +161,8 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if (form.avoid_climbing !== undefined && typeof form.avoid_climbing !== 'boolean') invalid('climbing preference');
   if (form.food_preference !== undefined && !['any', 'vegetarian', 'vegan', 'halal', 'own_meals'].includes(form.food_preference)) invalid('food preference');
   strings(form.interests, 'interests'); strings(form.locked_activities || [], 'pins');
+  strings(form.preferred_activities || [], 'optional places');
+  if ((form.preferred_activities || []).length > 15) invalid('too many optional places');
   if (form.interests.length > 20) invalid('too many interests');
   if (form.start_location !== undefined && (typeof form.start_location !== 'string' || form.start_location.length > 160)) invalid('starting location');
   if ((form.locked_activities || []).length > 15) invalid('too many pins');

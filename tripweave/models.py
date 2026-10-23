@@ -209,6 +209,7 @@ class DiscoveryPlanningPolicy(BaseModel):
 
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    preferred_activities: List[str] = Field(default_factory=list, max_length=15, description="Optional shortlisted catalog stops; never a feasibility requirement")
     whole_journey_budget_inr: Optional[int] = Field(default=None, gt=0, le=5_000_000, strict=True)
     booked_transport: Optional[BookedTransport] = None
     intercity_modes: List[Literal["train", "bus", "flight"]] = Field(default_factory=lambda: ["train", "bus", "flight"], min_length=1, max_length=3)
@@ -469,6 +470,7 @@ class ExpenseBreakdown(BaseModel):
     per_person_inr: int = Field(default=0, ge=0, le=5_000_000)
 
 class ScheduledActivity(BaseModel):
+    meal_venue_id: Optional[str] = None
     rating_evidence: Optional[str] = Field(default=None, max_length=280)
     meal_type: Optional[Literal["breakfast", "lunch", "dinner"]] = None
     place_id: Optional[str] = Field(default=None, max_length=523)

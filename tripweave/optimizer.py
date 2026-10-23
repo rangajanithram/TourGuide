@@ -32,7 +32,8 @@ class TripOptimizer:
         arrival_available_mins: int = 60,
         departure_deadline_mins: int = 720,
         preferred_day_by_place: Optional[dict[str, int]] = None,
-        weather_by_day: Optional[dict] = None
+        weather_by_day: Optional[dict] = None,
+        preferred_activities: Optional[List[str]] = None
     ):
         self.arrival_available_mins = arrival_available_mins
         self.departure_deadline_mins = departure_deadline_mins
@@ -43,6 +44,7 @@ class TripOptimizer:
         self.people_count = people_count
         self.pace = pace
         self.interests = interests or []
+        self.preferred_activities = {value.strip().lower() for value in (preferred_activities or [])}
         self.max_total_budget = max_total_budget
         self.max_transport_budget = max_transport_budget
         self.start_date = start_date
@@ -231,6 +233,8 @@ class TripOptimizer:
             is_locked = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
             if not is_locked:
                 base_drop_penalty = 2000
+                if place.place_id.lower() in self.preferred_activities or place.name.lower() in self.preferred_activities:
+                    base_drop_penalty += 1800
                 # Higher penalty if it matches user's interests (solver works harder to keep it)
                 if any(interest.lower() in [t.lower() for t in place.tags] for interest in self.interests):
                     base_drop_penalty += 1500
@@ -488,6 +492,7 @@ class TripOptimizer:
                     rating=getattr(place, "rating", None),
                     rating_evidence=place.rating_evidence,
                     meal_type=place.meal_type,
+                    meal_venue_id=place.meal_venue_id,
                     review_count=getattr(place, "review_count", None),
                     formatted_address=getattr(place, "formatted_address", None),
                     osm_url=getattr(place, "osm_url", None) or f"https://www.openstreetmap.org/?mlat={place.lat}&mlon={place.lng}#map=16/{place.lat}/{place.lng}"

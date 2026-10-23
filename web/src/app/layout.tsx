@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./theme.css";
+import "./planner-visual.css";
 import SiteFooter from "@/components/SiteFooter";
 import SiteTheme from "@/components/SiteTheme";
 import { themeScript } from "@/lib/site-theme";

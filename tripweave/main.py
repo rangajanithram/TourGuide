@@ -328,6 +328,7 @@ def _build_single_plan(
         start_date=request.start_date,
         variant_type=variant,
         locked_activities=request.locked_activities,
+        preferred_activities=request.preferred_activities,
         group_profile=request.group_profile,
         arrival_available_mins=request.arrival_available_mins,
         departure_deadline_mins=request.departure_deadline_mins,
@@ -348,6 +349,7 @@ def _build_single_plan(
         itinerary.planning_preferences.arrival_available_mins = request.arrival_available_mins
         itinerary.planning_preferences.departure_deadline_mins = request.departure_deadline_mins
         itinerary.planning_preferences.external_stops = request.external_stops
+        itinerary.planning_preferences.preferred_activities = request.preferred_activities
         itinerary.planning_preferences.max_visit_minutes = request.max_visit_minutes
         itinerary.planning_preferences.avoid_climbing = request.avoid_climbing
         itinerary.planning_preferences.food_preference = request.food_preference
@@ -473,11 +475,17 @@ def health_check():
 
 @app.get("/api/planner/catalog", tags=["Places Database"])
 def planner_catalog(destination: str = "hyderabad"):
-    places = [p for p in get_database_places(destination) if p.place_type not in {"hotel", "rest_break"}]
+    places = [p for p in attach_rating_evidence(get_database_places(destination), destination) if p.place_type not in {"hotel", "rest_break"}]
     return {
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,
-                    "duration": p.duration_minutes, "lat": p.lat, "lng": p.lng} for p in places],
+                    "duration": p.duration_minutes, "lat": p.lat, "lng": p.lng,
+                    "cost": p.estimated_cost_per_person_inr,
+                    "open_time_mins": p.open_time_mins, "close_time_mins": p.close_time_mins,
+                    "closed_days": p.closed_days, "tags": p.tags,
+                    "rating": p.rating, "review_count": p.review_count, "rating_evidence": p.rating_evidence,
+                    "formatted_address": p.formatted_address, "source_reference": p.source_reference,
+                    "last_verified_date": p.last_verified_date} for p in places],
         "interests": sorted({tag for p in places for tag in p.tags} | {
             "history", "heritage", "architecture", "art", "museum", "culture", "fortress",
             "palace", "nature", "garden", "park", "hilltop", "panoramic", "viewpoint",

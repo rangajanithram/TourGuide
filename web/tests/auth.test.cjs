@@ -771,3 +771,21 @@ test('expense category budgets never count meals as attractions or add unschedul
   assert.deepEqual(budget,{dining:3600,activities:2000,lodging:2400,transit:3746,total:11746});
   assert.equal(budget.dining+budget.activities+budget.lodging+budget.transit,budget.total);
 });
+
+test('meal placeholders remain distinct from named restaurants, including old snapshots', () => {
+  const { isUnassignedMeal, timeBetweenStops } = load('lib/itinerary-presentation.ts');
+  assert.equal(isUnassignedMeal({meal_type:'lunch',place_name:'Lunch - arrange venue'}),true);
+  assert.equal(isUnassignedMeal({meal_type:'lunch',meal_venue_id:'venue-1',place_name:'Lunch - Cafe'}),false);
+  assert.equal(isUnassignedMeal({place_name:'Museum'}),false);
+  assert.equal(timeBetweenStops({end_time:'11:30 AM'},{start_time:'12:15 PM'}),45);
+  assert.equal(timeBetweenStops({end_time:'12:30 PM'},{start_time:'1:00 PM'}),30);
+  assert.equal(timeBetweenStops({end_time:'bad'},{start_time:'13:00'}),null);
+  assert.equal(timeBetweenStops({end_time:'14:00'},{start_time:'13:00'}),null);
+});
+test('travel art is local, labelled and does not use unrelated venue photographs', () => {
+  const { travelArtwork } = load('lib/travel-media.ts');
+  assert.equal(travelArtwork('hyderabad', 'attractions', 'Salar Jung Museum').src,'/images/travel/museum.webp');
+  assert.equal(travelArtwork('jaipur', 'attractions', 'Amber Fort').src,'/images/travel/fort.webp');
+  assert.match(travelArtwork('hyderabad','hotel').alt,/fictional hotel/);
+  assert.match(travelArtwork('unsupported-city').caption,/AI illustration/);
+});
