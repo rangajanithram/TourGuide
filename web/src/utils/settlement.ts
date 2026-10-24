@@ -97,9 +97,9 @@ export function calculateOptimalSettlements(
   const creditors: BalanceEntry[] = [];
 
   for (const [memberId, net] of Array.from(netBalances.entries())) {
-    if (net < -0.01) {
+    if (net <= -0.01) {
       debtors.push({ memberId, amount: Math.abs(net) });
-    } else if (net > 0.01) {
+    } else if (net >= 0.01) {
       creditors.push({ memberId, amount: net });
     }
   }
@@ -215,9 +215,9 @@ export function formatWhatsAppExpenseSummary(
   if (totalEstimatedBudget && totalEstimatedBudget > 0) {
     const diff = totalEstimatedBudget - totalSpent;
     if (diff >= 0) {
-      budgetLine = ` (Budget: ₹${totalEstimatedBudget.toLocaleString('en-IN')} • Under by ₹${diff.toLocaleString('en-IN')} ✅)`;
+      budgetLine = ` (Plan estimate: ₹${totalEstimatedBudget.toLocaleString('en-IN')} • Below estimate by ₹${diff.toLocaleString('en-IN')} ✅)`;
     } else {
-      budgetLine = ` (Budget: ₹${totalEstimatedBudget.toLocaleString('en-IN')} • Over by ₹${Math.abs(diff).toLocaleString('en-IN')} ⚠️)`;
+      budgetLine = ` (Plan estimate: ₹${totalEstimatedBudget.toLocaleString('en-IN')} • Above estimate by ₹${Math.abs(diff).toLocaleString('en-IN')} ⚠️)`;
     }
   }
 
@@ -242,18 +242,16 @@ export function formatWhatsAppExpenseSummary(
     for (const s of pendingSettlements) {
       const fromName = memberMap.get(s.from_member_id)?.name || 'Member';
       const toName = memberMap.get(s.to_member_id)?.name || 'Member';
-      const toMember = memberMap.get(s.to_member_id);
-      const upiNote = toMember?.upi_id ? ` (UPI: ${toMember.upi_id})` : '';
-      lines.push(`  • *${fromName}* pays *${toName}*: ₹${s.amount_inr.toLocaleString('en-IN')}${upiNote}`);
+      lines.push(`  • *${fromName}* pays *${toName}*: ₹${s.amount_inr.toLocaleString('en-IN')}`);
     }
     lines.push('');
   } else if (ledger.expenses.length > 0) {
-    lines.push(`🎉 *All group expenses are completely settled!* No pending dues.`);
+    lines.push(`🎉 *No payments remain in these local records.* Payments were confirmed manually.`);
     lines.push('');
   }
 
   if (settledList.length > 0) {
-    lines.push(`✅ *Completed Settlements:*`);
+    lines.push(`✅ *Payments recorded as received (manual confirmation):*`);
     for (const s of settledList) {
       const fromName = memberMap.get(s.from_member_id)?.name || 'Member';
       const toName = memberMap.get(s.to_member_id)?.name || 'Member';
@@ -262,6 +260,6 @@ export function formatWhatsAppExpenseSummary(
     lines.push('');
   }
 
-  lines.push(`_Organized seamlessly with TourGuide / TripWeave_`);
+  lines.push(`_TripWeave expense summary · copied text, not live sync_`);
   return lines.join('\n');
 }

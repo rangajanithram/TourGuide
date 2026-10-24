@@ -3,10 +3,11 @@
 import React, { useState } from 'react';
 import {
   MapPin, Calendar, Users, IndianRupee, Car,
-  Sparkles, Pin, Tag, SlidersHorizontal, Check,
+  Sparkles, Pin, Tag, SlidersHorizontal,
   Share2, HeartHandshake, EyeOff
 } from 'lucide-react';
 import { TripFormData, TripPlan } from '../types/trip';
+import PlanShareDialog from './PlanShareDialog';
 
 interface SharedTripOverviewProps {
   formData: TripFormData | null;
@@ -52,7 +53,7 @@ export default function SharedTripOverview({
   onToggleEditor,
   showEditor
 }: SharedTripOverviewProps) {
-  const [copied, setCopied] = useState(false);
+  const [shareOpen,setShareOpen]=useState(false);
 
   const destination = (formData?.destination || currentPlan?.plan_name || 'Destination').toUpperCase();
   const origin = formData?.origin_city ? formData.origin_city.toUpperCase() : null;
@@ -67,40 +68,6 @@ export default function SharedTripOverview({
   const pinnedStops = formData?.locked_activities || [];
   const interests = formData?.interests || [];
 
-  const handleCopyLink = async () => {
-    if (typeof window === 'undefined') return;
-    try {
-      const url = new URL(window.location.origin + window.location.pathname);
-      const dest = formData?.destination || currentPlan?.plan_name || 'hyderabad';
-      url.searchParams.set('dest', dest.toLowerCase());
-      if (startDate) url.searchParams.set('start', startDate);
-      if (endDate) url.searchParams.set('end', endDate);
-      if (mode) url.searchParams.set('mode', mode);
-      if (origin) url.searchParams.set('origin', origin.toLowerCase());
-      if (activeVariant) url.searchParams.set('variant', activeVariant.toLowerCase());
-      if (people) url.searchParams.set('people', people.toString());
-      if (budget) url.searchParams.set('budget', budget.toString());
-      if (pace) url.searchParams.set('pace', pace);
-      if (profile && profile !== 'default') url.searchParams.set('profile', profile);
-      if (formData?.origin_type) url.searchParams.set('origin_type', formData.origin_type);
-      if (formData?.start_location) url.searchParams.set('start_location', formData.start_location);
-      if (interests.length > 0) url.searchParams.set('interests', interests.join(','));
-      if (pinnedStops.length > 0) url.searchParams.set('pins', pinnedStops.join(','));
-
-      await navigator.clipboard.writeText(url.toString());
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2500);
-      } catch {
-        // ignore clipboard error
-      }
-    }
-  };
-
   return (
     <div className="result-overview bg-[#fffdf5] border border-amber-500/30 rounded-3xl p-6 shadow-2xl relative overflow-hidden space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
       {/* Background Accent Glow */}
@@ -112,10 +79,10 @@ export default function SharedTripOverview({
           <div className="flex items-center space-x-2 flex-wrap gap-y-1">
             <span className="inline-flex items-center space-x-1.5 text-xs font-bold text-[#89532d] bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider">
               <HeartHandshake className="w-3.5 h-3.5 text-[#89532d]" />
-              <span>Parameter-Generated Trip View</span>
+              <span>Trip made from shared settings</span>
             </span>
             <span className="text-[11px] text-[#526653]">
-              Generated from URL parameters • Save to your account to keep a permanent snapshot
+              A newly generated plan. It may differ from the sender’s original. Save it to keep this version.
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-[#243e33] tracking-tight flex items-center space-x-2 flex-wrap">
@@ -148,34 +115,18 @@ export default function SharedTripOverview({
             {showEditor ? (
               <>
                 <EyeOff className="w-4 h-4 text-black" />
-                <span>Hide Settings Form</span>
+                <span>Hide trip details</span>
               </>
             ) : (
               <>
                 <SlidersHorizontal className="w-4 h-4 text-[#89532d]" />
-                <span>Customize / Edit Settings</span>
+                <span>Edit trip details</span>
               </>
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#89532d] border border-amber-500/30 text-xs font-bold transition-all active:scale-95 shadow-sm"
-            title="Copy URL parameters to re-run the planner with these settings (does not share a saved snapshot)"
-          >
-            {copied ? (
-              <>
-                <Check className="w-4 h-4 text-emerald-700" />
-                <span className="text-emerald-800">Parameters Copied!</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="w-4 h-4 text-[#89532d]" />
-                <span>Copy Parameter Link</span>
-              </>
-            )}
-          </button>
+          <button type="button" className="plan-share-trigger" disabled={!currentPlan} onClick={()=>setShareOpen(true)}><Share2 size={18}/>Share plan copy</button>
+          {shareOpen&&currentPlan&&<PlanShareDialog plan={currentPlan} destination={formData?.destination||destination} formData={formData} onClose={()=>setShareOpen(false)}/>}
         </div>
       </div>
 
@@ -185,7 +136,7 @@ export default function SharedTripOverview({
         <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
           <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
             <MapPin className="w-3 h-3 text-[#89532d]" />
-            <span>Target City</span>
+            <span>Destination</span>
           </span>
           <span className="text-sm font-bold text-[#243e33] block mt-0.5 truncate capitalize">
             {formData?.destination || destination}
@@ -227,7 +178,7 @@ export default function SharedTripOverview({
         <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3">
           <span className="text-[10px] uppercase font-semibold text-[#596b57] tracking-wider block flex items-center space-x-1">
             <IndianRupee className="w-3 h-3 text-[#89532d]" />
-            <span>Local On-Ground Cap</span>
+            <span>Destination budget</span>
           </span>
           <span className="text-sm font-extrabold text-[#89532d] block mt-0.5">
             ₹{budget.toLocaleString('en-IN')}

@@ -1,0 +1,30 @@
+import type {TripPlan,TripFormData} from '@/types/trip';
+export type SharedStop={name:string;start:string;end:string;cost:number;type:string;lat?:number;lng?:number;rating?:number;ratingNote?:string;source?:string};
+export type SharedPlan={version:1;city:string;title:string;createdAt:string;people:number;mode:string;variant:string;total:number;localTravel:number;stay?:{name:string;cost:number;nights:number;address?:string};days:{number:number;date:string;area:string;note:string;weather?:{condition:string;temperature:number;rain:number;forecast:boolean};stops:SharedStop[]}[]};
+const text=(value:unknown,max:number,empty=false):value is string=>typeof value==='string'&&(empty||value.length>0)&&value.length<=max;
+const cost=(n:unknown):n is number=>typeof n==='number'&&Number.isFinite(n)&&n>=0&&n<=100000000;
+export function makeSharedPlan(plan:TripPlan,city:string,form?:TripFormData|null,includeStay=false):SharedPlan {
+  const cut=(s:string|undefined|null,max:number)=>(s||'').slice(0,max);
+  const copy:SharedPlan={version:1,city:cut(city,80),title:cut(plan.plan_name,180),createdAt:new Date().toISOString(),people:form?.people_count||plan.hotel_summary?.people_accommodated||1,mode:plan.transport_mode,variant:plan.variant_type,total:plan.total_cost_inr,localTravel:plan.estimated_transport_cost_inr,
+    days:plan.days.map(day=>({number:day.day_number,date:day.date||'',area:cut(day.cluster_name,200),note:cut(day.planning_note,600),...(day.weather?{weather:{condition:cut(day.weather.condition,120),temperature:day.weather.max_temp_c,rain:day.weather.precipitation_probability_pct,forecast:day.weather.is_forecast}}:{}),stops:day.activities.map(stop=>({name:cut(stop.place_name,200),start:stop.start_time,end:stop.end_time,cost:stop.estimated_cost_inr,type:cut(stop.meal_type?`${stop.meal_type} · ${stop.place_type||'meal'}`:stop.place_type||'visit',80),...(Number.isFinite(stop.lat)&&Number.isFinite(stop.lng)&&!(stop.meal_type&&!stop.meal_venue_id)&&stop.place_type!=='rest_break'?{lat:stop.lat,lng:stop.lng}:{}),...(stop.rating!=null&&stop.rating_evidence?{rating:stop.rating,ratingNote:cut(stop.rating_evidence,400)}:{}),source:cut(stop.source_reference,500)}))}))};
+  if(includeStay&&plan.hotel_summary)copy.stay={name:cut(plan.hotel_summary.hotel_name,200),cost:plan.hotel_summary.total_cost_inr,nights:plan.hotel_summary.nights,address:cut(plan.hotel_summary.formatted_address,400)};
+  return readSharedPlan(JSON.stringify(copy));
+}
+export function readSharedPlan(raw:string):SharedPlan {
+  if(raw.length>150000)throw new Error('This plan copy is too large to open. Ask for a smaller copy.');
+  let p:SharedPlan;try{p=JSON.parse(raw) as SharedPlan;}catch{throw new Error('This file is not a readable TripWeave plan copy. Ask the sender to download a new copy.');}
+  if(!p||p.version!==1||!text(p.city,80)||!text(p.title,180)||!text(p.createdAt,40)||!Number.isFinite(Date.parse(p.createdAt))||!Number.isInteger(p.people)||p.people<1||p.people>50||!['cab','auto','metro','walk'].includes(p.mode)||!['budget','balanced','comfort'].includes(p.variant)||!cost(p.total)||!cost(p.localTravel)||!Array.isArray(p.days)||!p.days.length||p.days.length>14)throw new Error('This plan copy is not in a supported format. Ask the sender to create a new link.');
+  const clock=(s:unknown)=>typeof s==='string'&&(/^(0?[1-9]|1[0-2]):[0-5]\d (AM|PM)$/.test(s)||/^([01]\d|2[0-3]):[0-5]\d$/.test(s));
+  const seen=new Set<number>();
+  for(const d of p.days){
+    if(!Number.isInteger(d.number)||d.number<1||d.number>14||seen.has(d.number)||!text(d.date,10,true)||(d.date!==''&&(!/^\d{4}-\d{2}-\d{2}$/.test(d.date)||!Number.isFinite(Date.parse(d.date))||new Date(d.date).toISOString().slice(0,10)!==d.date))||!text(d.area,200,true)||!text(d.note,600,true)||!Array.isArray(d.stops)||d.stops.length>40)throw new Error('The day-by-day details in this copy could not be read.');
+    seen.add(d.number);
+    if(d.weather&&(!text(d.weather.condition,120)||!Number.isFinite(d.weather.temperature)||d.weather.temperature< -70||d.weather.temperature>65||!Number.isFinite(d.weather.rain)||d.weather.rain<0||d.weather.rain>100||typeof d.weather.forecast!=='boolean'))throw new Error('The weather details in this copy could not be read.');
+    for(const s of d.stops)if(!text(s.name,200)||!clock(s.start)||!clock(s.end)||!cost(s.cost)||!text(s.type,80)||(s.lat!=null&&(!Number.isFinite(s.lat)||Math.abs(s.lat)>90||!Number.isFinite(s.lng)||Math.abs(s.lng!)>180))||(s.lng!=null&&s.lat==null)||(s.source!=null&&!text(s.source,500,true))||(s.rating!=null&&(!Number.isFinite(s.rating)||s.rating<0||s.rating>5||!text(s.ratingNote,400))))throw new Error('Some stop details in this copy could not be read.');
+  }
+  if(p.stay&&(!text(p.stay.name,200)||!cost(p.stay.cost)||!Number.isInteger(p.stay.nights)||p.stay.nights<0||p.stay.nights>14||(p.stay.address!=null&&!text(p.stay.address,400,true))))throw new Error('Stay details in this copy could not be read.');
+  // All displayed fields are checked above. Extra properties are ignored; no supplied HTML or URLs are executed.
+  return p;
+}
+export function encodeSharedPlan(plan:SharedPlan){const bytes=new TextEncoder().encode(JSON.stringify(plan));let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);const encoded=btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');if(encoded.length>24000)throw new Error('This itinerary is too long for a plan link. Download the plan copy below and send that file instead.');return encoded;}
+export function decodeSharedPlan(encoded:string){if(!encoded||encoded.length>24000||!/^[A-Za-z0-9_-]+$/.test(encoded))throw new Error('The plan link is incomplete or too long. Ask the sender for a new link or plan file.');try{const binary=atob(encoded.replace(/-/g,'+').replace(/_/g,'/'));return readSharedPlan(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(binary,c=>c.charCodeAt(0))));}catch(error){throw new Error(error instanceof Error&&error.message.startsWith('This plan')?error.message:'The plan link could not be read. Ask the sender to copy the full link again.');}}

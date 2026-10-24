@@ -1,0 +1,42 @@
+'use client';
+import {useEffect,useRef,useState} from 'react';
+import {ArrowLeft,ArrowRight,Check,AlertCircle} from 'lucide-react';
+import type {ExpenseCategory,GroupExpense,GroupMember} from '@/types/trip';
+import {checkExpense,expenseCategories,type ExpenseDraft} from '@/lib/expense-entry';
+import ThemedSelect from './ThemedSelect';
+const labels:Record<ExpenseCategory,string>={dining:'Food',transit:'Travel',lodging:'Stay',activities:'Visits & tickets',shopping:'Shopping',other:'Other'};
+export const expenseCategoryLabels=labels;
+const money=(n:number)=>`₹${n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+type Seed={title:string;amount:number;category:ExpenseCategory;activityRef?:string};
+export default function ExpenseWizard({members,initial,onSave,onCancel}:{members:GroupMember[];initial?:Seed|null;onSave:(expense:GroupExpense)=>void;onCancel:()=>void}){
+  const [step,setStep]=useState(0),[attempted,setAttempted]=useState(false),[notes,setNotes]=useState('');
+  const [draft,setDraft]=useState<ExpenseDraft>(()=>({title:initial?.title||'',amount:initial?.amount?String(initial.amount):'',category:initial?.category||'dining',paidBy:members[0]?.id||'',selected:members.map(m=>m.id),splitType:'equal',custom:{}}));
+  const heading=useRef<HTMLHeadingElement>(null),errorRef=useRef<HTMLDivElement>(null);
+  useEffect(()=>{heading.current?.focus({preventScroll:true});heading.current?.closest('.expense-dialog-body')?.scrollTo({top:0,behavior:'auto'});},[step]);
+  const result=checkExpense(draft,members),issues=attempted?result.issues.filter(i=>i.step<=step):[];
+  const update=<K extends keyof ExpenseDraft>(key:K,value:ExpenseDraft[K])=>setDraft(previous=>({...previous,[key]:value}));
+  const goTo=(field:string)=>{const el=document.getElementById(field);el?.scrollIntoView({block:'center'});el?.focus();};
+  const submit=(event:React.FormEvent)=>{event.preventDefault();setAttempted(true);const errors=result.issues.filter(i=>i.step<=step);if(errors.length){setStep(errors[0].step);requestAnimationFrame(()=>{errorRef.current?.scrollIntoView({block:'nearest'});errorRef.current?.focus();});return;}
+    if(step<2){setStep(step+1);setAttempted(false);return;}
+    onSave({id:crypto.randomUUID(),title:draft.title.trim(),amount_inr:result.amount,category:draft.category,paid_by_member_id:draft.paidBy,split_type:draft.splitType,splits:result.splits,created_at:new Date().toISOString(),notes:notes.trim()||undefined,activity_ref:initial?.activityRef});
+  };
+  const fieldError=(id:string)=>issues.find(i=>i.field===id)?.message;
+  return <form className="expense-wizard" noValidate onSubmit={submit}>
+    <ol className="expense-steps" aria-label="Add expense steps">{['The bill','Who shares it','Review & save'].map((label,index)=><li key={label} aria-current={step===index?'step':undefined} data-done={index<step}><span>{index<step?<Check size={15}/>:index+1}</span>{label}</li>)}</ol>
+    <h3 tabIndex={-1} ref={heading}>{['What did you pay for?','Who shares this bill?','Check before you save'][step]}</h3>
+    <p>{['Start with the bill total and the person who paid.','Everyone is selected to start. Remove anyone who did not share the bill.','Only save once for this bill. This record stays in your current browser.'][step]}</p>
+    {!!issues.length&&<div className="expense-error" role="alert" tabIndex={-1} ref={errorRef}><AlertCircle size={20}/><div><strong>Check these details</strong>{issues.map((issue,index)=><button type="button" key={index} onClick={()=>goTo(issue.field)}>{issue.message}</button>)}</div></div>}
+    {step===0&&<div className="expense-fields">
+      <div><label htmlFor="expense-title">Bill name</label><input id="expense-title" maxLength={160} placeholder="For example, lunch at Paradise" value={draft.title} aria-invalid={!!fieldError('expense-title')} aria-describedby={fieldError('expense-title')?'expense-title-error':undefined} onChange={e=>update('title',e.target.value)}/>{fieldError('expense-title')&&<p className="expense-field-error" id="expense-title-error">{fieldError('expense-title')}</p>}</div>
+      <div><label htmlFor="expense-amount">Total paid (₹)</label><input id="expense-amount" inputMode="decimal" placeholder="600.00" value={draft.amount} aria-invalid={!!fieldError('expense-amount')} aria-describedby="expense-amount-help" onChange={e=>update('amount',e.target.value)}/><p id="expense-amount-help">The whole bill, for everyone together.</p>{fieldError('expense-amount')&&<p className="expense-field-error">{fieldError('expense-amount')}</p>}</div>
+      <div><label htmlFor="expense-payer">Who paid?</label><ThemedSelect id="expense-payer" label="Who paid?" value={draft.paidBy} onChange={id=>update('paidBy',id)} options={members.map(m=>({value:m.id,label:m.name}))}/></div>
+      <details className="expense-category-picker"><summary>Category: {labels[draft.category]} · change (optional)</summary><fieldset><legend>What was it for?</legend><div className="expense-categories">{expenseCategories.map(category=><label key={category}><input type="radio" name="expense-category" checked={draft.category===category} onChange={()=>update('category',category)}/>{labels[category]}</label>)}</div></fieldset></details>
+    </div>}
+    {step===1&&<>
+      <fieldset className="expense-split-mode"><legend>How should we split it?</legend>{(['equal','custom'] as const).map(mode=><label key={mode}><input type="radio" name="split-mode" checked={draft.splitType===mode} onChange={()=>update('splitType',mode)}/><span>{mode==='equal'?'Split equally':'Enter each person’s share'}</span></label>)}</fieldset>
+      <fieldset id="expense-participants" tabIndex={-1} aria-describedby="expense-split-help"><legend>People sharing this bill</legend><p id="expense-split-help">The person who paid can also share the cost. Small rounding differences are spread one paisa at a time.</p><div className="expense-participants">{members.map(member=>{const selected=draft.selected.includes(member.id),share=result.splits.find(s=>s.member_id===member.id)?.amount_inr;return <div key={member.id} data-selected={selected}><label><input type="checkbox" checked={selected} onChange={()=>update('selected',selected?draft.selected.filter(id=>id!==member.id):[...draft.selected,member.id])}/><span>{member.name}</span></label>{selected&&(draft.splitType==='equal'?<strong>{money(share||0)}</strong>:<div><label className="sr-only" htmlFor={`share-${member.id}`}>{member.name} share (₹)</label><input id={`share-${member.id}`} inputMode="decimal" placeholder="Amount (₹)" value={draft.custom[member.id]||''} onChange={e=>update('custom',{...draft.custom,[member.id]:e.target.value})}/></div>)}</div>;})}</div>{fieldError('expense-participants')&&<p className="expense-field-error">{fieldError('expense-participants')}</p>}</fieldset>
+    </>}
+    {step===2&&<><div className="expense-review"><div><span>Bill</span><strong>{draft.title}</strong></div><div><span>Total paid</span><strong>{money(result.amount)}</strong></div><div><span>Paid by</span><strong>{members.find(m=>m.id===draft.paidBy)?.name}</strong></div><div><span>Category</span><strong>{labels[draft.category]}</strong></div></div><section className="expense-share-review"><h4>Each person’s share</h4>{result.splits.map(split=><div key={split.member_id}><span>{members.find(m=>m.id===split.member_id)?.name}</span><strong>{money(split.amount_inr)}</strong></div>)}</section><details><summary>Add a note (optional)</summary><label htmlFor="expense-note" className="sr-only">Expense note</label><textarea id="expense-note" maxLength={500} value={notes} onChange={e=>setNotes(e.target.value)} placeholder="For example, includes the taxi waiting charge"/></details></>}
+    <footer className="expense-wizard-actions"><button type="button" onClick={step>0?()=>{setStep(step-1);setAttempted(false);}:onCancel}><ArrowLeft size={17}/>{step>0?'Back':'Cancel'}</button><button className="expense-primary" type="submit">{step===2?'Save expense':'Continue'}{step<2&&<ArrowRight size={17}/>}</button></footer>
+  </form>;
+}

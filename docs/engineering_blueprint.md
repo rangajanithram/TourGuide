@@ -559,3 +559,10 @@ not reuse permission. No Google/Tripadvisor review text or copied ratings were
 added. Any future maintained review dataset must identify license/permission,
 source, checking date and rating scale; unknown reviews remain absent. Dynamic
 place discovery remains separate from any manually maintained metadata.
+
+
+### Implementation note — 24 October 2026: expenses and read-only plan copies
+
+The browser expense prototype now uses a three-step entry flow and explicit local-storage status. `/shared` can render a bounded, validated itinerary copy from a URL fragment or local plan file without reading private saved-trip tables or regenerating a plan. Stay details are opt-in; account identifiers and expense/payment records are excluded from the constructed copy. Copies cannot be revoked or automatically updated and are not signed verification evidence.
+
+This is not completion of Stage 5. Group rooms, invitations, cloud expense sync, conflict handling and revocable live sharing still require the Stage 5 authorization/RLS and multi-account acceptance work. See `EXPENSE_AND_SHARING_RELEASE_2026_10_24.md` for flows, evidence and remaining browser/production checks.

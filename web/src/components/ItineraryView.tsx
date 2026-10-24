@@ -18,6 +18,8 @@ import { calculateOptimalSettlements } from '../utils/settlement';
 import EditConsequenceModal from './EditConsequenceModal';
 import LiveRebalanceModal from './LiveRebalanceModal';
 import GroupExpenseModal from './GroupExpenseModal';
+import PlanShareDialog from './PlanShareDialog';
+import {parseExpenseLedger} from '@/lib/expense-entry';
 import { plainPlannerText } from '../lib/planner-copy';
 import PlanNotices from './PlanNotices';
 import JourneyCostSummary from './JourneyCostSummary';
@@ -135,7 +137,7 @@ export default function ItineraryView({
     );
   };
 
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [showWhyNot, setShowWhyNot] = useState(false);
 
@@ -212,37 +214,21 @@ export default function ItineraryView({
     settlements: []
   });
 
-  // Load persisted ledger from localStorage
+  const [ledgerStorageStatus,setLedgerStorageStatus]=useState<'saved'|'memory'|'invalid'>('saved');
+  // Read a checked local ledger and accept updates from other tabs on this browser.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const saved = localStorage.getItem(ledgerStorageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && Array.isArray(parsed.members) && Array.isArray(parsed.expenses)) {
-          setLedger(parsed);
-          return;
-        }
-      }
-    } catch {
-      // ignore
-    }
-    setLedger({
-      members: defaultMembers,
-      expenses: [],
-      settlements: []
-    });
+    const empty={members:defaultMembers,expenses:[],settlements:[]};
+    const read=(raw:string|null)=>{try{setLedger(raw?parseExpenseLedger(raw):empty);setLedgerStorageStatus('saved');}catch{setLedger(empty);setLedgerStorageStatus('invalid');}};
+    try{read(localStorage.getItem(ledgerStorageKey));}catch{setLedger(empty);setLedgerStorageStatus('memory');}
+    const sync=(event:StorageEvent)=>{if(event.storageArea===localStorage&&(event.key===ledgerStorageKey||event.key===null))read(event.newValue);};
+    window.addEventListener('storage',sync);return()=>window.removeEventListener('storage',sync);
   }, [ledgerStorageKey, defaultMembers]);
 
   const handleUpdateLedger = (updatedLedger: TripExpenseLedger) => {
+    try{parseExpenseLedger(JSON.stringify(updatedLedger));}catch{setLedgerStorageStatus('invalid');return;}
     setLedger(updatedLedger);
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(ledgerStorageKey, JSON.stringify(updatedLedger));
-      } catch {
-        // ignore
-      }
-    }
+    try {localStorage.setItem(ledgerStorageKey,JSON.stringify(updatedLedger));setLedgerStorageStatus('saved');}
+    catch {setLedgerStorageStatus('memory');}
   };
 
   const pendingSettlements = React.useMemo(() => {
@@ -298,56 +284,6 @@ export default function ItineraryView({
 
   const remainingBudget = currentPlan.total_cost_inr - totalActualSpent;
 
-  const handleCopyLink = async () => {
-    if (typeof window === 'undefined') return;
-    try {
-      const url = new URL(window.location.origin + window.location.pathname);
-      url.searchParams.set('dest', destination.toLowerCase());
-      const startDate = formData?.start_date || currentPlan.days[0]?.date;
-      if (startDate) {
-        url.searchParams.set('start', startDate);
-      }
-      const endDate = formData?.end_date || currentPlan.days[currentPlan.days.length - 1]?.date;
-      if (endDate) {
-        url.searchParams.set('end', endDate);
-      }
-      url.searchParams.set('mode', formData?.transport_mode || currentPlan.transport_mode);
-      const origin = formData?.origin_city || currentPlan.intercity_transport?.origin_city;
-      if (origin) {
-        url.searchParams.set('origin', origin.toLowerCase());
-      }
-      if (currentPlan.variant_type) {
-        url.searchParams.set('variant', currentPlan.variant_type.toLowerCase());
-      }
-      const people = formData?.people_count || currentPlan.hotel_summary?.people_accommodated || 2;
-      url.searchParams.set('people', people.toString());
-      const budget = formData?.budget_inr || currentPlan.total_cost_inr;
-      url.searchParams.set('budget', budget.toString());
-      const pace = formData?.pace || currentPlan.fatigue_report?.overall_pace?.toLowerCase() || 'balanced';
-      url.searchParams.set('pace', pace);
-      if (formData?.group_profile) {
-        url.searchParams.set('profile', formData.group_profile);
-      }
-      if (formData?.origin_type) {
-        url.searchParams.set('origin_type', formData.origin_type);
-      }
-      if (formData?.start_location) {
-        url.searchParams.set('start_location', formData.start_location);
-      }
-      if (formData?.interests && formData.interests.length > 0) {
-        url.searchParams.set('interests', formData.interests.join(','));
-      }
-      if (formData?.locked_activities && formData.locked_activities.length > 0) {
-        url.searchParams.set('pins', formData.locked_activities.join(','));
-      }
-      await navigator.clipboard.writeText(url.toString());
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy share link:', err);
-    }
-  };
-
   const handleCopyText = async () => {
     try {
       const text = formatItineraryForShare(currentPlan, destination);
@@ -379,24 +315,7 @@ export default function ItineraryView({
             <span>Add to calendar</span>
           </button>
 
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
-            title="Copies URL query parameters to re-run the planner with these settings (does not share your private saved snapshot)"
-          >
-            {copiedLink ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-black" />
-                <span>Parameters Copied!</span>
-              </>
-            ) : (
-              <>
-                <Link2 className="w-3.5 h-3.5 text-black" />
-                <span>Copy basic settings link</span>
-              </>
-            )}
-          </button>
+          <button type="button" onClick={()=>setShareOpen(true)} className="plan-share-trigger"><Link2 size={18}/>Share plan</button>
 
           <button
             type="button"
@@ -1239,6 +1158,7 @@ export default function ItineraryView({
         </div>
       )}
 
+      {shareOpen&&<PlanShareDialog plan={currentPlan} destination={destination} formData={formData} onClose={()=>setShareOpen(false)}/>}
       {/* Group Expense & UPI Settlement Modal */}
       {isExpenseModalOpen && (
         <GroupExpenseModal
@@ -1250,6 +1170,7 @@ export default function ItineraryView({
           destination={destination}
           plan={currentPlan}
           ledger={ledger}
+          storageStatus={ledgerStorageStatus}
           onUpdateLedger={handleUpdateLedger}
           initialAddExpense={initialExpenseToAdd}
         />

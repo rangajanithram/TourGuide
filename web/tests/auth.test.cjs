@@ -850,3 +850,64 @@ test('stay coordinates and booked fares identify the invalid input rather than a
   const badDate={...form,booked_transport:undefined,journey_timing:{...journey_timing,outbound_departure:'2026-02-30T20:00+05:30'}};
   assert.ok(plannerIssues(badDate,validationContext).some(issue=>issue.field==='timing-outbound_departure'));
 });
+
+const settlementMath=load('utils/settlement.ts');
+const expenseEntry=load('lib/expense-entry.ts',{'@/utils/settlement':settlementMath});
+const shareCopy=load('lib/shared-plan.ts');
+const expenseMembers=[{id:'a',name:'Alice'},{id:'b',name:'Bob'},{id:'c',name:'Chandra'}];
+const expenseDraft={title:'Lunch',amount:'10.00',category:'dining',paidBy:'a',selected:['a','b','c'],splitType:'equal',custom:{}};
+test('expense wizard splits exact paise and rejects missing payer, negative custom shares and unequal totals',()=>{
+  const result=expenseEntry.checkExpense(expenseDraft,expenseMembers);
+  assert.deepEqual(result.issues,[]);assert.equal(result.splits.reduce((n,s)=>n+Math.round(s.amount_inr*100),0),1000);
+  assert.ok(expenseEntry.checkExpense({...expenseDraft,paidBy:'missing'},expenseMembers).issues.some(i=>i.field==='expense-payer'));
+  assert.ok(expenseEntry.checkExpense({...expenseDraft,splitType:'custom',custom:{a:'-1',b:'5',c:'6'}},expenseMembers).issues.some(i=>i.step===1));
+  assert.ok(expenseEntry.checkExpense({...expenseDraft,splitType:'custom',custom:{a:'3.33',b:'3.33',c:'3.33'}},expenseMembers).issues.some(i=>i.step===1));
+  assert.ok(expenseEntry.checkExpense({...expenseDraft,selected:[]},expenseMembers).issues.some(i=>i.field==='expense-participants'));
+  assert.equal(expenseEntry.moneyPaise('1.001'),null);assert.equal(expenseEntry.moneyPaise('0.01'),1);
+});
+test('one paisa debts remain visible and a manually recorded payment balances them',()=>{
+  const members=expenseMembers.slice(0,2),expenses=[{id:'expense',title:'A small bill',category:'other',paid_by_member_id:'a',amount_inr:0.02,split_type:'equal',splits:[{member_id:'a',amount_inr:0.01},{member_id:'b',amount_inr:0.01}],created_at:'2026-10-24T00:00:00Z'}];
+  const due=settlementMath.calculateOptimalSettlements(members,expenses,[]);assert.equal(due.length,1);assert.equal(due[0].amount_inr,0.01);
+  assert.equal(settlementMath.calculateOptimalSettlements(members,expenses,[{...due[0],is_settled:true}]).length,0);
+});
+test('stored expense ledgers reject inconsistent money or unknown people',()=>{
+  const expense={id:'e',title:'Lunch',amount_inr:10,category:'dining',paid_by_member_id:'a',split_type:'equal',splits:expenseEntry.checkExpense(expenseDraft,expenseMembers).splits,created_at:'2026-10-24T00:00:00Z'};
+  const ledger={members:expenseMembers,expenses:[expense],settlements:[]};
+  assert.equal(expenseEntry.parseExpenseLedger(JSON.stringify(ledger)).expenses.length,1);
+  assert.throws(()=>expenseEntry.parseExpenseLedger(JSON.stringify({...ledger,expenses:[{...expense,amount_inr:11}]})),/amounts/);
+  assert.throws(()=>expenseEntry.parseExpenseLedger(JSON.stringify({...ledger,expenses:[{...expense,paid_by_member_id:'unknown'}]})),/amounts/);
+});
+const sharePlanFixture={plan_name:'Hyderabad with friends',variant_type:'balanced',transport_mode:'cab',total_cost_inr:1500,estimated_transport_cost_inr:200,hotel_summary:{hotel_name:'Private family address',total_cost_inr:300,nights:1,people_accommodated:2,formatted_address:'Do not expose by default'},days:[{day_number:1,date:'2026-11-01',cluster_name:'Old city',activities:[{place_name:'Charminar',start_time:'10:00 AM',end_time:'11:00 AM',estimated_cost_inr:100,place_type:'attraction',lat:17.36,lng:78.47}]}],booked_transport:{paid_inr:200,secret:'private'},private_user_id:'secret',planning_preferences:{secret:'private'}};
+test('shared plan is the actual selected schedule, omits private fields and keeps stay details opt-in',()=>{
+  const copy=shareCopy.makeSharedPlan(sharePlanFixture,'hyderabad',{people_count:2});
+  assert.equal(copy.days[0].stops[0].name,'Charminar');assert.equal(copy.stay,undefined);
+  const raw=JSON.stringify(copy);assert.ok(!raw.includes('private_user_id'));assert.ok(!raw.includes('paid_inr'));assert.ok(!raw.includes('secret'));assert.ok(!raw.includes('Private family'));
+  assert.equal(shareCopy.makeSharedPlan(sharePlanFixture,'hyderabad',null,true).stay.name,'Private family address');
+});
+test('shared links round-trip Unicode and reject malformed, oversized or unsupported payloads',()=>{
+  const copy=shareCopy.makeSharedPlan({...sharePlanFixture,plan_name:'హైదరాబాద్ · ₹1500'},'hyderabad');
+  assert.deepEqual(shareCopy.decodeSharedPlan(shareCopy.encodeSharedPlan(copy)),copy);
+  assert.throws(()=>shareCopy.decodeSharedPlan('bad!payload'),/link/);
+  assert.throws(()=>shareCopy.decodeSharedPlan('a'.repeat(24001)),/long/);
+  assert.throws(()=>shareCopy.readSharedPlan(JSON.stringify({...copy,version:99})),/format/);
+  assert.throws(()=>shareCopy.readSharedPlan(JSON.stringify({...copy,days:[{...copy.days[0],stops:[{...copy.days[0].stops[0],lat:100}]}]})),/stop/);
+});
+test('public shared reader has no sign-in or generation dependency and declares privacy headers',()=>{
+  const page=fs.readFileSync(path.join(__dirname,'../src/app/shared/page.tsx'),'utf8');
+  const reader=fs.readFileSync(path.join(__dirname,'../src/components/SharedPlanReader.tsx'),'utf8');
+  const config=fs.readFileSync(path.join(__dirname,'../next.config.mjs'),'utf8');
+  assert.ok(!page.includes('requireVerifiedUser'));assert.ok(!reader.includes('plannerFetch'));assert.match(page,/index:false/);assert.match(config,/private, no-store/);assert.match(config,/no-referrer/);
+});
+
+test('meal placeholders and rest stops never expose private base coordinates in shared copies',()=>{
+  const fixture={...sharePlanFixture,days:[{...sharePlanFixture.days[0],activities:[{place_name:'Breakfast at base',place_type:'restaurant',meal_type:'breakfast',start_time:'08:00 AM',end_time:'09:00 AM',estimated_cost_inr:0,lat:17.1,lng:78.1},{place_name:'Rest at base',place_type:'rest_break',start_time:'01:00 PM',end_time:'02:00 PM',estimated_cost_inr:0,lat:17.1,lng:78.1}]}]};
+  const copy=shareCopy.makeSharedPlan(fixture,'hyderabad');assert.ok(copy.days[0].stops.every(stop=>stop.lat===undefined&&stop.lng===undefined));
+  assert.throws(()=>shareCopy.readSharedPlan('{not-json'),/not a readable TripWeave/);
+});
+
+test('expense summary excludes UPI addresses and labels payments as manually confirmed',()=>{
+  const members=[{id:'a',name:'Host',upi_id:'private@bank'},{id:'b',name:'Guest'}];
+  const expenses=[{id:'expense',title:'Lunch',amount_inr:100,category:'dining',paid_by_member_id:'a',split_type:'equal',splits:[{member_id:'a',amount_inr:50},{member_id:'b',amount_inr:50}],created_at:'2026-10-24T00:00:00Z'}];
+  const text=settlementMath.formatWhatsAppExpenseSummary('Trip','hyderabad',{members,expenses,settlements:[]},200);
+  assert.ok(!text.includes('private@bank'));assert.match(text,/Plan estimate/);assert.match(text,/not live sync/);
+});
