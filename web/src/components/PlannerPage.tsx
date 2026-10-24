@@ -492,6 +492,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
       if (typeof window !== 'undefined') {
         window.history.replaceState({}, '', `/planner?tripId=${created.id}`);
       }
+      return created.id;
     } catch (err: unknown) {
       // Preserve current itinerary on screen when saving fails
       setSaveError(err instanceof Error ? err.message : 'Could not save this trip. Your current itinerary is still preserved on screen.');
@@ -527,6 +528,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
       void refreshHistory(result.trip.id);
       setPendingRevision(null);
       setSaveStatus(`Saved revision v${result.version.version_number}: ${result.version.change_summary}`);
+      return result.trip.id;
     } catch (err: unknown) {
       if (err instanceof TripPersistenceError && err.code === 'CONCURRENCY_CONFLICT') {
         setIsConcurrencyConflict(true);
@@ -536,6 +538,12 @@ export default function Home({ preferences }: { preferences?: unknown }) {
       persistenceBusy.current = false;
       setIsSavingTrip(false);
     }
+  };
+
+  const handleOpenTripRoom = async () => {
+    const id = savedTrip ? (pendingRevision ? await handleCommitRevision() : savedTrip.id) : await handleSaveNewTrip();
+    if (!id) throw new Error('The trip could not be saved. Close this panel and check the save message before trying again.');
+    window.location.assign(`/rooms?trip=${id}`);
   };
 
   const handleRestoreVersion = async (targetVersionNumber: number) => {
@@ -937,6 +945,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               {renderSavedTripPersistenceBar()}
               <details className="result-trip-settings"><summary>Trip preferences</summary>
             <SharedTripOverview
+                onOpenRoom={handleOpenTripRoom}
               formData={activeFormData}
               currentPlan={currentPlan}
               activeVariant={resolvedVariant}
@@ -1004,6 +1013,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                 {/* Itinerary Schedule and Hotel Details */}
                 <fieldset disabled={isSavingTrip || restoringVersion !== null} className="min-w-0">
                 <ItineraryView
+                  onOpenRoom={handleOpenTripRoom}
                   actionsTargetId="itinerary-actions"
                   key={`${savedTrip?.id || 'new'}:${resolvedVariant}:${planEpoch}`}
                   plan={currentPlan}
@@ -1070,6 +1080,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                 {/* Itinerary Schedule and Hotel Details */}
                   <fieldset disabled={isSavingTrip || restoringVersion !== null} className="min-w-0">
                 <ItineraryView
+                  onOpenRoom={handleOpenTripRoom}
                   actionsTargetId="itinerary-actions"
                   key={`${savedTrip?.id || 'new'}:${resolvedVariant}:${planEpoch}`}
                     plan={currentPlan}

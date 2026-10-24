@@ -112,7 +112,7 @@ export default function TripsListClient() {
       await tripsService.deleteSavedTrip(trip.id);
       setTrips((prev) => prev.filter((item) => item.id !== trip.id));
       setConfirmDeleteId(null);
-      setStatusMessage(`Deleted "${trip.title}" and its version history.`);
+      setStatusMessage(`Deleted "${trip.title}" and its version history, trip room and cloud bills.`);
       // Refill this page so deleting one card does not hide the Next control
       // while more trips still exist on subsequent pages.
       mutationPending.current = false;
@@ -360,7 +360,7 @@ export default function TripsListClient() {
 
                   {isConfirmingDelete ? (
                     <div className="flex items-center gap-1.5 bg-red-50 border border-red-200 rounded-xl px-2.5 py-1">
-                      <span className="text-[11px] font-bold text-red-800">Delete trip?</span>
+                      <span className="text-[11px] font-bold text-red-800">Delete trip, room and cloud bills? This cannot be undone.</span>
                       <button
                         type="button"
                         disabled={deletingId === trip.id}

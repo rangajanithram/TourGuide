@@ -911,3 +911,41 @@ test('expense summary excludes UPI addresses and labels payments as manually con
   const text=settlementMath.formatWhatsAppExpenseSummary('Trip','hyderabad',{members,expenses,settlements:[]},200);
   assert.ok(!text.includes('private@bank'));assert.match(text,/Plan estimate/);assert.match(text,/not live sync/);
 });
+
+function roomModule() {
+ const settlement=load('utils/settlement.ts');
+ const expenses=load('lib/expense-entry.ts',{'@/utils/settlement':settlement});
+ const shared=load('lib/shared-plan.ts');
+ return load('lib/room-service.ts',{'./expense-entry':expenses,'./shared-plan':shared});
+}
+test('room calls validate the trip ID and derive identity on the server, with no browser owner field', async()=>{
+ const {createRoomService}=roomModule();const seen=[];
+ const client={rpc:(fn,args)=>{seen.push({fn,args});return {abortSignal:()=>Promise.resolve({data:{token:'a'.repeat(64),expires_at:'2026-10-31'},error:null})};}};
+ const service=createRoomService(client);
+ await assert.rejects(service.invite('not-a-trip'),/invalid trip ID/);
+ await service.invite('d2000000-0000-4000-8000-000000000001');
+ assert.equal(seen.length,1);assert.equal(seen[0].fn,'trip_room_command');
+ assert.equal('user_id' in seen[0].args,false);assert.equal('owner_id' in seen[0].args,false);
+ assert.equal(seen[0].args.p_action,'invite');
+});
+test('room conflicts explain that the draft is kept and missing migration is an actionable failure',()=>{
+ const {roomError}=roomModule();
+ assert.equal(roomError({code:'40001'}).code,'CONFLICT');
+ assert.match(roomError({code:'40001'}).message,/draft is kept/);
+ assert.equal(roomError({code:'PGRST202'}).code,'NOT_CONFIGURED');
+ assert.equal(roomError({code:'42501',message:'No access'}).message,'No access');
+});
+test('room sign-in return accepts only the room path and bounded invitation fragment',()=>{
+ const {roomReturnPath}=roomModule();const id='d2000000-0000-4000-8000-000000000001';
+ assert.equal(roomReturnPath(`/rooms?trip=${id}#invite=${'a'.repeat(64)}`),`/rooms?trip=${id}#invite=${'a'.repeat(64)}`);
+ for(const url of ['https://evil.test/rooms','//evil.test','/rooms?trip='+id+'&next=https://evil.test','/rooms?trip='+id+'#invite=short'])assert.equal(roomReturnPath(url),null);
+});
+test('room schema keeps private trips owner-only and privileged functions outside the public API schema',()=>{
+ const sql=fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261024175910_cloud_trip_rooms.sql'),'utf8');
+ assert.match(sql,/security invoker set search_path='' as \$\$ select tripweave_private.room_command/);
+ for(const table of ['trip_rooms','trip_room_members','trip_room_events'])assert.match(sql,new RegExp(`alter table public.${table} enable row level security`));
+ assert.doesNotMatch(sql,/grant (?:insert|update|delete).*to authenticated/i);
+ assert.match(sql,/confirm_received/);assert.match(sql,/p_expected_version is distinct from r.revision/);
+ assert.match(sql,/after update of itinerary_data,request_data,selected_variant,title,current_version/);
+ assert.match(sql,/token_hash=sha256/);assert.match(sql,/expires_at>now\(\)/);
+});

@@ -64,3 +64,29 @@ html[data-theme=dark] .expense-primary,html[data-theme=dark] .plan-share-trigger
 @media(max-width:700px){.expense-wizard-actions{bottom:-18px}}
 
 .expense-category-picker{grid-column:1/-1}.shared-plan-page .shared-source-credit{font-size:12px}
+
+/* Prevent artwork's intrinsic width from covering the adjacent trip details. */
+.shared-plan-hero{grid-template-columns:minmax(0,260px) minmax(0,1fr)}
+.shared-plan-hero>.travel-image{position:relative;width:100%;max-width:100%;min-width:0;aspect-ratio:auto;align-self:stretch;contain:paint}
+.shared-plan-hero>div{min-width:0;overflow-wrap:anywhere}
+.shared-plan-hero>.travel-image img{width:100%!important;height:100%!important;object-fit:cover}
+@media(max-width:700px){.shared-plan-hero{grid-template-columns:minmax(0,1fr)}.shared-plan-hero>.travel-image{height:190px;min-height:190px}}
+
+/* Shared trip rooms: short, readable forms and responsive cards. */
+.room-page{gap:22px}.room-page h1{font-size:clamp(25px,3vw,38px)}
+.room-card,.room-status{padding:24px;border:1px solid var(--ui-line,#bdccb3);border-radius:16px;background:var(--ui-surface,#fffdf5);min-width:0;overflow-wrap:anywhere}
+.room-card{display:grid;gap:16px;align-content:start}.room-card>p,.room-status p{margin:0}.room-card h2{display:flex;align-items:center;gap:10px}
+.room-topline,.room-section-heading,.room-status{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}.room-topline a{display:inline-flex;align-items:center;gap:8px}.room-status>div{min-width:0;display:grid;gap:8px}.room-status button{flex-shrink:0}
+.room-tabs{display:flex;flex-wrap:wrap;gap:10px}.room-tabs button[aria-current=page]{background:var(--ui-ink,#294333);color:var(--ui-surface,#fffdf5)}
+.room-note{padding:16px 20px;background:var(--ui-raised,#eef1e5);border:1px solid var(--ui-line,#bdccb3);border-radius:12px}
+.room-page label{font-size:15px;font-weight:600}.room-page input:not([type=checkbox]),.room-page textarea{display:block;width:100%;max-width:620px;min-height:48px;padding:12px 14px;border:1px solid var(--ui-line,#bdccb3);border-radius:10px;background:var(--ui-surface,#fffdf5);color:var(--ui-ink,#243e33);font-size:16px;line-height:1.6}
+.room-page textarea{max-width:none;height:110px}.room-page input[type=checkbox]{width:20px;height:20px;flex-shrink:0;margin-top:3px;accent-color:var(--ui-ink,#294333)}
+.room-page form{display:grid;gap:12px;max-width:760px}.room-page button{width:max-content;max-width:100%;white-space:normal}.room-page button:disabled{opacity:.55;cursor:not-allowed}
+.room-total{display:flex;justify-content:space-between;gap:16px;padding:18px;background:var(--ui-raised,#eef1e5);border-radius:12px}.room-total strong{font-size:24px}
+.room-balances{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.room-balances>div{display:grid;gap:6px;padding:16px;background:var(--ui-raised,#eef1e5);border-radius:12px}
+.room-people{display:grid;gap:14px}.room-people>article{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px;background:var(--ui-raised,#eef1e5);border-radius:12px}.room-people>article>div{min-width:0}
+.room-people p{font-size:14px}.room-card .room-toggle,.room-confirm label{display:flex;align-items:flex-start;gap:12px;font-size:15px;line-height:1.7}
+.room-confirm{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:12px;background:var(--ui-warm-surface,#fff1df);padding:18px;border-radius:12px}.room-confirm label{flex-basis:100%}
+.room-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px}.room-expense-form.expense-dialog{width:100%;max-height:none;overflow:visible;animation:none;box-shadow:none}.room-expense-form .expense-wizard{max-width:760px}.room-page .expense-bills h3{font-size:20px}.room-page .expense-payments{gap:16px}.room-page .expense-payments h3{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.room-card>ul{list-style:disc;padding-left:22px}.room-share-intro{display:grid;gap:14px;padding:18px;border:1px solid var(--ui-line,#bdccb3);background:var(--ui-raised,#eef1e5);border-radius:12px}.room-share-intro h3{font-size:21px;font-weight:700}
+@media(max-width:700px){.room-card,.room-status{padding:18px}.room-status,.room-section-heading,.room-people>article{flex-direction:column}.room-tabs button{flex:1;font-size:14px;padding:11px}.room-page .expense-payments>article{grid-template-columns:1fr}.room-page .expense-bills>article{flex-direction:column}}

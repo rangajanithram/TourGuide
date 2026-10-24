@@ -10,6 +10,7 @@ import { TripFormData, TripPlan } from '../types/trip';
 import PlanShareDialog from './PlanShareDialog';
 
 interface SharedTripOverviewProps {
+  onOpenRoom?:()=>Promise<void>;
   formData: TripFormData | null;
   currentPlan?: TripPlan | null;
   activeVariant: 'budget' | 'balanced' | 'comfort';
@@ -51,7 +52,8 @@ export default function SharedTripOverview({
   currentPlan,
   activeVariant,
   onToggleEditor,
-  showEditor
+  showEditor,
+  onOpenRoom
 }: SharedTripOverviewProps) {
   const [shareOpen,setShareOpen]=useState(false);
 
@@ -126,7 +128,7 @@ export default function SharedTripOverview({
           </button>
 
           <button type="button" className="plan-share-trigger" disabled={!currentPlan} onClick={()=>setShareOpen(true)}><Share2 size={18}/>Share plan copy</button>
-          {shareOpen&&currentPlan&&<PlanShareDialog plan={currentPlan} destination={formData?.destination||destination} formData={formData} onClose={()=>setShareOpen(false)}/>}
+          {shareOpen&&currentPlan&&<PlanShareDialog onOpenRoom={onOpenRoom} plan={currentPlan} destination={formData?.destination||destination} formData={formData} onClose={()=>setShareOpen(false)}/>}
         </div>
       </div>
 

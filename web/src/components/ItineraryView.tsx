@@ -30,6 +30,7 @@ import { isUnassignedMeal, timeBetweenStops } from '@/lib/itinerary-presentation
 
 interface ItineraryViewProps {
   actionsTargetId?: string;
+  onOpenRoom?: () => Promise<void>;
   plan: TripPlan;
   destination?: string;
   selectedDay?: number | 'all';
@@ -42,6 +43,7 @@ interface ItineraryViewProps {
 export default function ItineraryView({
   plan,
   actionsTargetId,
+  onOpenRoom,
   destination = 'City',
   selectedDay = 'all',
   onSelectDay,
@@ -339,20 +341,21 @@ export default function ItineraryView({
           <button
             type="button"
             onClick={() => {
+              if(onOpenRoom){setShareOpen(true);return;}
               setInitialExpenseToAdd(null);
               setIsExpenseModalOpen(true);
             }}
             className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-[#eef1e5] hover:bg-[#d6dfd0] border border-amber-500/30 hover:border-amber-500/60 text-[#89532d] text-sm font-semibold transition-all shadow-sm active:scale-95"
-            title="Open Browser-Local Group Expense Ledger & UPI Split Tracker (stored in this browser only)"
+            title={onOpenRoom?"Open the shared itinerary and cloud expense ledger":"Expense list saved only in this browser"}
           >
             <Wallet className="w-3.5 h-3.5 text-[#89532d]" />
-            <span>Split costs on this device</span>
-            {ledger.expenses.length > 0 && (
+            <span>{onOpenRoom?'Trip room & shared bills':'Split costs on this device'}</span>
+            {!onOpenRoom && ledger.expenses.length > 0 && (
               <span className="ml-1 text-sm bg-amber-500/20 text-[#89532d] px-1.5 py-0.2 rounded-full font-bold">
                 {ledger.expenses.length}
               </span>
             )}
-            {pendingSettlements.length > 0 && (
+            {!onOpenRoom && pendingSettlements.length > 0 && (
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" title={`${pendingSettlements.length} settlement(s) due`} />
             )}
           </button>
@@ -876,6 +879,7 @@ export default function ItineraryView({
                           <button
                             type="button"
                             onClick={() => {
+                              if(onOpenRoom){setShareOpen(true);return;}
                               setInitialExpenseToAdd({
                                 title: act.place_name,
                                 amount: actSpend || act.estimated_cost_inr,
@@ -1092,7 +1096,8 @@ export default function ItineraryView({
       )}
 
       {/* Feature 2 & 3C: Floating Live Group Expense Tracker & UPI Settlement Bar */}
-      {(totalVisitedCount > 0 || ledger.expenses.length > 0) && (
+      {onOpenRoom && (totalVisitedCount > 0 || ledger.expenses.length > 0) && <details className="rounded-xl border border-[#c6d2c0] p-4"><summary>Notes and older bills saved on this device</summary><p className="text-sm py-3">Visited checks and older browser-only bills are personal notes. They do not update the trip room or its balances. Review them here and add any actual bills to the shared room once.</p><button type="button" className="plan-share-trigger" onClick={()=>{setInitialExpenseToAdd(null);setIsExpenseModalOpen(true);}}>Review device-only bills</button></details>}
+      {!onOpenRoom && (totalVisitedCount > 0 || ledger.expenses.length > 0) && (
         <div className="sticky bottom-4 z-40 bg-[#fffdf5]/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center space-x-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[#89532d] font-bold shrink-0">
@@ -1109,7 +1114,7 @@ export default function ItineraryView({
                     {totalVisitedCount} of {totalStops} Stops Visited
                   </span>
                 )}
-                {ledger.expenses.length > 0 && (
+                {!onOpenRoom && ledger.expenses.length > 0 && (
                   <span className="text-sm bg-amber-500/20 text-[#89532d] px-2 py-0.5 rounded-full font-bold">
                     {ledger.expenses.length} Group Spends
                   </span>
@@ -1135,6 +1140,7 @@ export default function ItineraryView({
             <button
               type="button"
               onClick={() => {
+                if(onOpenRoom){setShareOpen(true);return;}
                 setInitialExpenseToAdd(null);
                 setIsExpenseModalOpen(true);
               }}
@@ -1158,7 +1164,7 @@ export default function ItineraryView({
         </div>
       )}
 
-      {shareOpen&&<PlanShareDialog plan={currentPlan} destination={destination} formData={formData} onClose={()=>setShareOpen(false)}/>}
+      {shareOpen&&<PlanShareDialog onOpenRoom={onOpenRoom} plan={currentPlan} destination={destination} formData={formData} onClose={()=>setShareOpen(false)}/>}
       {/* Group Expense & UPI Settlement Modal */}
       {isExpenseModalOpen && (
         <GroupExpenseModal

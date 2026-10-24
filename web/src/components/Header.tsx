@@ -1,7 +1,7 @@
 'use client';
 import ThemeToggle from './ThemeToggle';
 import Link from 'next/link';
-import { Compass, BookOpen, User, BookmarkCheck, PlusCircle, Search } from 'lucide-react';
+import { Compass, BookOpen, User, BookmarkCheck, PlusCircle, Search, Users } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import LogoutButton from '@/components/auth/LogoutButton';
 export default function Header() {
@@ -27,6 +27,7 @@ export default function Header() {
             <BookmarkCheck size={17} />
             <span className="hidden sm:inline">My trips</span>
           </Link>
+          <Link href="/rooms" aria-label="Trip rooms" className="flex items-center gap-1 rounded-full px-2 py-2 text-[#243e33]"><Users size={17}/><span className="hidden lg:inline">Trip rooms</span></Link>
           <Link href="/account" aria-label="My profile" className="flex items-center gap-1.5 rounded-full border border-[#c6d2c0] px-3 py-1.5 text-[#243e33] hover:bg-[#e7efe1] transition">
             <User size={17} />
             <span className="hidden sm:inline">My profile</span>

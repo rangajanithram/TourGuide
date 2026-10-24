@@ -7,6 +7,7 @@ import "./planner-visual.css";
 import "./planner-forms.css";
 import "./expenses-sharing.css";
 import SiteFooter from "@/components/SiteFooter";
+import RoomReturn from '@/components/RoomReturn';
 import SiteTheme from "@/components/SiteTheme";
 import { themeScript } from "@/lib/site-theme";
 
@@ -44,7 +45,7 @@ export default function RootLayout({
       <body
         className={`${displayFont.variable} ${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SiteTheme><AuthProvider>
+        <SiteTheme><AuthProvider><RoomReturn/>
           <div className="site-page">{children}</div>
           <SiteFooter />
         </AuthProvider></SiteTheme>
