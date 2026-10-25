@@ -127,7 +127,7 @@ export default function VariantSwitcher({
                 <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${
                   isSelected ? 'bg-amber-500 text-black' : 'bg-[#d6dfd0] text-[#243e33]'
                 }`}>
-                  {v.badge}
+                  {isSelected ? 'Selected · ' : ''}{v.badge}
                 </span>
               </div>
 
@@ -141,7 +141,7 @@ export default function VariantSwitcher({
                   {mode}
                 </span>
                 <span>•</span>
-                <span>{v.plan?.days.length || 0} Days</span>
+                <span>{v.plan?.days.length || 0} {v.plan?.days.length === 1 ? 'Day' : 'Days'}</span>
               </div>
 
               <p className="text-[11px] text-[#526653] leading-relaxed">{v.plan?.hotel_summary?.accommodation_kind && v.plan.hotel_summary.accommodation_kind !== 'planner_selected' ? 'Your confirmed daily base stays fixed. Compare the sightseeing schedule and local transport.' : v.desc}</p>

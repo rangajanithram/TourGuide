@@ -17,9 +17,9 @@ export default function TripRoomClient({tripId=''}:{tripId?:string}){
  const [room,setRoom]=useState<Room|null>(null),[list,setList]=useState<{trip_id:string;plan_data:Room['plan_data'];updated_at:string;enabled:boolean;user_id:string}[]>([]);
  const [owned,setOwned]=useState<{id:string;title:string}|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[checkedAt,setCheckedAt]=useState('');
  const [name,setName]=useState(''),[guest,setGuest]=useState(''),[invite,setInvite]=useState(''),[expires,setExpires]=useState(''),[remove,setRemove]=useState('');
- const busyRef=useRef(false),readRef=useRef(false),epoch=useRef(0),roomRef=useRef<Room|null>(null);
+ const busyRef=useRef(false),readRef=useRef(false),epoch=useRef(0),roomRef=useRef<Room|null>(null),invitationRef=useRef('');
  useEffect(()=>{
-  const readInvitation=()=>{const raw=new URLSearchParams(location.hash.slice(1)).get('invite')||'';setToken(/^[0-9a-f]{64}$/.test(raw)?raw:'');};
+  const readInvitation=()=>{const raw=new URLSearchParams(location.hash.slice(1)).get('invite')||'';invitationRef.current=/^[0-9a-f]{64}$/.test(raw)?raw:'';setToken(invitationRef.current);};
   readInvitation();setReady(true);
   window.addEventListener('hashchange',readInvitation);
   try{sessionStorage.removeItem('tripweave-room-return');}catch{}
@@ -28,19 +28,20 @@ export default function TripRoomClient({tripId=''}:{tripId?:string}){
  useEffect(()=>{setName(user?.name||'');},[user?.name]);
  useEffect(()=>{roomRef.current=room;},[room]);
  const invalidate=useCallback(()=>{epoch.current+=1;readRef.current=false;},[]);
+ // Read denial before joining is expected. Keep actual join errors until retry succeeds.
  const load=useCallback(async()=>{
   if(!service||!userId||!ready||readRef.current||busyRef.current)return;
   readRef.current=true;const current=epoch.current;
   try{if(tripId){const next=await service.command(tripId,'read');if(current!==epoch.current)return;setRoom(next);roomRef.current=next;setOwned(null);}else{const rooms=await service.list();if(current!==epoch.current)return;setList(rooms);}
    setCheckedAt(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));setError('');
-  }catch(error){if(current!==epoch.current)return;const e=error as RoomError;setError(e.message);if(['42501','P0002'].includes(e.code)){setRoom(null);roomRef.current=null;if(tripId){try{const saved=await service.ownedTrip(tripId);if(current!==epoch.current)return;setOwned(saved);if(saved)setError('');}catch{if(current===epoch.current)setOwned(null);}}}}
+  }catch(error){if(current!==epoch.current)return;const e=error as RoomError;const needsAccess=['42501','P0002'].includes(e.code);if(!needsAccess||!invitationRef.current)setError(e.message);if(needsAccess){setRoom(null);roomRef.current=null;if(tripId){try{const saved=await service.ownedTrip(tripId);if(current!==epoch.current)return;setOwned(saved);if(saved)setError('');}catch{if(current===epoch.current)setOwned(null);}}}}
   finally{if(current===epoch.current){setLoading(false);readRef.current=false;}}
  },[service,userId,ready,tripId]);
  useEffect(()=>{invalidate();setRoom(null);setList([]);setLoading(true);if(!userId){setLoading(false);return;}void load();const refresh=()=>{if(document.visibilityState==='visible')void load();};const timer=setInterval(refresh,10000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{invalidate();clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[load,userId,invalidate]);
  async function command(action:string,data:Record<string,unknown>={}):Promise<Room>{
   if(!service||busyRef.current)throw new RoomError('Another room update is in progress. Please wait.');
   busyRef.current=true;setBusy(true);setNotice('');epoch.current++;readRef.current=false;
-  try{const next=await service.command(tripId,action,data,roomRef.current?.revision);setRoom(next);roomRef.current=next;setError('');setCheckedAt(new Date().toLocaleTimeString('en-IN'));if(action==='join'){setToken('');history.replaceState({},'',`/rooms?trip=${tripId}`);}return next;}
+  try{const next=await service.command(tripId,action,data,roomRef.current?.revision);setRoom(next);roomRef.current=next;setError('');setCheckedAt(new Date().toLocaleTimeString('en-IN'));if(action==='join'){invitationRef.current='';setToken('');history.replaceState({},'',`/rooms?trip=${tripId}`);}return next;}
   catch(error){if(error instanceof RoomError&&['CONFLICT','42501','P0002'].includes(error.code)){try{const next=await service.command(tripId,'read');setRoom(next);roomRef.current=next;}catch{setRoom(null);roomRef.current=null;}}throw error;}
   finally{busyRef.current=false;setBusy(false);}
  }

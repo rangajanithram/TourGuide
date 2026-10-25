@@ -71,8 +71,8 @@ export default function PlannerDiscovery({destination,catalog,selections,onCatal
     const filtered=shortVisits?matches.filter(p=>p.catalog?.duration!=null&&p.catalog.duration<=120):matches;
     return [...filtered].sort((a,b)=>sort==='name'?a.name.localeCompare(b.name):sort==='duration'?(a.catalog?.duration??Infinity)-(b.catalog?.duration??Infinity):sort==='rating'?((b.catalog?.rating_evidence?b.catalog.rating:null)??-1)-((a.catalog?.rating_evidence?a.catalog.rating:null)??-1):0);
   },[catalog,category,query,city,items,shortVisits,sort]);
-  const options=places.filter(p=>!selections.some(s=>s.id===p.id)).map(p=>({value:p.id,label:p.name,description:`${p.live?'Live listing':'Reference catalog'} Â· ${p.address}`}));
-  const status=busy?'Searching nearby placesâ€¦':query.length>0&&query.trim().length<3?'Type 3 or more letters for live search. Catalog matches appear below.':`${places.length} places from the available sources. Missing facts stay marked as unknown.`;
+  const options=places.filter(p=>!selections.some(s=>s.id===p.id)).map(p=>({value:p.id,label:p.name,description:`${p.live?'Live listing':'Reference catalog'} · ${p.address}`}));
+  const status=busy?'Searching nearby places...':query.length>0&&query.trim().length<3?'Type 3 or more letters for live search. Catalog matches appear below.':`${places.length} places from the available sources. Missing facts stay marked as unknown.`;
   const choose=(place:BrowsePlace,mandatory:boolean)=>setChosen({place,mandatory});
   const selectedPanel=<div className="selected-panel-content">
     <div className="selected-title"><h4>Your places</h4><span>{selections.length}</span></div>
@@ -82,28 +82,28 @@ export default function PlannerDiscovery({destination,catalog,selections,onCatal
     <small>{capacityReached?'Selection limit reached. Remove a place to add another.':'Up to 15 required stops and 15 discovered places. The planner may add more stops around your choices.'}</small>
   </div>;
   return <section id="trip-places" tabIndex={-1} className="visual-discovery" aria-label={`Explore places in ${city}`}>
-    <div className="destination-banner"><TravelImage destination={destination}/><div><span>MAKE IT YOUR TRIP</span><h4>Explore {city}</h4><p>Find places you love. Weâ€™ll put the day together.</p></div></div>
+    <div className="destination-banner"><TravelImage destination={destination}/><div><span>MAKE IT YOUR TRIP</span><h4>Explore {city}</h4><p>Find places you love. We will put the day together.</p></div></div>
     <div className="discovery-workspace"><div className="discovery-browser">
-      <PlaceSearch label={`Search places in ${city}`} value="" placeholder="Try a fort, museum, restaurant or parkâ€¦" options={options} filterLocally={false} disabled={disabled} onQueryChange={value=>{setQuery(value);setVisible(6);}} status={status} onChange={id=>{const place=places.find(p=>p.id===id);if(place)setChosen({place,mandatory:false});}}/>
+      <PlaceSearch label={`Search places in ${city}`} value="" placeholder="Try a fort, museum, restaurant or park..." options={options} filterLocally={false} disabled={disabled} onQueryChange={value=>{setQuery(value);setVisible(6);}} status={status} onChange={id=>{const place=places.find(p=>p.id===id);if(place)setChosen({place,mandatory:false});}}/>
       <div className="discovery-categories" aria-label="Place categories">{categories.map(option=><button key={option.value} type="button" aria-pressed={category===option.value} disabled={disabled} onClick={()=>{setCategory(option.value);setVisible(6);}}>{option.label}</button>)}</div>
-      <div className="browse-controls"><label className="booking-check"><input type="checkbox" checked={shortVisits} onChange={e=>{setShortVisits(e.target.checked);setVisible(6);}}/>Up to 2 hours <small>(known estimates only)</small></label><ThemedSelect label="Sort places" value={sort} onChange={setSort} options={[{value:'default',label:'Live listings first'},{value:'name',label:'Name Aâ€“Z'},{value:'duration',label:'Shortest known visit'},{value:'rating',label:'Available older ratings'}]}/></div>
+      <div className="browse-controls"><label className="booking-check"><input type="checkbox" checked={shortVisits} onChange={e=>{setShortVisits(e.target.checked);setVisible(6);}}/>Up to 2 hours <small>(known estimates only)</small></label><ThemedSelect label="Sort places" value={sort} onChange={setSort} options={[{value:'default',label:'Live listings first'},{value:'name',label:'Name A to Z'},{value:'duration',label:'Shortest known visit'},{value:'rating',label:'Available older ratings'}]}/></div>
       {error&&<div className="discovery-recovery" role="status"><p>Live search is unavailable. You can still browse the reference catalog. {error}</p><button type="button" onClick={()=>setRetry(v=>v+1)} disabled={busy}>Try live search again</button></div>}
       <div className="place-card-grid" aria-busy={busy}>{places.slice(0,visible).map(place=>{
         const added=selections.find(s=>s.id===place.id), facts=place.catalog;
         return <article key={place.id} className="place-card" data-selected={!!added}>
           <button type="button" className="place-card-image-button" aria-label={`View details: ${place.name}`} onClick={()=>setChosen({place,mandatory:false})}><TravelImage destination={destination} category={place.category} placeName={place.name}/>{added&&<span className="place-added-badge"><Check size={14}/>{added.mandatory?'Must visit':'Added'}</span>}</button>
-          <div className="place-card-body"><span className="place-source">{place.live?'Live place listing':'Reference catalog'} Â· {place.category==='restaurants'?'Food & cafes':'Place to visit'}</span><h5>{place.name}</h5><p className="place-area"><MapPin size={14}/>{place.address}</p>
-            <div className="place-facts"><span><Clock size={14}/>{facts?.duration?`${facts.duration} min Â· estimate`:'Visit length unknown'}</span><span>{facts?.rating!=null&&facts.rating_evidence?<><Star size={14}/>{facts.rating.toFixed(1)}/5 Â· older samples</>:'No sourced rating'}</span></div>
+          <div className="place-card-body"><span className="place-source">{place.live?'Live place listing':'Reference catalog'} · {place.category==='restaurants'?'Food & cafes':'Place to visit'}</span><h5>{place.name}</h5><p className="place-area"><MapPin size={14}/>{place.address}</p>
+            <div className="place-facts"><span><Clock size={14}/>{facts?.duration?`${facts.duration} min · estimate`:'Visit length unknown'}</span><span>{facts?.rating!=null&&facts.rating_evidence?<><Star size={14}/>{facts.rating.toFixed(1)}/5 · older samples</>:'No sourced rating'}</span></div>
             <strong className="place-price">{priceLabel(facts?.cost)}</strong>
             <div className="place-card-actions"><button type="button" onClick={()=>setChosen({place,mandatory:false})}>Details</button><button type="button" className="visual-primary" disabled={disabled||capacityReached||!!added} onClick={()=>choose(place,false)}>{added?<><Check size={16}/>Added</>:<><Plus size={16}/>Add to options</>}</button></div>
             <button type="button" className="place-pin-action" disabled={disabled||capacityReached||!!added} onClick={()=>choose(place,true)}><Pin size={15}/>Must visit</button>
           </div></article>;
       })}</div>
-      {!places.length&&<div className="browse-empty" role="status"><Search size={26}/><h4>{busy?'Looking for nearby placesâ€¦':'No matches yet'}</h4><p>{shortVisits?'Turn off the visit-length filter to include places with unknown times.':'Try another name or category. The data source may not cover every place.'}</p></div>}
+      {!places.length&&<div className="browse-empty" role="status"><Search size={26}/><h4>{busy?'Looking for nearby places...':'No matches yet'}</h4><p>{shortVisits?'Turn off the visit-length filter to include places with unknown times.':'Try another name or category. The data source may not cover every place.'}</p></div>}
       {visible<places.length&&<button type="button" className="browse-more" onClick={()=>setVisible(v=>v+6)}>Show more places ({places.length-visible})</button>}
       <p className="catalog-caption">Live listings: <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a> / <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>. Artwork is AI-generated; hours, prices and ratings are separate data.</p>
     </div><aside className="selected-places-desktop" aria-label="Selected places">{selectedPanel}</aside></div>
-    <details className="selected-places-mobile"><summary>Your places Â· {selections.length} selected</summary>{selectedPanel}</details>
+    <details className="selected-places-mobile"><summary>Your places · {selections.length} selected</summary>{selectedPanel}</details>
     {chosen&&createPortal(<PlaceDrawer key={chosen.place.id} place={chosen.place} destination={destination} estimatePolicy={estimatePolicy} mandatory={chosen.mandatory} alreadySelected={selections.some(s=>s.id===chosen.place.id)} disabled={disabled||capacityReached} onCancel={()=>setChosen(null)} onCatalogAdd={mandatory=>{onCatalogAdd(chosen.place.id,mandatory);setChosen(null);}} onConfirm={(stop,mandatory)=>{onConfirm(stop,mandatory);setChosen(null);}}/>,document.body)}
   </section>;
 }

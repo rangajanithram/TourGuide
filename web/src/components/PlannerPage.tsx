@@ -79,6 +79,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
   const [isLoading, setIsLoading] = useState(false);
   const [planningPhase, setPlanningPhase] = useState<'connecting' | 'generating'>('connecting');
   const [error, setError] = useState<string | null>(null);
+  const [errorContext, setErrorContext] = useState<'planning' | 'saved-trip'>('planning');
   const planningError = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!error) return;
@@ -129,6 +130,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
 
   const loadSavedTripById = useCallback(
     async (tripId: string, openHistory = false) => {
+      setErrorContext('saved-trip');
       if (!tripsService) {
         setError('Supabase persistence is not configured in this environment.');
         return;
@@ -212,6 +214,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
     const version = ++requestVersion.current;
     setIsLoading(true);
     setPlanningPhase('connecting');
+    setErrorContext('planning');
     setError(null);
     setSaveStatus(null);
     setSaveError(null);
@@ -932,8 +935,11 @@ export default function Home({ preferences }: { preferences?: unknown }) {
           <div ref={planningError} tabIndex={-1} role="alert" className="planning-notice mb-6">
             <AlertCircle className="w-5 h-5 text-red-700 shrink-0 mt-0.5" />
             <div>
-              <h2>We couldn’t complete this plan</h2>
-              <p>{error}</p><p className="notice-guidance">Review your budget, dates or must-visit places, then try again. Your saved trips are unchanged.</p>
+              <h2>{errorContext === 'saved-trip' ? 'We couldn’t open this saved trip' : 'We couldn’t complete this plan'}</h2>
+              <p>{error}</p>
+              <p className="notice-guidance">{errorContext === 'saved-trip'
+                ? <>Open a trip from <Link href="/trips">My trips</Link>, or use <Link href="/rooms">Trip rooms</Link> for a trip someone shared with you. Room access does not allow editing the owner’s private saved trip.</>
+                : 'Follow the message above: check your connection if the service is unreachable, or adjust your budget, dates or must-visit places if the plan cannot fit. Your saved trips are unchanged.'}</p>
             </div>
           </div>
         )}
