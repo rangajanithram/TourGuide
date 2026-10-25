@@ -52,8 +52,10 @@ class JourneyTimingTests(unittest.TestCase):
         data['destination_departure'] = '2026-10-21T20:00+05:30'
         data['return_arrival'] = '2026-10-22T07:00+05:30'
         data['arrival_buffer_minutes'] = 120
-        with self.assertRaises(ValueError):
-            request(data, end_date='2026-10-21')
+        from tripweave.availability import planning_windows
+        late = request(data, end_date='2026-10-21')
+        self.assertEqual(planning_windows(late)[0]['end'], 0)
+        self.assertEqual(planning_windows(late)[1]['start'], 60)
         req = request(data, start_date='2026-10-20', end_date='2026-10-21')
         self.assertEqual(req.arrival_available_mins, 60)
 

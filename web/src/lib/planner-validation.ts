@@ -1,5 +1,5 @@
 import type { TripFormData } from '@/types/trip';
-import { journeyWindow } from './journey-timing';
+import { journeyWindow, planningWindows } from './journey-timing';
 import { validateBookedTransport } from './booked-transport';
 import { validateJourneyBudget } from './journey-budget';
 import { validateStayChoice } from './stay-choice';
@@ -15,9 +15,9 @@ export function plannerIssues(form: TripFormData, context: ValidationContext): P
   if(!context.cities.includes(form.destination))basics('trip-to','To','Choose a supported destination from the suggestions.');
   if(form.origin_city&&!context.cities.includes(form.origin_city))basics('trip-from','From','Choose a supported origin city from the suggestions.');
   const validDate=(v:string)=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&Number.isFinite(Date.parse(v))&&new Date(Date.parse(v)).toISOString().slice(0,10)===v;
-  if(!validDate(form.start_date)||form.start_date<context.today)basics('trip-start','First sightseeing date','Choose today or a later date.');
-  if(!validDate(form.end_date)||form.end_date<form.start_date)basics('trip-end','Last sightseeing date','Choose the same day as your first sightseeing date, or a later day.');
-  if(validDate(form.start_date)&&validDate(form.end_date)&&(Date.parse(form.end_date)-Date.parse(form.start_date))/86400000>=14)basics('trip-end','Last sightseeing date','Choose a trip of 14 days or fewer.');
+  if(!validDate(form.start_date)||form.start_date<context.today)basics('trip-start','Plan start date','Choose today or a later date.');
+  if(!validDate(form.end_date)||form.end_date<form.start_date)basics('trip-end','Plan end date','Choose the same day as your first sightseeing date, or a later day.');
+  if(validDate(form.start_date)&&validDate(form.end_date)&&(Date.parse(form.end_date)-Date.parse(form.start_date))/86400000>=14)basics('trip-end','Plan end date','Choose a trip of 14 days or fewer.');
   if(!Number.isInteger(form.people_count)||form.people_count<1||form.people_count>20)basics('trip-people','Travelers','Enter a whole number from 1 to 20 travelers.');
   if(!Number.isInteger(form.budget_inr)||form.budget_inr<1||form.budget_inr>5000000)basics('trip-budget','Destination budget','Enter a whole-group budget from ₹1 to ₹50,00,000.');
   const journey=form.journey_timing;
@@ -26,7 +26,7 @@ export function plannerIssues(form: TripFormData, context: ValidationContext): P
     const missing=keys.filter(([key])=>!journey[key]);
     for(const [key,label] of missing)add(0,'Journey · Travel timing',`timing-${key}`,label,`Choose a date and time for “${label}”, or turn off “Use my travel times” if you do not know them yet.`);
     if(!missing.length){
-      try{journeyWindow(form);}catch(error){
+      try{journeyWindow({...form,stay_choice:undefined});}catch(error){
         const text=error instanceof Error?error.message:'Check your travel times.';
         let field='timing-destination_arrival',label='Arrival and departure times';
         if(/Paid arrival/.test(text)){field='timing-arrival_transfer_paid_inr';label='Arrival transfer already paid';}
@@ -49,9 +49,10 @@ export function plannerIssues(form: TripFormData, context: ValidationContext): P
   try{budget=validateJourneyBudget(form);}catch(error){add(0,'Journey · Total budget','trip-total-budget','Total budget for included costs',(error as Error).message.replace('combined cost cap','total budget').replace('combined cap','total budget'));}
   try{validateStayChoice(form.stay_choice,budget);}catch(error){
     const text=(error as Error).message;
-    const field=/Stay scheduling/.test(text)?(!form.stay_choice?.check_in_time?'stay-check-in':'stay-check-out'):/name/.test(text)?'stay-name':/latitude|longitude/.test(text)?(!Number.isFinite(form.stay_choice?.lat)||Math.abs(form.stay_choice?.lat??0)>90?'stay-lat':'stay-lng'):/check-out/.test(text)?'stay-check-out':/check-in|scheduling/.test(text)?'stay-check-in':/cost|budget/.test(text)?'stay-cost':'stay-settings';
+    const field=/both check-in|stay dates|destination nights/.test(text)?'stay-check-in-date':/check-in and check-out buffers/.test(text)?'stay-check-in-buffer':/Stay scheduling/.test(text)?(!form.stay_choice?.check_in_time?'stay-check-in':'stay-check-out'):/name/.test(text)?'stay-name':/latitude|longitude/.test(text)?(!Number.isFinite(form.stay_choice?.lat)||Math.abs(form.stay_choice?.lat??0)>90?'stay-lat':'stay-lng'):/check-out/.test(text)?'stay-check-out':/check-in|scheduling/.test(text)?'stay-check-in':/cost|budget/.test(text)?'stay-cost':'stay-settings';
     add(0,'Journey · Where you will stay',field,'Stay details',/Stay scheduling/.test(text)?'Add both check-in and check-out times, or turn off the option to plan sightseeing around your stay.':text);
   }
+  if(form.stay_choice)try{planningWindows(form);}catch(error){const message=(error as Error).message;if(/stay|check-in|check-out|luggage/.test(message))add(0,'Journey · Where you will stay','stay-settings','Stay dates and timing',message);}
   if(form.max_visit_minutes!=null&&(!Number.isInteger(form.max_visit_minutes)||form.max_visit_minutes<30||form.max_visit_minutes>480))add(1,'Travel style · Comfort','comfort-options','Visit length','Choose a maximum visit length from 30 to 480 minutes.');
   if((form.locked_activities?.length||0)>15)add(2,'Places & food · Your places','trip-places','Must-visits','Choose up to 15 must-visit places.');
   if(form.meal_budget_per_person!=null&&(!Number.isInteger(form.meal_budget_per_person)||form.meal_budget_per_person<0||form.meal_budget_per_person>10000))add(2,'Places & food · Meals','trip-meal-budget','Meal budget','Enter ₹0 to ₹10,000 per person, per meal, or turn off reserved meals.');

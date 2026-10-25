@@ -14,4 +14,10 @@ export function validateStayChoice(stay: StayChoice | undefined, budget: number)
   if (stay.allows_bag_drop != null && typeof stay.allows_bag_drop !== 'boolean') throw new Error('Confirm luggage storage as available or unavailable, or leave it unknown.');
   if (stay.check_in_time !== undefined && stay.check_in_time !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(stay.check_in_time)) throw new Error('Check-in time must be in HH:MM format.');
   if (stay.check_out_time !== undefined && stay.check_out_time !== null && !/^([01]\d|2[0-3]):[0-5]\d$/.test(stay.check_out_time)) throw new Error('Check-out time must be in HH:MM format.');
+  if (!!stay.check_in_date !== !!stay.check_out_date) throw new Error('Enter both check-in and check-out dates, or leave both blank.');
+  if (stay.check_in_date && stay.check_out_date) {
+    const valid = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(Date.parse(v)).toISOString().slice(0,10) === v;
+    if (stay.kind !== 'booked' || !valid(stay.check_in_date) || !valid(stay.check_out_date) || stay.check_out_date < stay.check_in_date || Date.parse(stay.check_out_date) - Date.parse(stay.check_in_date) > 30 * 86400000) throw new Error('Booked stay dates must be in order and span at most 30 nights.');
+  }
+  if ([stay.check_in_buffer_minutes ?? 0, stay.check_out_buffer_minutes ?? 0].some(v => !Number.isInteger(v) || v < 0 || v > 180)) throw new Error('Use 0 to 180 minutes for check-in and check-out buffers.');
 }

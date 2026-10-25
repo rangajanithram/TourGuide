@@ -28,11 +28,25 @@ def get_travel_metrics(lat1: float, lng1: float, lat2: float, lng2: float, mode:
     Applies urban road curvature factor (1.25x for road vehicles) and standard metro/auto fares.
     """
     straight_km = calculate_distance_km(lat1, lng1, lat2, lng2)
-    if straight_km < 0.01:
+    if straight_km == 0:
         return 0, 0
     party_size = max(1, people_count)
     # Urban road factor (city street layout is not straight-line)
     road_km = straight_km * 1.25 if mode in ("cab", "auto", "walk") else straight_km
+    from tripweave.routing import route_edge
+    routed, edge = route_edge(lat1, lng1, lat2, lng2, mode)
+    if routed:
+        if edge is None:
+            return 1440, 0  # Known unreachable roads cannot become invented shortcuts.
+        road_km, route_minutes = edge
+        road_km = max(straight_km, road_km)
+        if mode == 'walk':
+            return max(5, math.ceil(max(route_minutes, road_km / 4.5 * 60))), 0
+        if mode == 'auto':
+            return max(7, math.ceil(max(route_minutes, road_km / 20 * 60)) + 5), int(30 + max(0, road_km - 1.5) * 15) * math.ceil(party_size / 3)
+        return max(10, math.ceil(max(route_minutes, road_km / 24 * 60)) + 7), int(50 + road_km * 20) * math.ceil(party_size / 4)
+    if straight_km < 0.01:
+        return 0, 0
     
     if mode == "walk":
         speed_kmh = 4.5
@@ -65,6 +79,14 @@ def get_travel_metrics(lat1: float, lng1: float, lat2: float, lng2: float, mode:
         cost = per_vehicle_cost * math.ceil(party_size / 4)
         minutes = int((road_km / speed_kmh) * 60) + 7  # 7 min pickup wait & parking
         return max(10, minutes), cost
+
+def route_distance_km(lat1: float, lng1: float, lat2: float, lng2: float, mode: str = 'cab') -> float:
+    from tripweave.routing import route_edge
+    straight = calculate_distance_km(lat1, lng1, lat2, lng2)
+    routed, edge = route_edge(lat1, lng1, lat2, lng2, mode)
+    if routed and edge is not None:
+        return max(straight, edge[0])
+    return straight * (1.25 if mode in ('cab', 'auto', 'walk') else 1)
 
 def get_mock_travel_time_minutes(lat1: float, lng1: float, lat2: float, lng2: float, mode: str = "cab") -> int:
     """Legacy helper for backward compatibility."""

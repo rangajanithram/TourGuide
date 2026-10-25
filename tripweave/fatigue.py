@@ -5,7 +5,7 @@ activity density, and user pace preferences.
 """
 from typing import Dict, Any, List, Optional
 from tripweave.models import DayPlan, PacePreference, GroupProfile
-from tripweave.distance import calculate_distance_km
+from tripweave.distance import route_distance_km
 
 class FatigueAnalyzer:
     """
@@ -96,7 +96,8 @@ class FatigueAnalyzer:
         group_profile: GroupProfile = GroupProfile.DEFAULT,
         total_transit_km: float = 30.0,
         hotel_lat: Optional[float] = None,
-        hotel_lng: Optional[float] = None
+        hotel_lng: Optional[float] = None,
+        transport_mode: str = 'cab'
     ) -> Dict[str, Any]:
         if not days:
             return {
@@ -116,13 +117,13 @@ class FatigueAnalyzer:
                 day_km = 0.0
                 for act in day.activities:
                     if act.lat is not None and act.lng is not None:
-                        day_km += calculate_distance_km(prev_lat, prev_lng, act.lat, act.lng)
+                        day_km += route_distance_km(prev_lat, prev_lng, act.lat, act.lng, mode=transport_mode)
                         prev_lat, prev_lng = act.lat, act.lng
                 # Return leg to hotel
-                day_km += calculate_distance_km(prev_lat, prev_lng, hotel_lat, hotel_lng)
+                day_km += route_distance_km(prev_lat, prev_lng, hotel_lat, hotel_lng, mode=transport_mode)
                 actual_km = day_km
             else:
-                actual_km = fallback_km_per_day
+                actual_km = 0 if not day.activities else fallback_km_per_day
 
             eval_day = cls.evaluate_day(day, pace=pace, group_profile=group_profile, est_transit_km=actual_km)
             daily_results.append({

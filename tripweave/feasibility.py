@@ -3,6 +3,7 @@ from typing import List, Tuple, Optional
 from tripweave.models import Place, TripRequest, HotelStaySummary
 from tripweave.distance import calculate_distance_km
 from tripweave.geocoding import LocationResolver
+from tripweave.availability import lodging_nights
 
 class FeasibilityFilter:
     """
@@ -30,20 +31,22 @@ class FeasibilityFilter:
                 lat=choice.lat, lng=choice.lng, accommodation_kind=choice.kind,
                 reported_stay_total_inr=choice.total_stay_cost_inr, excluded_prepaid_cost_inr=excluded,
                 price_per_night_per_room=0, rooms_needed=0,
-                nights=0 if choice.kind == "no_stay" else max(0, request.days - 1),
+                nights=lodging_nights(request),
                 people_accommodated=request.people_count, total_cost_inr=included,
                 provenance=provenance, why_this_hotel=f"{label}. Each sightseeing day starts and ends at your confirmed base. ₹{included} counts toward the destination budget; ₹{excluded} was marked already paid.",
                 check_in_time=choice.check_in_time,
                 check_out_time=choice.check_out_time,
+                check_in_date=choice.check_in_date,
+                check_out_date=choice.check_out_date,
                 osm_url=f"https://www.openstreetmap.org/?mlat={choice.lat}&mlon={choice.lng}#map=16/{choice.lat}/{choice.lng}")
         all_hotels = [p for p in places if p.place_type == "hotel"]
         sightseeing = [p for p in places if p.place_type != "hotel"]
         
-        if not all_hotels and request.days > 1:
+        if not all_hotels and lodging_nights(request) > 0:
             raise ValueError("No hotel candidates found in database for overnight trip!")
 
         # 1. Day Trip vs Overnight Stay Math
-        nights = max(0, request.days - 1)
+        nights = lodging_nights(request)
         
         if nights == 0:
             # Day Trip: Use LocationResolver to resolve precise coordinates for airport, station, or custom hub

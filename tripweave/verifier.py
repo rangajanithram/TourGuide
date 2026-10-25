@@ -7,7 +7,8 @@ from tripweave.preferences import preference_conflict
 from datetime import datetime, date
 from typing import List, Tuple, Dict, Any, Optional
 from tripweave.models import TripPlan, TripRequest, Place, VerificationReport, JourneyTiming, StayChoice, BookedTransport
-from tripweave.distance import calculate_distance_km, get_travel_metrics
+from tripweave.distance import calculate_distance_km, get_travel_metrics, route_distance_km
+from tripweave.availability import planning_windows, lodging_nights, destination_nights
 
 def _time_str_to_minutes(time_str: str) -> int:
     """Parses 'H:MM AM/PM' or 'HH:MM' string (including '(+N day)' suffix) into minutes from 8:00 AM."""
@@ -110,42 +111,43 @@ class ItineraryVerifier:
                 summary = plan.hotel_summary
                 included = stay.total_stay_cost_inr if stay.budget_treatment == "include" else 0
                 excluded = stay.total_stay_cost_inr if stay.budget_treatment == "already_paid" else 0
-                nights = 0 if stay.kind == "no_stay" else max(0, request.days - 1)
+                nights = lodging_nights(request)
                 if (not summary or summary.hotel_id != "user_stay_base" or summary.hotel_name != stay.base_name
                         or summary.lat != stay.lat or summary.lng != stay.lng
                         or summary.accommodation_kind != stay.kind or summary.nights != nights
                         or summary.total_cost_inr != included or summary.excluded_prepaid_cost_inr != excluded
                         or summary.reported_stay_total_inr != stay.total_stay_cost_inr
                         or (stay.check_in_time and summary.check_in_time != stay.check_in_time)
+                        or (stay.check_in_date and summary.check_in_date != stay.check_in_date)
+                        or (stay.check_out_date and summary.check_out_date != stay.check_out_date)
                         or (stay.check_out_time and summary.check_out_time != stay.check_out_time)):
                     errors.append("Accommodation conflict: the plan changed your confirmed base or lodging budget scope.")
                 else:
                     checks_passed.append("Confirmed daily base and lodging budget scope preserved.")
                 warnings.append("Your base, stay cost and accommodation arrangements are user-supplied; booking, occupancy and check-in are unverified.")
-                if stay.kind == "no_stay" and request.days > 1:
+                if stay.kind == "no_stay" and destination_nights(request) > 0:
                     warnings.append("No overnight accommodation is included. Arrange a safe overnight stay separately; the daily base is only a routing location.")
                 if excluded:
                     warnings.append(f"Already-paid lodging ₹{excluded} is excluded from this destination budget and itinerary subtotal.")
             except (ValueError, TypeError) as error:
                 errors.append(f"Accommodation conflict: {error}")
         earliest_bound = request.arrival_available_mins
+        if plan.hotel_summary and plan.hotel_summary.nights < lodging_nights(request):
+            errors.append('Stay night count does not cover the destination travel nights. Regenerate this plan with the correct stay dates.')
         latest_bound = request.departure_deadline_mins
+        windows = [{'start': earliest_bound if i == 0 else 60, 'end': latest_bound if i == request.days - 1 else 720} for i in range(request.days)]
         if request.journey_timing:
             try:
                 timing = JourneyTiming.model_validate(request.journey_timing)
-                earliest_bound, latest_bound = timing.local_window(
-                    date.fromisoformat(plan.days[0].date), date.fromisoformat(plan.days[-1].date), earliest_bound, latest_bound)
                 warnings.append("Travel times and transfer buffers are user-supplied. Tickets, hotel check-in and terminal routes are not verified; intercity fares are outside the destination budget.")
             except (ValueError, TypeError, IndexError) as error:
                 errors.append(f"Journey timing conflict: {error}")
 
 
-        if request.stay_choice:
-            try:
-                stay_window = StayChoice.model_validate(request.stay_choice)
-                earliest_bound, latest_bound = stay_window.sightseeing_window(len(plan.days), earliest_bound, latest_bound)
-            except (ValueError, TypeError) as error:
-                errors.append(f"Stay timing conflict: {error}")
+        try:
+            windows = planning_windows(request, date.fromisoformat(plan.days[0].date), date.fromisoformat(plan.days[-1].date))
+        except (ValueError, TypeError, IndexError) as error:
+            errors.append(f"Journey or stay timing conflict: {error}")
 
         place_lookup: Dict[str, Place] = {}
         for p in places_db:
@@ -164,6 +166,8 @@ class ItineraryVerifier:
         hotel_lat = plan.hotel_summary.lat if plan.hotel_summary else 0.0
         hotel_lng = plan.hotel_summary.lng if plan.hotel_summary else 0.0
         mode = plan.transport_mode.value if hasattr(plan.transport_mode, "value") else str(plan.transport_mode)
+        if [day.day_number for day in plan.days] != list(range(1, request.days + 1)):
+            errors.append('Calendar conflict: the plan must keep every requested date in order.')
 
         # 0. Minimum Activity Density Check
         total_activities_count = sum(a.place_type not in ("restaurant", "rest_break") for d in plan.days for a in d.activities)
@@ -176,7 +180,11 @@ class ItineraryVerifier:
         for day in plan.days:
             prev_lat = hotel_lat
             prev_lng = hotel_lng
-            prev_end_minute = earliest_bound if day.day_number == 1 else 60
+            if not 1 <= day.day_number <= len(windows):
+                errors.append(f'Invalid calendar day {day.day_number}.')
+                continue
+            day_window = windows[day.day_number - 1]
+            prev_end_minute = day_window['start']
             day_activities_cost = 0
 
             # Day-of-week validation
@@ -193,8 +201,7 @@ class ItineraryVerifier:
                 except ValueError:
                     errors.append(f"Invalid Time Window: Day {day.day_number} stop '{act.place_name}' has malformed times.")
                     continue
-                earliest = earliest_bound if day.day_number == 1 else 60
-                latest = latest_bound if day.day_number == request.days else 720
+                earliest, latest = day_window['start'], day_window['end']
                 if start_min < earliest or end_min > latest:
                     errors.append(f"Day {day.day_number}: Stop exceeds arrival/departure availability.")
                 duration = end_min - start_min
@@ -212,7 +219,7 @@ class ItineraryVerifier:
                 day_activities_cost += act.estimated_cost_inr
 
                 if act.place_type == "rest_break":
-                    leg_km = calculate_distance_km(prev_lat, prev_lng, act.lat, act.lng)
+                    leg_km = route_distance_km(prev_lat, prev_lng, act.lat, act.lng, mode=mode)
                     if leg_km < 0.01:
                         min_transit_mins, leg_cost = 0, 0
                     else:
@@ -294,7 +301,7 @@ class ItineraryVerifier:
                     )
 
                 # Check 3: Transit Physics & Speed Feasibility
-                leg_km = calculate_distance_km(prev_lat, prev_lng, act.lat, act.lng)
+                leg_km = route_distance_km(prev_lat, prev_lng, act.lat, act.lng, mode=mode)
                 if not strict_route_reconciliation and leg_km < 0.01:
                     min_transit_mins, leg_cost = 0, 0
                 else:
@@ -314,6 +321,8 @@ class ItineraryVerifier:
                 if i == 0:
                     # First leg: departure from hotel
                     hotel_dep_min = start_min - min_transit_mins
+                    if hotel_dep_min < earliest:
+                        errors.append(f"Day {day.day_number}: Travel to the first stop starts before your base is available.")
                     if hotel_dep_min < -60: # Departs before 7:00 AM (8am is 0)
                         warnings.append(
                             f"Early Departure: Day {day.day_number} requires departing hotel at {cls._minutes_to_clock_time(hotel_dep_min)} to reach '{act.place_name}' by {act.start_time}."
@@ -339,7 +348,7 @@ class ItineraryVerifier:
 
             # Return commute to hotel at end of day
             if day.activities and hotel_lat != 0.0:
-                ret_km = calculate_distance_km(prev_lat, prev_lng, hotel_lat, hotel_lng)
+                ret_km = route_distance_km(prev_lat, prev_lng, hotel_lat, hotel_lng, mode=mode)
                 if not strict_route_reconciliation and ret_km < 0.01:
                     ret_mins, ret_cost = 0, 0
                 else:
@@ -353,7 +362,7 @@ class ItineraryVerifier:
 
                 # Verify full physical day schedule window
                 hotel_arrival_min = prev_end_minute + ret_mins
-                if day.day_number == request.days and hotel_arrival_min > latest_bound:
+                if hotel_arrival_min > day_window['end']:
                     errors.append(f"Day {day.day_number}: Return transfer exceeds departure-day deadline.")
                 # 8:00 AM is 0 min. 8:00 PM is 720 mins. 9:00 PM is 780 mins.
                 if hotel_arrival_min > 780:

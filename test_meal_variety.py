@@ -49,7 +49,7 @@ class MealVarietyTests(unittest.TestCase):
         self.assertTrue(all(m.meal_venue_id is None for m in meals))
 
     def test_pins_and_arrival_departure_are_preserved(self):
-        request = self.request.model_copy(update={'days': 1, 'locked_activities': ['pinned'],
+        request = self.request.model_copy(update={'days': 1, 'end_date': self.request.start_date, 'locked_activities': ['pinned'],
             'arrival_available_mins': 240, 'departure_deadline_mins': 420})
         meals = meal_candidates(request, [self.venue('pinned'), self.venue('lunch')], self.base)
         self.assertEqual([m.meal_type for m in meals], ['lunch'])

@@ -3,9 +3,9 @@ import type { StayChoice } from '../types/trip';
 import ThemedSelect from './ThemedSelect';
 import ChoiceCards from './ChoiceCards';
 import PlannerField, { FieldMessage } from './PlannerField';
-import { PlannerTimeField } from './PlannerDateField';
+import PlannerDateField, { PlannerTimeField } from './PlannerDateField';
 
-export default function StayChoiceFields({ value, onChange }: { value?: StayChoice; onChange: (value: StayChoice | undefined) => void }) {
+export default function StayChoiceFields({ value, onChange, advancedTiming=false }: { value?: StayChoice; onChange: (value: StayChoice | undefined) => void; advancedTiming?: boolean }) {
   return <section id="stay-settings" tabIndex={-1} className="booking-section" aria-label="Accommodation and budget scope">
     <h4>Where will you stay?</h4><FieldMessage id="stay-settings"/>
     <ChoiceCards label="Accommodation" value={value?.kind || 'planner_selected'} options={[
@@ -27,9 +27,19 @@ export default function StayChoiceFields({ value, onChange }: { value?: StayChoi
           <PlannerField id="stay-cost" label="Total stay cost for everyone (₹)" hint="Full stay total, including known taxes. Not a per-night rate."><input type="number" min={0} max={5000000} value={value.total_stay_cost_inr} onChange={event => onChange({ ...value, total_stay_cost_inr: Number(event.target.value) })} /></PlannerField>
           <ThemedSelect label="Stay cost in your destination budget" value={value.budget_treatment} options={[{ value: 'include', label: 'Count this stay inside my budget' }, { value: 'already_paid', label: 'Already paid; my budget is for remaining costs' }]} onChange={treatment => onChange({ ...value, budget_treatment: treatment as StayChoice['budget_treatment'] })} />
           <label className="booking-check"><input type="checkbox" checked={value.constrain_sightseeing_to_stay === true} onChange={event => onChange({ ...value, constrain_sightseeing_to_stay: event.target.checked })} /> Start the first day after check-in and return to base before checkout on the last day</label>
-          <p className="step-note">Enable only when these check-in/out dates match your first and last sightseeing dates. This reserves the room-access window; confirm luggage storage and terminal transfers separately.</p>
+          <p className="step-note">Add the actual dates below when your stay starts earlier or ends later than sightseeing. Without dates, these times apply to the first and last trip dates. Time for check-in, packing and rest is reserved when this option is on.</p>
+          {advancedTiming&&<>
+          <PlannerField id="stay-check-in-date" label="Check-in date (optional)"><PlannerDateField label="Check-in date" value={value.check_in_date || ''} onChange={date=>onChange({...value,check_in_date:date})}/></PlannerField>
+          <PlannerField id="stay-check-out-date" label="Check-out date (optional)"><PlannerDateField label="Check-out date" value={value.check_out_date || ''} min={value.check_in_date || undefined} onChange={date=>onChange({...value,check_out_date:date})}/></PlannerField>
+          {(value.check_in_date || value.check_out_date)&&<button type="button" onClick={()=>onChange({...value,check_in_date:undefined,check_out_date:undefined})}>Clear stay dates</button>}
+          </>}
           <PlannerField id="stay-check-in" label="Check-in time (optional)"><PlannerTimeField label="Check-in time" value={value.check_in_time || ''} onChange={time => onChange({ ...value, check_in_time: time || undefined })}/></PlannerField>
           <PlannerField id="stay-check-out" label="Check-out time (optional)"><PlannerTimeField label="Check-out time" value={value.check_out_time || ''} onChange={time => onChange({ ...value, check_out_time: time || undefined })}/></PlannerField>
+          {advancedTiming&&value.constrain_sightseeing_to_stay&&<>
+            <PlannerField id="stay-check-in-buffer" label="Extra check-in and rest time (minutes)"><input type="number" min={0} max={180} value={value.check_in_buffer_minutes??0} onChange={e=>onChange({...value,check_in_buffer_minutes:Number(e.target.value)})}/></PlannerField>
+            <PlannerField id="stay-check-out-buffer" label="Time to pack and check out (minutes)"><input type="number" min={0} max={180} value={value.check_out_buffer_minutes??0} onChange={e=>onChange({...value,check_out_buffer_minutes:Number(e.target.value)})}/></PlannerField>
+          </>}
+          {!value.constrain_sightseeing_to_stay&&<ThemedSelect label="Luggage storage before check-in or after check-out" value={value.allows_bag_drop==null?'unknown':value.allows_bag_drop?'yes':'no'} options={[{value:'unknown',label:'Not confirmed yet'},{value:'yes',label:'The stay confirmed storage'},{value:'no',label:'I will manage my bags myself'}]} onChange={choice=>onChange({...value,allows_bag_drop:choice==='unknown'?null:choice==='yes'})}/>}
         </>}
       </div>
       <p className="step-note">{value.kind === 'no_stay' ? 'No stay or hotel cost will be added. For a multi-day trip, arrange a safe place to sleep separately.' : 'Check room capacity, check-in times, luggage storage and your stay dates. The planner uses your supplied location and cost.'} Tickets between cities cost extra.</p>

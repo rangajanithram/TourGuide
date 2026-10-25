@@ -33,10 +33,13 @@ class TripOptimizer:
         departure_deadline_mins: int = 720,
         preferred_day_by_place: Optional[dict[str, int]] = None,
         weather_by_day: Optional[dict] = None,
-        preferred_activities: Optional[List[str]] = None
+        preferred_activities: Optional[List[str]] = None,
+        day_windows: Optional[list] = None
     ):
         self.arrival_available_mins = arrival_available_mins
         self.departure_deadline_mins = departure_deadline_mins
+        self.day_windows = day_windows or [{'start': arrival_available_mins if day == 0 else 60,
+            'end': departure_deadline_mins if day == days - 1 else 720, 'note': None} for day in range(days)]
         self.places = places
         self.days = days
         self.hotel_summary = hotel_summary
@@ -180,10 +183,7 @@ class TripOptimizer:
         time_dimension = routing.GetDimensionOrDie("Time")
 
         for day in range(self.days):
-            earliest = self.arrival_available_mins if day == 0 else 60
-            latest = self.departure_deadline_mins if day == self.days - 1 else 720
-            if latest <= earliest:
-                raise InfeasibleItineraryError("Arrival/departure times leave no planning window.")
+            earliest, latest = self.day_windows[day]['start'], self.day_windows[day]['end']
             time_dimension.CumulVar(routing.Start(day)).SetRange(earliest, earliest)
             time_dimension.CumulVar(routing.End(day)).SetRange(earliest, latest)
 
@@ -300,8 +300,7 @@ class TripOptimizer:
         routing.AddDimension(count_callback, 0, max_stops_per_day, True, "ActivityCount")
         count_dimension = routing.GetDimensionOrDie('ActivityCount')
         for day in range(self.days):
-            earliest = self.arrival_available_mins if day == 0 else 60
-            latest = self.departure_deadline_mins if day == self.days - 1 else 720
+            earliest, latest = self.day_windows[day]['start'], self.day_windows[day]['end']
             if latest - earliest >= 90:
                 # Depot counts as one; prefer >=1 actual visit on every usable day.
                 # A soft bound keeps genuinely infeasible/tight days honest.
@@ -504,6 +503,7 @@ class TripOptimizer:
             # Dropping it changes trip length while hotel nights still cover all dates.
             day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
             day_plans.append(DayPlan(
+                planning_note=self.day_windows[day_id].get('note'),
                 day_number=day_id + 1,
                 date=day_date.isoformat() if day_date else None,
                 day_of_week=day_date.strftime("%A") if day_date else None,
@@ -561,7 +561,7 @@ class TripOptimizer:
             if pruned_any:
                 hotel_place = self.places[self.hotel_index]
                 for day in day_plans:
-                    curr_minute = 60  # Start tour at 9:00 AM (60 minutes from 8:00 AM)
+                    curr_minute = self.day_windows[day.day_number - 1]['start']
                     prev_lat, prev_lng = hotel_place.lat, hotel_place.lng
                     surviving_places = []
                     valid_activities = []
@@ -573,6 +573,9 @@ class TripOptimizer:
                         arrival_minute = curr_minute + travel_mins
                         start_minute = max(arrival_minute, act_place.open_time_mins if act_place.open_time_mins is not None else 0)
                         end_minute = start_minute + act_place.duration_minutes
+                        return_minutes, _ = get_travel_metrics(act_place.lat, act_place.lng, hotel_place.lat, hotel_place.lng, mode=self.transport_mode, people_count=self.people_count)
+                        if end_minute + return_minutes > self.day_windows[day.day_number - 1]['end']:
+                            continue
 
                         # Hard constraint: Skip if exceeding closing hours
                         if act_place.close_time_mins is not None and end_minute > act_place.close_time_mins:

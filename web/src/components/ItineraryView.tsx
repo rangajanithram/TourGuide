@@ -25,6 +25,7 @@ import PlanNotices from './PlanNotices';
 import JourneyCostSummary from './JourneyCostSummary';
 import TravelImage from './TravelImage';
 import StaySummaryCard from './StaySummaryCard';
+import TravelTimingSummary from './TravelTimingSummary';
 import IntercityTravel from './IntercityTravel';
 import { isUnassignedMeal, timeBetweenStops } from '@/lib/itinerary-presentation';
 import type {TripVisitProgress} from './useTripVisits';
@@ -506,6 +507,7 @@ export default function ItineraryView({
         <ShieldCheck size={20} aria-hidden="true" /><span>{currentPlan.verification_report.is_valid ? 'Your plan passed our time and budget checks using the available data.' : 'This plan needs attention. Review the schedule checks below.'} Check current prices and opening hours before you go.</span>
       </div>}
       <PlanNotices warnings={currentPlan.verification_report?.warnings} />
+      <TravelTimingSummary plan={currentPlan}/>
       {currentPlan.verification_report?.errors?.map((error, index) => <p key={`error-${index}`} role="alert" className="itinerary-warning">{error}</p>)}
       {/* Day by Day Itinerary */}
       <div className="itinerary-schedule space-y-5">

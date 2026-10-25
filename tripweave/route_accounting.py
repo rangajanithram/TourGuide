@@ -1,5 +1,5 @@
 """Complete route estimates for edits, including hotel departure/return legs."""
-from tripweave.distance import calculate_distance_km, get_travel_metrics
+from tripweave.distance import route_distance_km, get_travel_metrics
 
 
 def trip_route_metrics(days, hotel, mode, people):
@@ -11,8 +11,7 @@ def trip_route_metrics(days, hotel, mode, people):
             locations.append(hotel)
         for location in locations:
             leg_time, leg_cost = get_travel_metrics(*previous, *location, mode=mode, people_count=people)
-            km = calculate_distance_km(*previous, *location)
-            distance += 0 if km < 0.01 else km * (1.25 if mode in ('cab','auto','walk') else 1)
+            distance += route_distance_km(*previous, *location, mode=mode)
             minutes += leg_time
             cost += leg_cost
             previous = location

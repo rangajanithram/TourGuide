@@ -98,3 +98,6 @@ button.shared-stop-number[aria-pressed="true"]{background:var(--ui-ink,#243e33);
 button.shared-stop-number:disabled,.stop-completion:disabled{opacity:.55;cursor:wait}
 button.shared-stop-number:focus-visible{outline:3px solid var(--ui-warm,#89532d);outline-offset:3px}
 .shared-stop-list>li:has(button.shared-stop-number):not(:last-child):before{left:21px;top:44px}
+
+.travel-timing-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px;padding:20px;border:1px solid var(--ui-line,#c6d2c0);border-radius:14px;background:var(--ui-surface,#fffdf5);color:var(--ui-ink,#243e33)}
+.travel-timing-summary h3{font-size:18px;margin-bottom:10px}.travel-timing-summary p,.travel-timing-summary li{font-size:15px;line-height:1.65;margin-block:8px}.travel-timing-summary ul{padding-left:20px;list-style:disc}.travel-timing-summary a{text-decoration:underline;text-underline-offset:3px}

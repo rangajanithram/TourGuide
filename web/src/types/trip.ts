@@ -92,6 +92,8 @@ export interface DayPlan {
 }
 
 export interface HotelStaySummary {
+  check_in_date?: string | null;
+  check_out_date?: string | null;
   accommodation_kind?: 'planner_selected' | 'booked' | 'family_friends' | 'no_stay';
   reported_stay_total_inr?: number | null;
   excluded_prepaid_cost_inr?: number;
@@ -193,8 +195,10 @@ export interface SynthesisStage {
 export interface DiscoveryPlanningPolicy { visit_minutes: number; attraction_cost_inr: number; meal_cost_inr: number; open_time_mins: number; close_time_mins: number; }
 
 export interface TripPlan {
+  routing_summary?: {source?: string; checked_at?: string | null; note?: string};
+  journey_notes?: string[];
   candidate_summary?: { total_candidates: number; feasible_candidates: number; confirmed_discovered_candidates: number; rated_candidates: number; weather_used_in_ranking: boolean; notes: string };
-  planning_preferences?: { preferred_activities?: string[]; discovery_policy?: DiscoveryPlanningPolicy | null; stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null; journey_timing?: JourneyTiming | null; booked_transport?: BookedTransport | null };
+  planning_preferences?: { availability_version?: 1 | 2; use_road_routes?: boolean; preferred_activities?: string[]; discovery_policy?: DiscoveryPlanningPolicy | null; stay_choice?: StayChoice | null; whole_journey_budget_inr?: number | null; journey_timing?: JourneyTiming | null; booked_transport?: BookedTransport | null };
   journey_timing?: JourneyTiming | null;
   plan_name: string;
   variant_type: 'budget' | 'balanced' | 'comfort';
@@ -314,6 +318,10 @@ export interface StayChoice {
   budget_treatment: 'include' | 'already_paid';
   check_in_time?: string | null;
   check_out_time?: string | null;
+  check_in_date?: string | null;
+  check_out_date?: string | null;
+  check_in_buffer_minutes?: number;
+  check_out_buffer_minutes?: number;
   constrain_sightseeing_to_stay?: boolean;
   allows_bag_drop?: boolean | null;
 }
@@ -325,6 +333,7 @@ export interface BookedTransport {
   paid_inr: number;
 }
 export interface TripFormData {
+ use_road_routes?: boolean;
  preferred_activities?: string[];
  whole_journey_budget_inr?: number;
  booked_transport?: BookedTransport;

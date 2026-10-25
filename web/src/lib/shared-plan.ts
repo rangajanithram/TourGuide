@@ -22,7 +22,7 @@ export function readSharedPlan(raw:string):SharedPlan {
     if(d.weather&&(!text(d.weather.condition,120)||!Number.isFinite(d.weather.temperature)||d.weather.temperature< -70||d.weather.temperature>65||!Number.isFinite(d.weather.rain)||d.weather.rain<0||d.weather.rain>100||typeof d.weather.forecast!=='boolean'))throw new Error('The weather details in this copy could not be read.');
     for(const s of d.stops)if(!text(s.name,200)||!clock(s.start)||!clock(s.end)||!cost(s.cost)||!text(s.type,80)||(s.lat!=null&&(!Number.isFinite(s.lat)||Math.abs(s.lat)>90||!Number.isFinite(s.lng)||Math.abs(s.lng!)>180))||(s.lng!=null&&s.lat==null)||(s.source!=null&&!text(s.source,500,true))||(s.rating!=null&&(!Number.isFinite(s.rating)||s.rating<0||s.rating>5||!text(s.ratingNote,400))))throw new Error('Some stop details in this copy could not be read.');
   }
-  if(p.stay&&(!text(p.stay.name,200)||!cost(p.stay.cost)||!Number.isInteger(p.stay.nights)||p.stay.nights<0||p.stay.nights>14||(p.stay.address!=null&&!text(p.stay.address,400,true))))throw new Error('Stay details in this copy could not be read.');
+  if(p.stay&&(!text(p.stay.name,200)||!cost(p.stay.cost)||!Number.isInteger(p.stay.nights)||p.stay.nights<0||p.stay.nights>30||(p.stay.address!=null&&!text(p.stay.address,400,true))))throw new Error('Stay details in this copy could not be read.');
   // All displayed fields are checked above. Extra properties are ignored; no supplied HTML or URLs are executed.
   return p;
 }

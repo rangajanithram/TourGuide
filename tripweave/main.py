@@ -19,7 +19,7 @@ from tripweave.verifier import ItineraryVerifier
 from tripweave.models import (
     TripRequest, TripPlan, Place, MultiVariantTripPlan,
     PlanVariantType, PacePreference, TransportPreference,
-    TransportMode, HotelPreference, WeatherSummary,
+    TransportMode, HotelPreference, WeatherSummary, GroupProfile,
     EditConsequenceRequest, EditConsequenceResponse,
     RebalanceTiredRequest, RebalanceTiredResponse
 )
@@ -31,6 +31,7 @@ from tripweave.auth import get_current_user, UserProfile
 from tripweave import rail_reference
 from tripweave.planning_candidates import expand_request, meal_candidates
 from tripweave.rating_evidence import attach_rating_evidence
+from tripweave.availability import planning_windows, journey_notes
 
 # ---------------------------------------------------------------------------
 # Process-Local Production Protection Guardrails
@@ -210,11 +211,37 @@ def get_database_places(destination: str = "hyderabad") -> List[Place]:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                             detail="Destination data is temporarily unavailable. Please try again later.") from e
 
-def _build_single_plan(
+def _build_single_plan(request, variant=PlanVariantType.BALANCED, prefetched_weather=None, return_timings=False):
+    from types import SimpleNamespace
+    from tripweave.routing import road_context, annotate_plan
+    from tripweave.geocoding import LocationResolver
+    catalog = get_database_places(request.destination)
+    points = list(catalog) + list(request.external_stops)
+    pins = {p.casefold().strip() for p in request.locked_activities}
+    priority = [p for p in points if p.place_id.casefold() in pins or p.name.casefold() in pins]
+    if request.stay_choice:
+        points.append(request.stay_choice)
+        priority.insert(0,request.stay_choice)
+    else:
+        _, lat, lng = LocationResolver.resolve_origin(request.destination, request.start_location, request.origin_type)
+        points.append(SimpleNamespace(lat=lat, lng=lng))
+        priority.insert(0,points[-1])
+    priority.extend([p for p in catalog if p.place_type=='hotel'][:3])
+    mode = request.transport_pref.mode if request.transport_pref else TransportMode.CAB
+    if request.group_profile == GroupProfile.ELDERLY and mode == TransportMode.WALK:
+        mode = TransportMode.AUTO
+    with road_context(request.use_road_routes, points, mode, priority):
+        result = _build_single_plan_core(request, variant, prefetched_weather, return_timings, catalog)
+        annotate_plan(result[0] if return_timings else result)
+        return result
+
+
+def _build_single_plan_core(
     request: TripRequest,
     variant: PlanVariantType = PlanVariantType.BALANCED,
     prefetched_weather: Optional[Dict[str, WeatherSummary]] = None,
-    return_timings: bool = False
+    return_timings: bool = False,
+    catalog=None
 ):
     """Internal pipeline helper executing Stages 1-8 for a specific variant with real performance profiling."""
     request = request.model_copy(update={"budget_inr": request.destination_budget_available})
@@ -224,7 +251,7 @@ def _build_single_plan(
 
     # Stage 1: Candidate Generation
     t_stage1 = time.perf_counter()
-    all_places = attach_rating_evidence(merge_confirmed_stops(get_database_places(request.destination), request.external_stops), request.destination)
+    all_places = attach_rating_evidence(merge_confirmed_stops(catalog, request.external_stops), request.destination)
     if request.locked_activities:
         catalog_names_ids = {p.place_id.lower() for p in all_places} | {p.name.lower() for p in all_places}
         for pin in request.locked_activities:
@@ -314,6 +341,7 @@ def _build_single_plan(
         selected_hotel.lat, selected_hotel.lng, start_date=request.start_date,
         end_date=request.end_date, days=request.days)
     optimizer = TripOptimizer(
+        day_windows=planning_windows(request),
         weather_by_day=weather_map,
         places=valid_places,
         days=request.days,
@@ -337,6 +365,9 @@ def _build_single_plan(
 
     try:
         itinerary = optimizer.generate_plan()
+        itinerary.planning_preferences.availability_version = 2
+        itinerary.journey_notes = journey_notes(request)
+        itinerary.planning_preferences.use_road_routes = request.use_road_routes
         itinerary.meal_places = meal_places
         itinerary.planning_preferences.discovery_policy = request.discovery_policy
         itinerary.booked_transport = request.booked_transport
@@ -381,6 +412,7 @@ def _build_single_plan(
         total_km = 30.0
     fatigue_info = FatigueAnalyzer.evaluate_trip(
         itinerary.days,
+        transport_mode=itinerary.transport_mode,
         pace=request.pace,
         group_profile=request.group_profile,
         total_transit_km=total_km,
@@ -434,6 +466,12 @@ def _build_single_plan(
         'weather_used_in_ranking': bool(weather_map),
         'notes': 'Historical sample ratings are soft ranking signals. Unknown ratings are neutral. Hours, prices and travel times may be estimates; all hard constraints still apply.'}
     for day in itinerary.days:
+        window = planning_windows(request)[day.day_number - 1]
+        if window['note']:
+            if window['end'] == 0:
+                day.cluster_name = 'Travel / rest day'
+            day.planning_note = window['note']
+            continue
         visits = sum(a.place_type not in {'restaurant', 'rest_break'} for a in day.activities)
         if visits == 0:
             day.planning_note = 'No sightseeing fits this day in the available candidate pool under the current hours, travel windows, pace and budget. This does not mean the city has no places to visit. Enable automatic discovery, add candidates, or relax a constraint.'
@@ -477,6 +515,9 @@ def health_check():
 def planner_catalog(destination: str = "hyderabad"):
     places = [p for p in attach_rating_evidence(get_database_places(destination), destination) if p.place_type not in {"hotel", "rest_break"}]
     return {
+        "routing_supported": True,
+        "routing_configured": bool(settings.geoapify_api_key),
+        "availability_version": 2,
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,
                     "duration": p.duration_minutes, "lat": p.lat, "lng": p.lng,

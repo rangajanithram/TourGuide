@@ -37,6 +37,8 @@ class Stage2EditTests(TestCase):
 
     def test_pin_keeps_the_actual_variant_transport_mode(self):
         plan = self.plan.model_copy(update={'transport_mode':TransportMode.AUTO})
+        # This fixture's 09:00 appointment requires leaving the base before 09:00.
+        plan.planning_preferences.arrival_available_mins = 0
         result = ItineraryEditor.preview_edit(EditConsequenceRequest(destination='hyderabad',plan=plan,day_number=1,activity_index=0,action=EditActionType.PIN,people_count=2))
         self.assertEqual(result.updated_plan.transport_mode,TransportMode.AUTO)
         self.assertTrue(result.is_feasible)

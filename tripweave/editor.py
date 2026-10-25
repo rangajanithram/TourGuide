@@ -13,7 +13,7 @@ from tripweave.models import (
     TirednessSeverity, RebalanceTiredRequest, RebalanceTiredResponse,
     PacePreference, GroupProfile, ExpenseBreakdown
 )
-from tripweave.distance import calculate_distance_km, get_travel_metrics
+from tripweave.distance import calculate_distance_km, get_travel_metrics, route_distance_km
 from tripweave.solar import get_golden_hour_window
 from tripweave.provider import get_places_provider, merge_confirmed_stops
 from tripweave.fatigue import FatigueAnalyzer
@@ -69,14 +69,14 @@ def _estimated_leg(
 ) -> Tuple[float, int, int]:
     """Return estimated route km, travel minutes, and fare for one leg.
 
-    The route distance remains a straight-line approximation with a road
-    multiplier for road modes; time and fare use the shared mode calculator.
+    Uses server-fetched road evidence when available, otherwise a straight-line
+    approximation with a road multiplier. Time and fare use the shared calculator.
     Zero-distance legs are truly zero rather than minimum-fare trips.
     """
     straight_km = calculate_distance_km(start[0], start[1], end[0], end[1])
-    if straight_km < 0.01:
+    if straight_km == 0:
         return 0.0, 0, 0
-    route_km = straight_km * (1.25 if mode in ("cab", "auto", "walk") else 1.0)
+    route_km = route_distance_km(*start, *end, mode=mode)
     minutes, cost = get_travel_metrics(start[0], start[1], end[0], end[1], mode, people)
     return route_km, minutes, cost
 
@@ -158,6 +158,7 @@ class ItineraryEditor:
             group_profile=group_profile,
             hotel_lat=hotel_lat,
             hotel_lng=hotel_lng,
+            transport_mode=transport_mode,
         )
         matched_fatigue = next(
             (d for d in fatigue_info["daily_breakdown"] if d["day_number"] == updated_day.day_number),
@@ -262,6 +263,15 @@ class ItineraryEditor:
 
     @classmethod
     def preview_edit(cls, request: EditConsequenceRequest) -> EditConsequenceResponse:
+        from tripweave.routing import editor_road_context, annotate_plan
+        with editor_road_context(request.plan, request.destination):
+            result = cls._preview_edit(request)
+            if result.updated_plan:
+                annotate_plan(result.updated_plan)
+            return result
+
+    @classmethod
+    def _preview_edit(cls, request: EditConsequenceRequest) -> EditConsequenceResponse:
         """
         Simulates an edit action on a specific day and activity index,
         evaluating the physics, cost, and time feasibility deltas.
@@ -727,6 +737,14 @@ class ItineraryEditor:
 
     @classmethod
     def rebalance_tired_day(cls, request: RebalanceTiredRequest) -> RebalanceTiredResponse:
+        from tripweave.routing import editor_road_context, annotate_plan
+        with editor_road_context(request.plan, request.destination):
+            result = cls._rebalance_tired_day(request)
+            annotate_plan(result.updated_plan)
+            return result
+
+    @classmethod
+    def _rebalance_tired_day(cls, request: RebalanceTiredRequest) -> RebalanceTiredResponse:
         """Apply a transparent, constraint-checked heuristic to the remaining day.
 
         This is not a global OR-Tools re-optimization. It preserves stop order,
@@ -1039,11 +1057,11 @@ class ItineraryEditor:
                 feasibility_notes.append("Stored group profile was unrecognized; fatigue estimate uses the default profile.")
         old_eval = FatigueAnalyzer.evaluate_trip(
             [target_day], pace=request.pace, group_profile=group_profile,
-            hotel_lat=hotel[0], hotel_lng=hotel[1],
+            hotel_lat=hotel[0], hotel_lng=hotel[1], transport_mode=mode,
         )["daily_breakdown"][0]
         new_eval = FatigueAnalyzer.evaluate_trip(
             [revised_day], pace=request.pace, group_profile=group_profile,
-            hotel_lat=hotel[0], hotel_lng=hotel[1],
+            hotel_lat=hotel[0], hotel_lng=hotel[1], transport_mode=mode,
         )["daily_breakdown"][0]
         fatigue_change_pct = round(
             (old_eval["score"] - new_eval["score"]) / max(1, old_eval["score"]) * 100,
@@ -1122,6 +1140,7 @@ class ItineraryEditor:
             group_profile=group_profile,
             hotel_lat=hotel[0],
             hotel_lng=hotel[1],
+            transport_mode=mode,
         )
 
         synthetic_req = TripRequest.model_construct(

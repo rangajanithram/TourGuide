@@ -1,0 +1,3 @@
+-r requirements.txt
+# Starlette TestClient is used by the authenticated itinerary API regression.
+httpx==0.28.1

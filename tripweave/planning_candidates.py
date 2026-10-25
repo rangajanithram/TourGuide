@@ -62,9 +62,10 @@ def meal_candidates(request, places, base):
             unique.append(place)
     restaurants = unique
     meals = []
+    from tripweave.availability import planning_windows
+    windows = planning_windows(request)
     for day in range(request.days):
-        earliest = request.arrival_available_mins if day == 0 else 60
-        latest = request.departure_deadline_mins if day == request.days - 1 else 720
+        earliest, latest = windows[day]['start'], windows[day]['end']
         used_today = set()
         for kind, start, end in [('breakfast', 60, 180), ('lunch', 240, 420), ('dinner', 630, 720)]:
             start, end = max(start, earliest), min(end, latest)

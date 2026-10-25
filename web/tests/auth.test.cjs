@@ -721,7 +721,7 @@ test('journey preflight rejects invalid dates, order, offsets and unavailable si
   for (const changes of [{ outbound_departure: '2026-10-19T11:00+05:30' }, { destination_arrival: '2026-02-30T10:00+05:30' }, { destination_arrival: '2026-10-19T10:00' }, { arrival_buffer_minutes: 600 }, { departure_buffer_minutes: -1 }, { version: 2 }, { arrival_transfer_cost_inr: -1 }, { arrival_transfer_cost_inr: 200, arrival_transfer_paid_inr: 300 }, { arrival_transfer_paid_inr: 100 }]) {
     assert.throws(() => journeyWindow({ ...timedTrip, journey_timing: { ...timedTrip.journey_timing, ...changes } }));
   }
-  assert.throws(() => journeyWindow({ ...timedTrip, start_date: '2026-10-18' }), /Sightseeing dates/);
+  assert.throws(() => journeyWindow({ ...timedTrip, start_date: '2026-10-18' }), /Trip dates/);
   assert.throws(() => journeyWindow({ ...timedTrip, origin_city: '' }), /origin city/);
 });
 
@@ -758,7 +758,13 @@ test('saved request keeps a confirmed stay and rejects base or cost changes', ()
   const constrained = { ...bookedStay, constrain_sightseeing_to_stay: true, check_in_time: '14:00', check_out_time: '11:00' };
   assert.throws(() => snapshotValidator.validateTripRequest({ ...form, stay_choice: constrained }, snapshot), /stay scheduling constraint/);
   snapshot.variants.balanced.planning_preferences = { stay_choice: constrained };
+  assert.throws(() => snapshotValidator.validateTripRequest({ ...form, stay_choice: constrained }, snapshot), /stay availability/);
+  snapshot.variants.balanced.days = snapshot.variants.balanced.days.map(day=>({...day,activities:day.activities.map(a=>({...a}))}));
+  const before = snapshot.variants.balanced.days[0].activities[0];
+  const originalStart = before.start_time, originalEnd = before.end_time;
+  before.start_time = '14:00'; before.end_time = '15:30';
   assert.doesNotThrow(() => snapshotValidator.validateTripRequest({ ...form, stay_choice: constrained }, snapshot));
+  before.start_time = originalStart; before.end_time = originalEnd;
   delete snapshot.variants.balanced.planning_preferences;
   snapshot.variants.balanced.hotel_summary.lat = 17.4;
   assert.throws(() => snapshotValidator.validateTripRequest(form, snapshot), /base or lodging budget scope/);
@@ -1034,4 +1040,36 @@ test('trip live updates are trip-scoped, refetch after subscribe/reconnect and c
     stop(); assert.equal(removed, 1); assert.equal(cleared, 1); assert.equal(listeners.size, 0);
     events[0].callback({}); subscribed('SUBSCRIBED'); assert.equal(refreshes, 5, 'late callbacks ignored after cleanup');
   } finally {Object.assign(global, original);}
+});
+
+const travelWindows = load('lib/journey-timing.ts').planningWindows;
+test('late arrival and early departure preserve a usable middle day', () => {
+ const form = {...timedTrip, start_date:'2026-11-02', end_date:'2026-11-04', journey_timing:{...timedTrip.journey_timing,
+  outbound_departure:'2026-11-01T22:00+05:30',destination_arrival:'2026-11-02T23:00+05:30',
+  destination_departure:'2026-11-04T07:00+05:30',return_arrival:'2026-11-04T19:00+05:30',arrival_buffer_minutes:120}};
+ assert.deepEqual(travelWindows(form).map(w=>[w.start,w.end]),[[0,0],[60,720],[0,0]]);
+ assert.throws(()=>travelWindows({...form,end_date:'2026-11-02'}),/no sightseeing time/);
+});
+test('check-in, packing, transfers and boarding are reserved in sequence', () => {
+ const form={...timedTrip,start_date:'2026-11-02',end_date:'2026-11-03',journey_timing:{...timedTrip.journey_timing,
+  outbound_departure:'2026-11-01T22:00+05:30',destination_arrival:'2026-11-02T15:00+05:30',
+  destination_departure:'2026-11-03T16:00+05:30',return_arrival:'2026-11-04T19:00+05:30',
+  arrival_transfer_minutes:60,arrival_buffer_minutes:30,departure_transfer_minutes:60},
+  stay_choice:{...bookedStay,check_in_date:'2026-11-02',check_out_date:'2026-11-03',check_in_time:'14:00',check_out_time:'14:00',
+   constrain_sightseeing_to_stay:true,check_in_buffer_minutes:30,check_out_buffer_minutes:30}};
+ assert.deepEqual(travelWindows(form).map(w=>[w.start,w.end]),[[540,720],[60,300]]);
+ assert.throws(()=>travelWindows({...form,stay_choice:{...form.stay_choice,check_in_date:'2026-11-03'}}),/do not cover/);
+});
+test('stay dates remain optional but must be valid paired dates when supplied', () => {
+ assert.doesNotThrow(()=>validateStayChoice(bookedStay,15000));
+ assert.throws(()=>validateStayChoice({...bookedStay,check_in_date:'2026-11-01'},15000),/both check-in/);
+ assert.throws(()=>validateStayChoice({...bookedStay,check_in_date:'2026-02-30',check_out_date:'2026-03-02'},15000),/dates/);
+ assert.throws(()=>validateStayChoice({...bookedStay,check_in_buffer_minutes:181},15000),/180 minutes/);
+});
+test('shared itinerary accepts up to thirty confirmed destination nights', () => {
+ const {makeSharedPlan,readSharedPlan}=load('lib/shared-plan.ts');
+ const plan={...samplePlan,hotel_summary:{...samplePlan.hotel_summary,hotel_name:'QA stay',nights:20,total_cost_inr:2000}};
+ const share=makeSharedPlan(plan,'Hyderabad',null,true);
+ assert.equal(readSharedPlan(JSON.stringify(share)).stay.nights,20);
+ assert.throws(()=>readSharedPlan(JSON.stringify({...share,stay:{...share.stay,nights:31}})),/Stay details/);
 });

@@ -1,7 +1,7 @@
 import { validateBookedTransport } from './booked-transport';
 import { validateJourneyBudget } from './journey-budget';
 import { validateStayChoice } from './stay-choice';
-import { journeyWindow } from './journey-timing';
+import { journeyWindow, planningWindows } from './journey-timing';
 import type { MultiVariantTripPlan, TripFormData, TripPlan, VariantKey } from '@/types/trip';
 
 function invalid(message: string): never { throw new Error(`Invalid saved itinerary: ${message}`); }
@@ -48,6 +48,13 @@ export function validateSnapshot(raw: unknown): asserts raw is MultiVariantTripP
   for (const [key, value] of Object.entries(variants)) {
     const plan = record(value);
     text(plan.plan_name, 'plan name', 160);
+    if (plan.routing_summary != null) {
+      const routes = record(plan.routing_summary);
+      if (routes.source != null && !['distance_estimate', 'Geoapify / OpenStreetMap'].includes(String(routes.source))) invalid('routing source');
+      if (routes.note != null) text(routes.note, 'routing note', 1000);
+      if (routes.checked_at != null && (typeof routes.checked_at !== 'string' || !Number.isFinite(Date.parse(routes.checked_at)))) invalid('routing check time');
+    }
+    if (plan.journey_notes != null) strings(plan.journey_notes, 'journey notes');
     if (plan.variant_type !== key || !['cab', 'auto', 'metro', 'walk'].includes(String(plan.transport_mode))) invalid('variant or transport');
     integer(plan.total_cost_inr, 'total'); integer(plan.estimated_transport_cost_inr, 'transport');
     if (!Array.isArray(plan.days) || !plan.days.length || plan.days.length > 14) invalid('days');
@@ -124,6 +131,7 @@ export function validateSnapshot(raw: unknown): asserts raw is MultiVariantTripP
 }
 
 export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTripPlan, selected?: VariantKey): TripFormData {
+  if (form.use_road_routes !== undefined && typeof form.use_road_routes !== 'boolean') invalid('road routing preference');
   if (form.intercity_modes !== undefined && (!Array.isArray(form.intercity_modes) || !form.intercity_modes.length || form.intercity_modes.length > 3 || form.intercity_modes.some(mode => !['train', 'bus', 'flight'].includes(mode)))) invalid('intercity modes');
   if (!validDate(form.start_date) || !validDate(form.end_date)) invalid('trip dates');
   try { validateBookedTransport(form); journeyWindow(form); validateStayChoice(form.stay_choice, validateJourneyBudget(form)); } catch (error) { invalid(error instanceof Error ? error.message : 'journey timing'); }
@@ -133,8 +141,8 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if (!['relaxed', 'balanced', 'intensive'].includes(form.pace) || !['cab', 'auto', 'metro', 'walk'].includes(form.transport_mode)) invalid('preferences');
   if (form.group_profile && !['default', 'young_solo', 'family', 'elderly'].includes(form.group_profile)) invalid('group profile');
   if (form.origin_type && !['hotel', 'center', 'station', 'airport'].includes(form.origin_type)) invalid('origin');
-  if (form.arrival_available_mins !== undefined) integer(form.arrival_available_mins, 'arrival availability', 0, 719);
-  if (form.departure_deadline_mins !== undefined) integer(form.departure_deadline_mins, 'departure deadline', 1, 720);
+  if (form.arrival_available_mins !== undefined) integer(form.arrival_available_mins, 'arrival availability', 0, 720);
+  if (form.departure_deadline_mins !== undefined) integer(form.departure_deadline_mins, 'departure deadline', 0, 720);
   if (form.meal_budget_per_person !== undefined) integer(form.meal_budget_per_person, 'meal estimate', 0, 10000);
   if (form.discovery_policy !== undefined) {
     const policy = form.discovery_policy;
@@ -167,6 +175,8 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
   if (form.start_location !== undefined && (typeof form.start_location !== 'string' || form.start_location.length > 160)) invalid('starting location');
   if ((form.locked_activities || []).length > 15) invalid('too many pins');
   for (const plan of Object.values(snapshot.variants) as TripPlan[]) {
+    if (!!plan.planning_preferences?.use_road_routes !== !!form.use_road_routes) invalid('road routing preference changed');
+    const windows = planningWindows(form);
     const policy = form.discovery_policy, storedPolicy = plan.planning_preferences?.discovery_policy;
     if (policy ? !storedPolicy || (Object.keys(policy) as (keyof typeof policy)[]).some(key => policy[key] !== storedPolicy[key]) : !!storedPolicy) invalid('discovery estimate policy mismatch');
     if (plan.days.some((day, index) => day.day_number !== index + 1 || day.date !== new Date(Date.parse(form.start_date) + index * 86400000).toISOString().slice(0,10))) invalid('day sequence');
@@ -182,10 +192,16 @@ export function validateTripRequest(form: TripFormData, snapshot: MultiVariantTr
       if ((form.journey_timing?.[key] ?? null) !== (plan.planning_preferences?.journey_timing?.[key] ?? null)) invalid('transfer fares or payments changed');
     }
     const savedStay = plan.planning_preferences?.stay_choice;
+    for (const key of ['check_in_date', 'check_out_date', 'allows_bag_drop'] as const) if ((savedStay?.[key] ?? null) !== (form.stay_choice?.[key] ?? null)) invalid('stay dates or luggage arrangement changed');
+    for (const key of ['check_in_buffer_minutes', 'check_out_buffer_minutes'] as const) if ((savedStay?.[key] ?? 0) !== (form.stay_choice?.[key] ?? 0)) invalid('stay buffers changed');
     if (!!savedStay?.constrain_sightseeing_to_stay !== !!form.stay_choice?.constrain_sightseeing_to_stay) invalid('stay scheduling constraint changed');
     if (form.stay_choice?.constrain_sightseeing_to_stay && (savedStay?.check_in_time !== form.stay_choice.check_in_time || savedStay?.check_out_time !== form.stay_choice.check_out_time)) invalid('stay scheduling times changed');
     if ((plan.planning_preferences?.whole_journey_budget_inr ?? null) !== (form.whole_journey_budget_inr ?? null)) invalid('combined budget cap mismatch');
     if (plan.total_cost_inr > validateJourneyBudget(form)) invalid('itinerary exceeds the requested budget');
+    for (const day of plan.days) for (const stop of day.activities) {
+      const w = windows[day.day_number - 1];
+      if (!w || time(stop.start_time) - 480 < w.start || time(stop.end_time) - 480 > w.end) invalid('stop outside travel or stay availability');
+    }
     if (plan.days.length !== days) invalid('itinerary does not cover every requested day. Please regenerate the trip with the updated planner');
     if (plan.days[0].date !== form.start_date || plan.days[days - 1].date !== form.end_date) invalid('itinerary dates differ from the requested travel dates');
   }

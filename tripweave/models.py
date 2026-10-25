@@ -108,6 +108,7 @@ class JourneyTiming(BaseModel):
         return self
 
     def local_window(self, start: date, end: date, earliest: int, latest: int):
+        """Legacy scalar helper; calendar-aware scheduling uses planning_windows."""
         ready = self.destination_arrival + timedelta(minutes=self.arrival_buffer_minutes + self.arrival_transfer_minutes)
         leave = self.destination_departure - timedelta(minutes=self.departure_buffer_minutes + self.departure_transfer_minutes)
         if ready.date() > start or leave.date() < end:
@@ -133,8 +134,20 @@ class StayChoice(BaseModel):
     budget_treatment: Literal["include", "already_paid"] = "include"
     check_in_time: Optional[str] = Field(default=None, max_length=16)
     check_out_time: Optional[str] = Field(default=None, max_length=16)
+    check_in_date: Optional[date] = None
+    check_out_date: Optional[date] = None
+    check_in_buffer_minutes: int = Field(default=0, ge=0, le=180, strict=True)
+    check_out_buffer_minutes: int = Field(default=0, ge=0, le=180, strict=True)
     constrain_sightseeing_to_stay: bool = Field(default=False, strict=True)
     allows_bag_drop: Optional[bool] = Field(default=None, strict=True)
+
+    @model_validator(mode='after')
+    def dated_stay(self):
+        if bool(self.check_in_date) != bool(self.check_out_date):
+            raise ValueError('Enter both check-in and check-out dates, or leave both blank.')
+        if self.check_in_date and (self.kind != 'booked' or self.check_out_date < self.check_in_date or (self.check_out_date - self.check_in_date).days > 30):
+            raise ValueError('Booked stay dates must be in order and span at most 30 nights.')
+        return self
 
     @field_validator("check_in_time", "check_out_time")
     @classmethod
@@ -151,6 +164,7 @@ class StayChoice(BaseModel):
         return value
 
     def sightseeing_window(self, days, earliest, latest):
+        """Legacy scalar helper; dated stays use planning_windows."""
         if not self.constrain_sightseeing_to_stay:
             return earliest, latest
         if self.kind != "booked" or not self.check_in_time or not self.check_out_time:
@@ -209,6 +223,8 @@ class DiscoveryPlanningPolicy(BaseModel):
 
 class PlanningPreferences(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    availability_version: Literal[1, 2] = 1
+    use_road_routes: bool = Field(default=False, strict=True)
     preferred_activities: List[str] = Field(default_factory=list, max_length=15, description="Optional shortlisted catalog stops; never a feasibility requirement")
     whole_journey_budget_inr: Optional[int] = Field(default=None, gt=0, le=5_000_000, strict=True)
     booked_transport: Optional[BookedTransport] = None
@@ -216,8 +232,8 @@ class PlanningPreferences(BaseModel):
     stay_choice: Optional[StayChoice] = None
     journey_timing: Optional[JourneyTiming] = None
     meal_budget_per_person: Optional[int] = Field(default=None, ge=0, le=10000)
-    arrival_available_mins: int = Field(default=60, ge=0, le=719)
-    departure_deadline_mins: int = Field(default=720, ge=1, le=720)
+    arrival_available_mins: int = Field(default=60, ge=0, le=720)
+    departure_deadline_mins: int = Field(default=720, ge=0, le=720)
     external_stops: List[ConfirmedDiscoveryStop] = Field(default_factory=list, max_length=15)
     max_visit_minutes: Optional[int] = Field(None, ge=30, le=480)
     avoid_climbing: bool = False
@@ -269,11 +285,14 @@ class TripRequest(PlanningPreferences):
         if self.journey_timing:
             if not self.origin_city or self.origin_city.strip().lower() == self.destination.strip().lower():
                 raise ValueError("Choose a different origin city to add intercity travel timing.")
-            self.arrival_available_mins, self.departure_deadline_mins = self.journey_timing.local_window(
-                self.start_date, self.end_date, self.arrival_available_mins, self.departure_deadline_mins)
-        if self.stay_choice:
-            self.arrival_available_mins, self.departure_deadline_mins = self.stay_choice.sightseeing_window(
-                self.days, self.arrival_available_mins, self.departure_deadline_mins)
+        from tripweave.availability import planning_windows
+        windows = planning_windows(self)
+        # Preserve the historical boundary fields for ordinary partial days.
+        # Fully unavailable travel days use the explicit per-date windows.
+        if windows[0]['end'] > windows[0]['start']:
+            self.arrival_available_mins = windows[0]['start']
+        if windows[-1]['end'] > windows[-1]['start']:
+            self.departure_deadline_mins = windows[-1]['end']
         return self
 
     @model_validator(mode="before")
@@ -281,7 +300,7 @@ class TripRequest(PlanningPreferences):
     def resolve_dates_and_days(cls, data):
         if isinstance(data, dict):
             # 1. Map top-level transport_mode to transport_pref if not already set
-            if "transport_mode" in data and not data.get("transport_pref"):
+            if data.get("transport_mode") is not None and not data.get("transport_pref"):
                 raw_mode = data["transport_mode"]
                 mode_str = raw_mode.value if hasattr(raw_mode, "value") else str(raw_mode).lower()
                 data["transport_pref"] = TransportPreference(mode=TransportMode(mode_str))
@@ -409,6 +428,8 @@ class Place(BaseModel):
 # --- OUTPUT ITINERARY (What the engine produces) ---
 
 class HotelStaySummary(BaseModel):
+    check_in_date: Optional[date] = None
+    check_out_date: Optional[date] = None
     accommodation_kind: Literal["planner_selected", "booked", "family_friends", "no_stay"] = "planner_selected"
     reported_stay_total_inr: Optional[int] = Field(default=None, ge=0, le=5_000_000)
     excluded_prepaid_cost_inr: int = Field(default=0, ge=0, le=5_000_000)
@@ -418,7 +439,7 @@ class HotelStaySummary(BaseModel):
     lng: float = Field(default=0.0, ge=-180.0, le=180.0, description="Hotel longitude for map pin")
     price_per_night_per_room: int = Field(..., ge=0, le=1_000_000)
     rooms_needed: int = Field(..., ge=0, le=50)
-    nights: int = Field(..., ge=0, le=14)
+    nights: int = Field(..., ge=0, le=30)
     people_accommodated: int = Field(..., ge=1, le=50)
     total_cost_inr: int = Field(..., ge=0, le=5_000_000)
     provenance: str = Field(..., max_length=500, description="Clear provenance note of the rate")
@@ -517,6 +538,8 @@ class VerificationReport(BaseModel):
     metrics: Dict[str, str] = Field(default_factory=dict, description="Operational physics metrics")
 
 class TripPlan(BaseModel):
+    routing_summary: Dict[str, Any] = Field(default_factory=dict)
+    journey_notes: List[str] = Field(default_factory=list, max_length=12)
     candidate_summary: Dict[str, Any] = Field(default_factory=dict)
     meal_places: List[Place] = Field(default_factory=list, max_length=42)
     planning_preferences: PlanningPreferences = Field(default_factory=PlanningPreferences)
