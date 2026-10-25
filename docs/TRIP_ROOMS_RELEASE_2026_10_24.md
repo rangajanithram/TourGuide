@@ -47,13 +47,27 @@ A new `/rooms?trip=<saved-trip-id>` route implements signed-in group rooms. The 
 - Existing `supabase/tests/account_isolation.sql`: passed after the new migration; fixtures rolled back. The new `trip_rooms.sql` role-based suite also passed.
 - `git diff --check`: passed. The temporary browser fixture route was removed and the isolated PostgreSQL test server stopped.
 
-## Production activation — approval required
+## Production activation — completed 25 October 2026
 
-Automatic approval review rejected applying the migration to production project **tripweave (`wfuvtuetjlodharrvomv`)**, because that exact remote target and persistent member access had not been explicitly approved. No alternative production SQL path was attempted. The migration remains in the repository and has been tested locally. Do not claim live rooms are active before approval, migration application and production acceptance.
+The owner explicitly approved activation for **tripweave (`wfuvtuetjlodharrvomv`)**, used by `https://tour-guide-e3es.vercel.app`. The migration connector returned expired-request errors without applying SQL. After signing in to Supabase, the owner ran the tested migration successfully in the project SQL editor.
 
-After explicit approval: apply the committed migration through the normal Supabase migration process; run the rolled-back room fixture suite and security advisors; confirm the deployed frontend uses the matching commit; perform owner create → recipient join on another account/device → bill add → auto refresh → received-payment confirmation → owner save revision → recipient refresh → revoke access. Verify offline recovery, duplicate retry and paused access. Never use a real bank transfer as an automated test.
+Verification after the manual execution:
 
-Existing security advisor warning before this change: leaked-password protection is disabled in Supabase Auth. No auth configuration or billing plan was changed as part of rooms.
+- All three exposed room tables and the private invitation table exist with RLS enabled. The saved-trip update trigger is installed. Existing `saved_trips` and `plan_versions` policies remain owner-only.
+- SHA-256 hashes of all six installed room function bodies match the reviewed migration after newline normalization. The public command wrapper is SECURITY INVOKER; privileged implementations retain the private schema and empty search path.
+- The complete `supabase/tests/trip_rooms.sql` suite ran against production and returned `production_room_regressions_passed`. All synthetic accounts, trips, bills and invitations were rolled back; a separate check confirmed zero test accounts remain. No real user bill, payment or trip was changed by these tests.
+- Migration history now records `20261024175910_cloud_trip_rooms` with the full verified SQL source. This records the completed manual application; it does not re-execute the DDL.
+- The live `/rooms` page returned HTTP 200, `Cache-Control: private, no-cache, no-store`, `X-Robots-Tag: noindex, nofollow`, and `Referrer-Policy: no-referrer`.
+- A real anonymous HTTPS request to the published room RPC returned HTTP 401 / SQL code 42501, permission denied. The command is reachable through the Data API and is not anonymously callable.
+- Vercel reports production READY for frontend source commit `07f02f8`. The image fix and trip-room screens are deployed.
+
+The production database role-based tests are not a two-account browser certification. The owner/recipient journey on separate real accounts/devices remains a manual acceptance check: start a room → join an invitation → add a bill → observe refresh → confirm receipt → save a planner revision → observe the updated itinerary → revoke access. No real bank transfer is required or appropriate for this test.
+
+### Advisor findings
+
+The advisor reports an informational [RLS enabled without policies](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) notice for `tripweave_private.room_invites`. This is intentional deny-all access in an unexposed schema, with no browser table grants; only checked private commands use it. It must not be fixed by granting public invite-table access.
+
+The pre-existing [leaked-password protection disabled](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection) warning remains. No auth configuration, billing plan or paid provider was changed as part of activation.
 
 ## Remaining expansion
 
