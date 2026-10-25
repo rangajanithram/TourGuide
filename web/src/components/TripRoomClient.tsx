@@ -9,27 +9,34 @@ import Header from './Header';
 import PlannerLandscape from './PlannerLandscape';
 import SharedPlanDetails from './SharedPlanDetails';
 import CloudLedger from './CloudLedger';
-export default function TripRoomClient(){
+export default function TripRoomClient({tripId=''}:{tripId?:string}){
  const {user,isLoading:authLoading}=useAuth();
+ const userId=user?.id;
  const service=useMemo(()=>isSupabaseConfigured?createRoomService(getBrowserSupabase()):null,[]);
- const [tripId,setTripId]=useState(''),[token,setToken]=useState(''),[ready,setReady]=useState(false),[tab,setTab]=useState('itinerary');
+ const [token,setToken]=useState(''),[ready,setReady]=useState(false),[tab,setTab]=useState('itinerary');
  const [room,setRoom]=useState<Room|null>(null),[list,setList]=useState<{trip_id:string;plan_data:Room['plan_data'];updated_at:string;enabled:boolean;user_id:string}[]>([]);
  const [owned,setOwned]=useState<{id:string;title:string}|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[checkedAt,setCheckedAt]=useState('');
  const [name,setName]=useState(''),[guest,setGuest]=useState(''),[invite,setInvite]=useState(''),[expires,setExpires]=useState(''),[remove,setRemove]=useState('');
  const busyRef=useRef(false),readRef=useRef(false),epoch=useRef(0),roomRef=useRef<Room|null>(null);
- useEffect(()=>{const params=new URLSearchParams(location.search),id=params.get('trip')||'',raw=new URLSearchParams(location.hash.slice(1)).get('invite')||'';setTripId(id);setToken(/^[0-9a-f]{64}$/.test(raw)?raw:'');setReady(true);try{sessionStorage.removeItem('tripweave-room-return');}catch{}},[]);
+ useEffect(()=>{
+  const readInvitation=()=>{const raw=new URLSearchParams(location.hash.slice(1)).get('invite')||'';setToken(/^[0-9a-f]{64}$/.test(raw)?raw:'');};
+  readInvitation();setReady(true);
+  window.addEventListener('hashchange',readInvitation);
+  try{sessionStorage.removeItem('tripweave-room-return');}catch{}
+  return()=>window.removeEventListener('hashchange',readInvitation);
+ },[]);
  useEffect(()=>{setName(user?.name||'');},[user?.name]);
  useEffect(()=>{roomRef.current=room;},[room]);
  const invalidate=useCallback(()=>{epoch.current+=1;readRef.current=false;},[]);
  const load=useCallback(async()=>{
-  if(!service||!user||!ready||readRef.current||busyRef.current)return;
+  if(!service||!userId||!ready||readRef.current||busyRef.current)return;
   readRef.current=true;const current=epoch.current;
   try{if(tripId){const next=await service.command(tripId,'read');if(current!==epoch.current)return;setRoom(next);roomRef.current=next;setOwned(null);}else{const rooms=await service.list();if(current!==epoch.current)return;setList(rooms);}
    setCheckedAt(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));setError('');
-  }catch(error){if(current!==epoch.current)return;const e=error as RoomError;setError(e.message);if(['42501','P0002'].includes(e.code)){setRoom(null);roomRef.current=null;if(tripId){try{setOwned(await service.ownedTrip(tripId));}catch{setOwned(null);}}}}
+  }catch(error){if(current!==epoch.current)return;const e=error as RoomError;setError(e.message);if(['42501','P0002'].includes(e.code)){setRoom(null);roomRef.current=null;if(tripId){try{const saved=await service.ownedTrip(tripId);if(current!==epoch.current)return;setOwned(saved);if(saved)setError('');}catch{if(current===epoch.current)setOwned(null);}}}}
   finally{if(current===epoch.current){setLoading(false);readRef.current=false;}}
- },[service,user,ready,tripId]);
- useEffect(()=>{invalidate();setRoom(null);setList([]);setLoading(true);if(!user){setLoading(false);return;}void load();const refresh=()=>{if(document.visibilityState==='visible')void load();};const timer=setInterval(refresh,10000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{invalidate();clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[load,user,invalidate]);
+ },[service,userId,ready,tripId]);
+ useEffect(()=>{invalidate();setRoom(null);setList([]);setLoading(true);if(!userId){setLoading(false);return;}void load();const refresh=()=>{if(document.visibilityState==='visible')void load();};const timer=setInterval(refresh,10000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{invalidate();clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[load,userId,invalidate]);
  async function command(action:string,data:Record<string,unknown>={}):Promise<Room>{
   if(!service||busyRef.current)throw new RoomError('Another room update is in progress. Please wait.');
   busyRef.current=true;setBusy(true);setNotice('');epoch.current++;readRef.current=false;

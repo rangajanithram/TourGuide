@@ -7,7 +7,7 @@ const ts = require('typescript');
 // Transpile TypeScript with the already installed compiler; no browser secrets or live emails.
 function load(relative, mocks = {}) {
   const source = fs.readFileSync(path.join(__dirname, '../src', relative), 'utf8');
-  const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText;
+  const js = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX } }).outputText;
   const module = { exports: {} };
   new Function('require', 'module', 'exports', js)(name => {
     if (name in mocks) return mocks[name];
@@ -19,6 +19,39 @@ const { safeNext, authErrorMessage } = load('lib/auth-policy.ts');
 const { createAuthService } = load('lib/auth-service.ts');
 const { apiBaseUrl, boundedFetch, requireApiSuccess } = load('lib/planner-network.ts');
 const costsModule = load('lib/journey-costs.ts');
+
+test('room navigation separates list and room state, including different trip links', async () => {
+  const Component = () => null;
+  const {default: Page} = load('app/rooms/page.tsx', {
+    'react/jsx-runtime': require('react/jsx-runtime'),
+    '@/components/TripRoomClient': {default: Component},
+  });
+  const list = await Page({searchParams: Promise.resolve({})});
+  const first = await Page({searchParams: Promise.resolve({trip: 'room-one'})});
+  const second = await Page({searchParams: Promise.resolve({trip: 'room-two'})});
+  assert.equal(first.props.tripId, 'room-one');
+  assert.notEqual(list.key, first.key);
+  assert.notEqual(first.key, second.key);
+  assert.equal((await Page({searchParams: Promise.resolve({trip: ['one', 'two']})})).props.tripId, '');
+});
+
+test('planner navigation resets loaded trip and history state without depending on query order', async () => {
+  const Component = () => null;
+  let authChecks = 0;
+  const preferences = {pace: 'relaxed'};
+  const {default: Page} = load('app/planner/page.tsx', {
+    'react/jsx-runtime': require('react/jsx-runtime'),
+    '@/components/PlannerPage': {default: Component},
+    '@/lib/require-user': {requireVerifiedUser: async () => {authChecks++; return {user_metadata: {travel_preferences: preferences}};}},
+  });
+  const render = params => Page({searchParams: Promise.resolve(params)});
+  const first = await render({tripId: 'one', history: '1'});
+  assert.notEqual(first.key, (await render({tripId: 'two'})).key);
+  assert.notEqual(first.key, (await render({tripId: 'one'})).key);
+  assert.equal(first.key, (await render({history: '1', tripId: 'one'})).key);
+  assert.deepEqual(first.props.preferences, preferences);
+  assert.equal(authChecks, 4);
+});
 test('combined budget reserves full tickets and prepaid stays and rejects missing fares', () => {
   const { validateJourneyBudget } = load('lib/journey-budget.ts');
   const form = { destination: 'hyderabad', origin_city: 'bengaluru', budget_inr: 15000,
