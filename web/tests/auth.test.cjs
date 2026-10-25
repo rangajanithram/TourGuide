@@ -982,3 +982,56 @@ test('room schema keeps private trips owner-only and privileged functions outsid
  assert.match(sql,/after update of itinerary_data,request_data,selected_variant,title,current_version/);
  assert.match(sql,/token_hash=sha256/);assert.match(sql,/expires_at>now\(\)/);
 });
+
+const visitModule = load('lib/trip-visits.ts', {'./room-service': roomModule()});
+const {watchTrip} = load('lib/trip-realtime.ts');
+const visitFixture = {trip_id: 'b3000000-0000-4000-8000-000000000001', plan_version: 2, variant: 'balanced',
+  stops: [{key: 'a'.repeat(64), day: 1, index: 0, visited: false, revision: 0, updated_at: null}]};
+
+test('visit progress validates shape and writes explicit state with stop and plan revisions', async () => {
+  let call;
+  const service = visitModule.createVisitService({rpc(name, data) {
+    call = {name, data};
+    return {abortSignal: async () => ({data: visitFixture, error: null})};
+  }});
+  assert.deepEqual(await service(visitFixture.trip_id), visitFixture);
+  await service(visitFixture.trip_id, visitFixture.stops[0], 2);
+  assert.equal(call.name, 'trip_visit_command');
+  assert.deepEqual(call.data, {p_trip_id: visitFixture.trip_id, p_action: 'set',
+    p_data: {key: 'a'.repeat(64), visited: true, revision: 0}, p_plan_version: 2});
+  assert.throws(() => visitModule.parseTripVisits({...visitFixture, stops: [{...visitFixture.stops[0], key: 'not-a-key'}]}));
+  assert.throws(() => visitModule.parseTripVisits({...visitFixture, variant: 'arbitrary'}));
+  assert.throws(() => visitModule.parseTripVisits({...visitFixture, stops: [{...visitFixture.stops[0], visited: 'yes'}]}));
+});
+
+test('visit service rejects another trip, missing migration and concurrent stale writes', async () => {
+  const client = result => ({rpc: () => ({abortSignal: async () => result})});
+  await assert.rejects(visitModule.createVisitService(client({data: {...visitFixture, trip_id: 'different'}}))(visitFixture.trip_id), /different trip/);
+  await assert.rejects(visitModule.createVisitService(client({error: {code: 'PGRST202'}}))(visitFixture.trip_id), /database update/);
+  await assert.rejects(visitModule.createVisitService(client({error: {code: '40001'}}))(visitFixture.trip_id), e => e.code === 'CONFLICT');
+});
+
+test('trip live updates are trip-scoped, refetch after subscribe/reconnect and clean up', () => {
+  const original = {window: global.window, document: global.document, setInterval: global.setInterval, clearInterval: global.clearInterval};
+  const listeners = new Map(); let tick, subscribed, removed = 0, refreshes = 0, cleared = 0;
+  const events = [], statuses = [];
+  const surface = prefix => ({addEventListener: (event, fn) => listeners.set(prefix+event, fn), removeEventListener: event => listeners.delete(prefix+event)});
+  global.window = surface('w:'); global.document = {...surface('d:'), visibilityState: 'visible'};
+  global.setInterval = fn => {tick = fn; return 1;}; global.clearInterval = () => {cleared++;};
+  const channel = {on(type, filter, callback) {events.push({type, filter, callback}); return this;}, subscribe(fn) {subscribed = fn; return this;}};
+  try {
+    const stop = watchTrip({channel: () => channel, removeChannel: async () => {removed++;}}, visitFixture.trip_id, () => {refreshes++;}, s => statuses.push(s));
+    assert.equal(events.length, 4);
+    assert.ok(events.every(e => ['INSERT','UPDATE'].includes(e.filter.event) && e.filter.filter === `trip_id=eq.${visitFixture.trip_id}`));
+    assert.equal(refreshes, 1);
+    subscribed('SUBSCRIBED'); assert.equal(refreshes, 2); assert.equal(statuses.at(-1), 'live');
+    tick(); assert.equal(refreshes, 2, 'no ten-second polling while connected');
+    events[0].callback({new: {untrusted: true}}); assert.equal(refreshes, 3);
+    document.visibilityState = 'hidden'; events[1].callback({}); assert.equal(refreshes, 3);
+    document.visibilityState = 'visible'; listeners.get('d:visibilitychange')(); assert.equal(refreshes, 4);
+    subscribed('CHANNEL_ERROR'); assert.equal(statuses.at(-1), 'reconnecting');
+    subscribed('SUBSCRIBED'); assert.equal(refreshes, 5);
+    stop(); assert.equal(removed, 1); assert.equal(cleared, 1); assert.equal(listeners.size, 0);
+    events[0].callback({}); subscribed('SUBSCRIBED'); assert.equal(refreshes, 5, 'late callbacks ignored after cleanup');
+  } finally {Object.assign(global, original);}
+});

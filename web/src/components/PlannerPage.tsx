@@ -21,6 +21,7 @@ import PlanningScene from './PlanningScene';
 import TripForm from '../components/TripForm';
 import VariantSwitcher from '../components/VariantSwitcher';
 import ItineraryView from '../components/ItineraryView';
+import {useTripVisits} from './useTripVisits';
 import SharedTripOverview from '../components/SharedTripOverview';
 import {
   MultiVariantTripPlan,
@@ -106,6 +107,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
     changeType: PlanVersionChangeType;
     summary: string;
   } | null>(null);
+  const cloudVisits = useTripVisits(savedTrip?.id, savedTrip?.current_version, savedTrip?.selected_variant);
 
   useEffect(() => {
     if (!pendingRevision && (!multiPlan || savedTrip)) return;
@@ -1019,6 +1021,8 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                 {/* Itinerary Schedule and Hotel Details */}
                 <fieldset disabled={isSavingTrip || restoringVersion !== null} className="min-w-0">
                 <ItineraryView
+                  cloudVisits={savedTrip ? cloudVisits : undefined}
+                  visitsEditable={!pendingRevision && resolvedVariant === savedTrip?.selected_variant}
                   onOpenRoom={handleOpenTripRoom}
                   actionsTargetId="itinerary-actions"
                   key={`${savedTrip?.id || 'new'}:${resolvedVariant}:${planEpoch}`}
@@ -1086,6 +1090,8 @@ export default function Home({ preferences }: { preferences?: unknown }) {
                 {/* Itinerary Schedule and Hotel Details */}
                   <fieldset disabled={isSavingTrip || restoringVersion !== null} className="min-w-0">
                 <ItineraryView
+                  cloudVisits={savedTrip ? cloudVisits : undefined}
+                  visitsEditable={!pendingRevision && resolvedVariant === savedTrip?.selected_variant}
                   onOpenRoom={handleOpenTripRoom}
                   actionsTargetId="itinerary-actions"
                   key={`${savedTrip?.id || 'new'}:${resolvedVariant}:${planEpoch}`}

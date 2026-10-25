@@ -53,10 +53,19 @@ def meal_candidates(request, places, base):
                    and p.place_id.casefold() not in pins and p.name.casefold() not in pins
                    and not preference_conflict(p, request)
                    and p.estimated_cost_per_person_inr <= request.meal_budget_per_person]
+    # Discovery/catalog aliases for one physical venue must not defeat variety.
+    unique = []
+    for place in restaurants:
+        if not any(place.name.strip().casefold() == old.name.strip().casefold()
+                   and calculate_distance_km(place.lat, place.lng, old.lat, old.lng) < 0.15
+                   for old in unique):
+            unique.append(place)
+    restaurants = unique
     meals = []
     for day in range(request.days):
         earliest = request.arrival_available_mins if day == 0 else 60
         latest = request.departure_deadline_mins if day == request.days - 1 else 720
+        used_today = set()
         for kind, start, end in [('breakfast', 60, 180), ('lunch', 240, 420), ('dinner', 630, 720)]:
             start, end = max(start, earliest), min(end, latest)
             if end - start < 30:
@@ -65,11 +74,14 @@ def meal_candidates(request, places, base):
                         and min(end, p.close_time_mins) - max(start, p.open_time_mins) >= p.duration_minutes
                         and p.duration_minutes <= end - start
                         and (not request.start_date or (request.start_date + timedelta(days=day)).strftime('%A').lower() not in [d.lower() for d in p.closed_days])]
-            eligible.sort(key=lambda p: (calculate_distance_km(base.lat, base.lng, p.lat, p.lng) +
-                                        1.5 * sum(m.meal_venue_id == p.place_id for m in meals),
+            available = [p for p in eligible if p.place_id not in used_today]
+            available.sort(key=lambda p: (sum(m.meal_venue_id == p.place_id for m in meals),
+                                        sum(m.meal_venue_id == p.place_id and m.meal_type == kind for m in meals),
+                                        calculate_distance_km(base.lat, base.lng, p.lat, p.lng),
                                         p.estimated_cost_per_person_inr, p.place_id))
-            venue = eligible[0] if eligible else None
+            venue = available[0] if available else None
             if venue:
+                used_today.add(venue.place_id)
                 meals.append(venue.model_copy(update={'place_id': f'meal:{day}:{kind}',
                     'name': f'{kind.title()} - {venue.name}'[:200], 'planning_day': day, 'meal_type': kind,
                     'meal_venue_id': venue.place_id, 'open_time_mins': max(start, venue.open_time_mins),
@@ -80,5 +92,7 @@ def meal_candidates(request, places, base):
                     estimated_cost_per_person_inr=request.meal_budget_per_person,
                     open_time_mins=start, close_time_mins=end, planning_day=day, meal_type=kind,
                     verification_status='estimated', last_verified_date=None,
-                    source_reference='Reserved meal time at base; user budget estimate; suitable venue not confirmed'))
+                    source_reference=('Reserved meal time at base; user budget estimate; suitable venue not confirmed. '
+                                      + ('No different suitable restaurant is available for this meal; add more choices or enable discovery.' if eligible
+                                         else 'No restaurant fits the listed hours, meal budget and food requirements.'))))
     return meals

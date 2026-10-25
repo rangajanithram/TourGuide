@@ -27,8 +27,12 @@ import TravelImage from './TravelImage';
 import StaySummaryCard from './StaySummaryCard';
 import IntercityTravel from './IntercityTravel';
 import { isUnassignedMeal, timeBetweenStops } from '@/lib/itinerary-presentation';
+import type {TripVisitProgress} from './useTripVisits';
+import {tripConnectionLabel} from '@/lib/trip-realtime';
 
 interface ItineraryViewProps {
+  cloudVisits?: TripVisitProgress;
+  visitsEditable?: boolean;
   actionsTargetId?: string;
   onOpenRoom?: () => Promise<void>;
   plan: TripPlan;
@@ -41,6 +45,8 @@ interface ItineraryViewProps {
 }
 
 export default function ItineraryView({
+  cloudVisits,
+  visitsEditable = true,
   plan,
   actionsTargetId,
   onOpenRoom,
@@ -73,6 +79,10 @@ export default function ItineraryView({
   useEffect(() => { setActivePlan(plan); }, [plan]);
 
   const currentPlan = activePlan;
+  const cloudMatches = !!cloudVisits?.ready && visitsEditable;
+  const stopVisited = (day: number, index: number, localKey: string) => cloudVisits
+    ? cloudMatches && !!cloudVisits.data?.stops.find(s => s.day === day && s.index === index)?.visited
+    : !!visitedActivities[localKey]?.visited;
 
   const handleApplyDayUpdate = (updatedDay: DayPlan, newPlan?: TripPlan, summaryReason?: string) => {
     setPlanHistory(prev => [...prev, activePlan]);
@@ -535,6 +545,7 @@ export default function ItineraryView({
           </div>
         </div>
 
+        {cloudVisits?<div className="room-note" role="status">{!visitsEditable?'Save this revision to sync visit checks for these stops.':cloudVisits.error?<>{cloudVisits.error} <button type="button" onClick={cloudVisits.refresh}>Retry visit checks</button></>:!cloudVisits.ready?'Loading shared visit checks…':cloudVisits.busy?'Saving visit check…':`${tripConnectionLabel(cloudVisits.connection)} · Checks are shared with your trip group. Add actual bills separately in Trip room.`}</div>:<p className="room-note">Visit checks in this draft are personal. Save the trip to sync checks across devices and share them in a trip room.</p>}
         <div className="itinerary-days-grid">
         {visibleDays.map(day => (
           <div
@@ -619,7 +630,7 @@ export default function ItineraryView({
 
             {day.planning_note && day.activities.length > 0 && <p className="itinerary-warning" role="status">{day.planning_note}</p>}
             {day.activities.length > 0 && <p className="day-progress" aria-live="polite">
-              {day.activities.filter((act, index) => visitedActivities[`${day.day_number}:${act.place_id || act.place_name}:${index}`]?.visited).length} of {day.activities.length} stops visited
+              {day.activities.filter((act, index) => stopVisited(day.day_number,index,`${day.day_number}:${act.place_id || act.place_name}:${index}`)).length} of {day.activities.length} stops visited
               <span>Tap a numbered circle as you go.</span>
             </p>}
             {/* Activities Timeline */}
@@ -628,7 +639,7 @@ export default function ItineraryView({
               {day.activities.map((act, actIdx) => {
                 const actKey = `${day.day_number}:${act.place_id || act.place_name}:${actIdx}`;
                 const visitInfo = visitedActivities[actKey];
-                const isVisited = !!visitInfo?.visited;
+                const isVisited = stopVisited(day.day_number,actIdx,actKey);
                 const actSpend = visitInfo?.actualCost ?? act.estimated_cost_inr;
                 const isMealPlaceholder=isUnassignedMeal(act);
                 const gap=actIdx>0?timeBetweenStops(day.activities[actIdx-1],act):null;
@@ -640,8 +651,9 @@ export default function ItineraryView({
                     className="stop-completion"
                     aria-pressed={isVisited}
                     aria-label={`${isVisited ? 'Mark unvisited' : 'Mark visited'}: ${act.place_name}`}
-                    title={isVisited ? 'Mark as unvisited' : 'Mark as visited and log spend'}
-                    onClick={() => toggleActivityVisited(actKey, act.estimated_cost_inr)}
+                    title={isVisited ? 'Mark as unvisited' : 'Mark as visited'}
+                    disabled={!!cloudVisits && (!cloudMatches || cloudVisits.busy || !!cloudVisits.error)}
+                    onClick={() => cloudVisits ? void cloudVisits.toggle(day.day_number,actIdx) : toggleActivityVisited(actKey, act.estimated_cost_inr)}
                   >
                     {isVisited ? <CheckSquare size={20} aria-hidden="true" /> : <span>{actIdx + 1}</span>}
                   </button>
@@ -820,7 +832,8 @@ export default function ItineraryView({
                     </div>
 
                     {/* Feature 2: Smart Interactive Expense Logging per Activity */}
-                    {isVisited && (
+                    {isVisited && cloudVisits && <p className="room-note">Visited by the group · Shared with this saved trip. No bill added.</p>}
+                    {isVisited && !cloudVisits && (
                       <div className="mt-3 pt-2.5 border-t border-[#c6d2c0] flex flex-wrap items-center justify-between gap-2 text-sm bg-[#fffdf5]/60 px-3 py-2 rounded-lg">
                         <div className="flex items-center space-x-2">
                           <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
@@ -1096,7 +1109,7 @@ export default function ItineraryView({
       )}
 
       {/* Feature 2 & 3C: Floating Live Group Expense Tracker & UPI Settlement Bar */}
-      {onOpenRoom && (totalVisitedCount > 0 || ledger.expenses.length > 0) && <details className="rounded-xl border border-[#c6d2c0] p-4"><summary>Notes and older bills saved on this device</summary><p className="text-sm py-3">Visited checks and older browser-only bills are personal notes. They do not update the trip room or its balances. Review them here and add any actual bills to the shared room once.</p><button type="button" className="plan-share-trigger" onClick={()=>{setInitialExpenseToAdd(null);setIsExpenseModalOpen(true);}}>Review device-only bills</button></details>}
+      {onOpenRoom && (totalVisitedCount > 0 || ledger.expenses.length > 0) && <details className="rounded-xl border border-[#c6d2c0] p-4"><summary>Notes and older bills saved on this device</summary><p className="text-sm py-3">Older personal checks and browser-only bills are kept separately. They are not uploaded or added to room balances automatically. Review actual bills before adding them to the shared room once.</p><button type="button" className="plan-share-trigger" onClick={()=>{setInitialExpenseToAdd(null);setIsExpenseModalOpen(true);}}>Review device-only bills</button></details>}
       {!onOpenRoom && (totalVisitedCount > 0 || ledger.expenses.length > 0) && (
         <div className="sticky bottom-4 z-40 bg-[#fffdf5]/95 backdrop-blur-md border border-amber-500/40 rounded-2xl p-4 shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
           <div className="flex items-center space-x-3">

@@ -90,3 +90,11 @@ html[data-theme=dark] .expense-primary,html[data-theme=dark] .plan-share-trigger
 .room-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:20px}.room-expense-form.expense-dialog{width:100%;max-height:none;overflow:visible;animation:none;box-shadow:none}.room-expense-form .expense-wizard{max-width:760px}.room-page .expense-bills h3{font-size:20px}.room-page .expense-payments{gap:16px}.room-page .expense-payments h3{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .room-card>ul{list-style:disc;padding-left:22px}.room-share-intro{display:grid;gap:14px;padding:18px;border:1px solid var(--ui-line,#bdccb3);background:var(--ui-raised,#eef1e5);border-radius:12px}.room-share-intro h3{font-size:21px;font-weight:700}
 @media(max-width:700px){.room-card,.room-status{padding:18px}.room-status,.room-section-heading,.room-people>article{flex-direction:column}.room-tabs button{flex:1;font-size:14px;padding:11px}.room-page .expense-payments>article{grid-template-columns:1fr}.room-page .expense-bills>article{flex-direction:column}}
+
+/* Shared visit checks remain readable in both themes and usable by touch. */
+.shared-stop-list>li:has(button.shared-stop-number){grid-template-columns:44px minmax(0,1fr)}
+button.shared-stop-number{width:44px;height:44px;font-size:16px;background:var(--ui-surface,#fffdf5);color:var(--ui-ink,#243e33);cursor:pointer}
+button.shared-stop-number[aria-pressed="true"]{background:var(--ui-ink,#243e33);color:var(--ui-surface,#fffdf5)}
+button.shared-stop-number:disabled,.stop-completion:disabled{opacity:.55;cursor:wait}
+button.shared-stop-number:focus-visible{outline:3px solid var(--ui-warm,#89532d);outline-offset:3px}
+.shared-stop-list>li:has(button.shared-stop-number):not(:last-child):before{left:21px;top:44px}

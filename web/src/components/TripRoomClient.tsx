@@ -9,15 +9,20 @@ import Header from './Header';
 import PlannerLandscape from './PlannerLandscape';
 import SharedPlanDetails from './SharedPlanDetails';
 import CloudLedger from './CloudLedger';
+import {watchTrip,tripConnectionLabel,type TripConnection} from '@/lib/trip-realtime';
+import {useTripVisits} from './useTripVisits';
 export default function TripRoomClient({tripId=''}:{tripId?:string}){
  const {user,isLoading:authLoading}=useAuth();
  const userId=user?.id;
+ const visits=useTripVisits(tripId||undefined);
+ const [connection,setConnection]=useState<TripConnection>('connecting');
  const service=useMemo(()=>isSupabaseConfigured?createRoomService(getBrowserSupabase()):null,[]);
  const [token,setToken]=useState(''),[ready,setReady]=useState(false),[tab,setTab]=useState('itinerary');
  const [room,setRoom]=useState<Room|null>(null),[list,setList]=useState<{trip_id:string;plan_data:Room['plan_data'];updated_at:string;enabled:boolean;user_id:string}[]>([]);
  const [owned,setOwned]=useState<{id:string;title:string}|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[checkedAt,setCheckedAt]=useState('');
  const [name,setName]=useState(''),[guest,setGuest]=useState(''),[invite,setInvite]=useState(''),[expires,setExpires]=useState(''),[remove,setRemove]=useState('');
  const busyRef=useRef(false),readRef=useRef(false),epoch=useRef(0),roomRef=useRef<Room|null>(null),invitationRef=useRef('');
+ const queued=useRef(false),refreshRef=useRef<()=>void>(()=>{});
  useEffect(()=>{
   const readInvitation=()=>{const raw=new URLSearchParams(location.hash.slice(1)).get('invite')||'';invitationRef.current=/^[0-9a-f]{64}$/.test(raw)?raw:'';setToken(invitationRef.current);};
   readInvitation();setReady(true);
@@ -30,23 +35,26 @@ export default function TripRoomClient({tripId=''}:{tripId?:string}){
  const invalidate=useCallback(()=>{epoch.current+=1;readRef.current=false;},[]);
  // Read denial before joining is expected. Keep actual join errors until retry succeeds.
  const load=useCallback(async()=>{
-  if(!service||!userId||!ready||readRef.current||busyRef.current)return;
+  if(!service||!userId||!ready)return;
+  if(readRef.current||busyRef.current){queued.current=true;return;}
+  queued.current=false;
   readRef.current=true;const current=epoch.current;
   try{if(tripId){const next=await service.command(tripId,'read');if(current!==epoch.current)return;setRoom(next);roomRef.current=next;setOwned(null);}else{const rooms=await service.list();if(current!==epoch.current)return;setList(rooms);}
    setCheckedAt(new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));setError('');
   }catch(error){if(current!==epoch.current)return;const e=error as RoomError;const needsAccess=['42501','P0002'].includes(e.code);if(!needsAccess||!invitationRef.current)setError(e.message);if(needsAccess){setRoom(null);roomRef.current=null;if(tripId){try{const saved=await service.ownedTrip(tripId);if(current!==epoch.current)return;setOwned(saved);if(saved)setError('');}catch{if(current===epoch.current)setOwned(null);}}}}
-  finally{if(current===epoch.current){setLoading(false);readRef.current=false;}}
+  finally{if(current===epoch.current){setLoading(false);readRef.current=false;if(queued.current)refreshRef.current();}}
  },[service,userId,ready,tripId]);
- useEffect(()=>{invalidate();setRoom(null);setList([]);setLoading(true);if(!userId){setLoading(false);return;}void load();const refresh=()=>{if(document.visibilityState==='visible')void load();};const timer=setInterval(refresh,10000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{invalidate();clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[load,userId,invalidate]);
+ useEffect(()=>{refreshRef.current=()=>{void load();};},[load]);
+ useEffect(()=>{invalidate();queued.current=false;setRoom(null);setList([]);setLoading(true);if(!userId){setLoading(false);return;}if(tripId&&ready&&service){const stop=watchTrip(getBrowserSupabase(),tripId,()=>void load(),setConnection);return()=>{invalidate();stop();};}void load();const refresh=()=>{if(document.visibilityState==='visible')void load();};const timer=setInterval(refresh,30000);window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);return()=>{invalidate();clearInterval(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};},[load,userId,invalidate,tripId,ready,service]);
  async function command(action:string,data:Record<string,unknown>={}):Promise<Room>{
   if(!service||busyRef.current)throw new RoomError('Another room update is in progress. Please wait.');
   busyRef.current=true;setBusy(true);setNotice('');epoch.current++;readRef.current=false;
-  try{const next=await service.command(tripId,action,data,roomRef.current?.revision);setRoom(next);roomRef.current=next;setError('');setCheckedAt(new Date().toLocaleTimeString('en-IN'));if(action==='join'){invitationRef.current='';setToken('');history.replaceState({},'',`/rooms?trip=${tripId}`);}return next;}
+  try{const next=await service.command(tripId,action,data,roomRef.current?.revision);setRoom(next);roomRef.current=next;setError('');setCheckedAt(new Date().toLocaleTimeString('en-IN'));if(action==='join'){visits.refresh();invitationRef.current='';setToken('');history.replaceState({},'',`/rooms?trip=${tripId}`);}return next;}
   catch(error){if(error instanceof RoomError&&['CONFLICT','42501','P0002'].includes(error.code)){try{const next=await service.command(tripId,'read');setRoom(next);roomRef.current=next;}catch{setRoom(null);roomRef.current=null;}}throw error;}
-  finally{busyRef.current=false;setBusy(false);}
+  finally{busyRef.current=false;setBusy(false);if(queued.current)refreshRef.current();}
  }
  async function run(action:string,data:Record<string,unknown>={}){try{await command(action,data);setNotice(action==='remove_member'?'Member access removed and unused invitations revoked. Old bills remain for accurate balances.':'Saved to the trip room.');setRemove('');setGuest('');}catch(e){setError((e as Error).message);}}
- async function makeInvite(){if(!service||busyRef.current)return;busyRef.current=true;setBusy(true);setError('');try{const result=await service.invite(tripId);setInvite(`${location.origin}/rooms?trip=${tripId}#invite=${result.token}`);setExpires(result.expires_at);setNotice('New invitation created. Older unused invitation links no longer work. Existing members keep access.');}catch(e){setError((e as Error).message);}finally{busyRef.current=false;setBusy(false);}}
+ async function makeInvite(){if(!service||busyRef.current)return;busyRef.current=true;setBusy(true);setError('');try{const result=await service.invite(tripId);setInvite(`${location.origin}/rooms?trip=${tripId}#invite=${result.token}`);setExpires(result.expires_at);setNotice('New invitation created. Older unused invitation links no longer work. Existing members keep access.');}catch(e){setError((e as Error).message);}finally{busyRef.current=false;setBusy(false);if(queued.current)refreshRef.current();}}
  const host=room?.user_id===user?.id;
  const login=()=>{try{sessionStorage.setItem('tripweave-room-return',location.pathname+location.search+location.hash);}catch{}location.assign('/login');};
  return <div className="planner-theme"><PlannerLandscape/><Header/><main className="shared-plan-page room-page">
@@ -55,9 +63,9 @@ export default function TripRoomClient({tripId=''}:{tripId?:string}){
    {error&&<div className="expense-error" role="alert"><div><strong>{room?'Could not refresh the room':'Room access needs attention'}</strong><p>{error}</p>{room&&<p>You are seeing the last loaded data. Retry before making changes.</p>}<button onClick={()=>void load()} disabled={busy}>Try again</button></div></div>}
    {notice&&<p className="expense-feedback" role="status">{notice}</p>}
    {loading?<p role="status">Loading your trip room…</p>:!tripId?<><section className="room-card"><h1>My trip rooms</h1><p>Trips you own or have joined. Open a saved trip and choose Trip room to start one.</p></section><div className="room-list">{list.map(r=><Link className="room-card" key={r.trip_id} href={`/rooms?trip=${r.trip_id}`}><h2>{r.plan_data.title}</h2><p>{r.plan_data.city} · {r.user_id===user.id?'Owner':'Member'} · {r.enabled?'Open':'Paused'}</p></Link>)}</div>{!list.length&&<section className="room-card"><h2>No rooms yet</h2><Link href="/trips">Open a saved trip to start</Link></section>}</>:!room?(owned?<section className="room-card"><h1>Start a room for {owned.title}</h1><p>The room shares this saved itinerary with people you invite. Private account details, search inputs and version history stay private. Stay name and address are off until you choose to include them.</p><p>The shared ledger starts empty. Bills on this device are separate and are not uploaded automatically.</p><label htmlFor="room-owner-name">Your name in this room</label><input id="room-owner-name" maxLength={80} value={name} onChange={e=>setName(e.target.value)}/><button disabled={busy||!name.trim()} onClick={()=>void run('create',{name})}>Start trip room</button></section>:token?<section className="room-card"><h1>Join this trip room</h1><p>Joining lets you see the itinerary and group bills. Other members will see your name and the bills and shares you add. Only join a trip you recognise.</p><label htmlFor="room-join-name">Your name</label><input id="room-join-name" maxLength={80} value={name} onChange={e=>setName(e.target.value)}/><button disabled={busy||!name.trim()} onClick={()=>void run('join',{token,name})}>Join room</button></section>:<section className="room-card"><h1>This room is unavailable</h1><p>Ask the owner for a current invitation, or reopen the saved trip if you own it.</p></section>):<>
-   <section className="room-status"><div><span className="expense-kicker">{host?'YOUR SHARED TRIP ROOM':'MEMBER TRIP ROOM'}</span><h1>{room.plan_data.title}</h1><p>Saved itinerary v{room.plan_version} · {room.members.length} accounts joined · {room.enabled?'Room open':'Room paused; only the owner can read it'}</p><p role="status">{busy?'Saving to the trip…':`Last checked ${checkedAt}. Refreshes every 10 seconds while this tab is visible.`}</p></div><button onClick={()=>void load()} disabled={busy}><RefreshCw size={17}/>Refresh</button></section>
+   <section className="room-status"><div><span className="expense-kicker">{host?'YOUR SHARED TRIP ROOM':'MEMBER TRIP ROOM'}</span><h1>{room.plan_data.title}</h1><p>Saved itinerary v{room.plan_version} · {room.members.length} accounts joined · {room.enabled?'Room open':'Room paused; only the owner can read it'}</p><p role="status">{busy?'Saving to the trip…':`${tripConnectionLabel(connection)} · Last checked ${checkedAt}`}</p></div><button onClick={()=>{void load();visits.refresh();}} disabled={busy}><RefreshCw size={17}/>Refresh</button></section>
    <nav className="room-tabs" aria-label="Trip room sections">{[{id:'itinerary',name:'Itinerary'},{id:'bills',name:'Bills & balances'},{id:'people',name:'People & invitations'}].map(t=><button key={t.id} aria-current={tab===t.id?'page':undefined} onClick={()=>setTab(t.id)}>{t.name}</button>)}</nav>
-   {tab==='itinerary'&&<><p className="room-note">The owner’s saved changes appear here automatically. Unsaved planner edits are not shared. Weather, venue hours and costs keep their original source and estimate status.</p>{host&&<Link href={`/planner?tripId=${tripId}`}>Edit this trip in the planner</Link>}<SharedPlanDetails plan={room.plan_data} live/></>}
+   {tab==='itinerary'&&<><p className="room-note">Saved changes and visit checks appear for everyone in this room. Mark a stop when the group has visited it. Checks do not add bills. Unsaved planner edits are not shared.</p>{host&&<Link href={`/planner?tripId=${tripId}`}>Edit this trip in the planner</Link>}<SharedPlanDetails plan={room.plan_data} live visits={visits} visitsVersion={room.plan_version}/></>}
    {tab==='bills'&&<CloudLedger room={room} userId={user.id} command={command} busy={busy||!!error}/>}
    {tab==='people'&&<>
     <section className="room-card"><h2>People with room access</h2><p>Members sign in with their own account. Guest names below are for splitting bills; they do not grant access.</p><div className="room-people">{room.members.map(m=><article key={m.user_id}><div><strong>{m.name}{m.user_id===user.id?' (you)':''}</strong><p>{m.user_id===room.user_id?'Owner · edits the itinerary and manages access':'Member · records own bills and confirms received payments'}</p></div>{host&&m.user_id!==user.id&&(remove===m.user_id?<div><p>Remove access? Shared bill history stays.</p><button disabled={busy} onClick={()=>void run('remove_member',{user_id:m.user_id})}>Remove access</button><button onClick={()=>setRemove('')}>Keep member</button></div>:<button disabled={busy} onClick={()=>setRemove(m.user_id)}>Remove</button>)}</article>)}</div>
