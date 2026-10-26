@@ -1,12 +1,12 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { Compass, Sparkles, AlertCircle, ArrowRight } from 'lucide-react';
+import { Compass, AlertCircle, ArrowRight } from 'lucide-react';
 import TravelImage from './TravelImage';
 import { destinationNames } from '@/lib/travel-media';
 import type { CatalogPlace } from '@/lib/place-discovery';
 import ThemedSelect from './ThemedSelect';
 import PlannerDiscovery from './PlannerDiscovery';
-import InterestPicker from './InterestPicker';
+import PlacePlanningSettings from './PlacePlanningSettings';
 import JourneyTimingFields from './JourneyTimingFields';
 import BookedTransportFields from './BookedTransportFields';
 import RailReference from './RailReference';
@@ -23,6 +23,7 @@ interface Catalog {
   routing_supported?: boolean;
   routing_configured?: boolean;
   availability_version?: number;
+  catalog_counts?: {attraction:number;restaurant:number;hotel:number};
   cities: SearchOption[];
   places: CatalogPlace[];
   interests: string[];
@@ -49,7 +50,6 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
   const [issueFields, setIssueFields] = useState<string[]>([]);
   const summary = useRef<HTMLDivElement>(null);
   const [notice, setNotice] = useState('');
-  const [surprise, setSurprise] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const update = <K extends keyof TripFormData>(key: K, value: TripFormData[K]) => setForm(previous => ({ ...previous, [key]: value }));
   useEffect(() => { setForm(initialValues ? { ...defaults, ...initialValues } : { ...defaults, start_date: futureDate(7), end_date: futureDate(9) }); }, [initialValues]);
@@ -111,7 +111,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
   const changeDestination = (destination: string) => {
     if (destination === form.destination) return;
     setForm(previous => ({ ...previous, destination, stay_choice: undefined, journey_timing: undefined, booked_transport: undefined, external_stops: [], locked_activities: [], preferred_activities: [], interests: [], max_visit_minutes: undefined, avoid_climbing: false, food_preference: 'any' }));
-    setNotice('Destination changed. Place selections, stay details and destination preferences have been reset.'); setSurprise(false);
+    setNotice('Destination changed. Place selections, stay details and destination preferences have been reset.');
   };
   const pinLabel = (value: string) => form.external_stops?.find(stop=>"discovered:"+stop.place_id===value)?.name || catalog?.places.find(place => place.value === value || place.label === value)?.label || value;
 
@@ -164,6 +164,7 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
     </section>}
     {step === 2 && <section className="trip-step booking-section" aria-label="Places and food">
       <div className="trip-field-heading"><h4>Places you don’t want to miss</h4><InfoTip title="Must-visits">Pinned places are required. If your dates, budget or preferences cannot fit them, we explain the conflict.</InfoTip></div>
+      {catalog?.catalog_counts&&<p className="catalog-coverage">{catalog.catalog_counts.attraction} places to visit · {catalog.catalog_counts.restaurant} food stops · {catalog.catalog_counts.hotel} stay options considered by the planner</p>}
       <PlannerDiscovery key={form.destination} destination={form.destination} catalog={catalog?.places || []} estimatePolicy={form.discovery_policy}
         selections={Array.from(new Set([...pins,...(form.preferred_activities||[]),...(form.external_stops||[]).map(stop=>'discovered:'+stop.place_id)])).map(id=>({id,name:pinLabel(id),mandatory:pins.includes(id)}))}
         onCatalogAdd={(id,mandatory)=>setForm(previous=>({...previous,locked_activities:mandatory?Array.from(new Set([...(previous.locked_activities||[]),id])):previous.locked_activities,preferred_activities:mandatory?(previous.preferred_activities||[]).filter(item=>item!==id):Array.from(new Set([...(previous.preferred_activities||[]),id])).slice(0,15)}))}
@@ -179,13 +180,8 @@ export default function TripForm({ onSubmit, isLoading, initialValues }: { onSub
           if((previous.external_stops||[]).some(item=>item.place_id===stop.place_id)||(previous.external_stops||[]).length>=15||(mandatory&&(previous.locked_activities||[]).length>=15))return previous;
           return {...previous,external_stops:[...(previous.external_stops||[]),stop],preferred_activities:mandatory?previous.preferred_activities:Array.from(new Set([...(previous.preferred_activities||[]),'discovered:'+stop.place_id])).slice(0,15),locked_activities:mandatory?[...(previous.locked_activities||[]),'discovered:'+stop.place_id]:previous.locked_activities};
         })}/>
-      <details className="booking-more"><summary>Let the planner find more places</summary><label className="booking-check"><input type="checkbox" checked={!!form.discovery_policy} onChange={event => update('discovery_policy', event.target.checked ? { visit_minutes:90, attraction_cost_inr:200, meal_cost_inr:200, open_time_mins:60, close_time_mins:720 } : undefined)} /> Include real destination listings using my estimates below</label><p>Searches attractions and restaurants and considers up to 15 discovered candidates, including your selections. The planner chooses those that fit; it does not visit every candidate.</p>{form.discovery_policy && <><p>By continuing, I confirm these planning assumptions for listings with unknown facts: a 09:00–20:00 visit window, unknown weekly closures, and the duration/cost estimates below. These are not verified venue hours or ticket prices.</p><div className="booking-grid"><PlannerField id="discovery-duration" label="Attraction visit length (minutes)"><input type="number" min={30} max={240} value={form.discovery_policy.visit_minutes} onChange={event => update('discovery_policy', {...form.discovery_policy!,visit_minutes:Number(event.target.value)})} /></PlannerField><PlannerField id="discovery-cost" label="Attraction cost per person (₹)"><input type="number" min={0} max={10000} value={form.discovery_policy.attraction_cost_inr} onChange={event => update('discovery_policy', {...form.discovery_policy!,attraction_cost_inr:Number(event.target.value)})} /></PlannerField><PlannerField id="discovery-meal-cost" label="Discovered restaurant cost per person (₹)"><input type="number" min={0} max={10000} value={form.discovery_policy.meal_cost_inr} onChange={event => update('discovery_policy', {...form.discovery_policy!,meal_cost_inr:Number(event.target.value)})} /></PlannerField></div></>}</details>
-      <details className="booking-more"><summary>Breakfast, lunch and dinner</summary><p>Reserve meal time on each day where your arrival and departure windows allow. The planner uses a suitable affordable restaurant when available; otherwise it reserves a clearly labeled meal block at your base. Confirm venue details before travel.</p><label className="booking-check"><input type="checkbox" checked={form.meal_budget_per_person!==undefined} onChange={e=>update('meal_budget_per_person',e.target.checked?0:undefined)}/> Include reserved meal blocks</label>{form.meal_budget_per_person!==undefined&&<PlannerField id="trip-meal-budget" label="Estimated cost per person, per meal (₹)"><input type="number" min={0} max={10000} value={form.meal_budget_per_person} onChange={e=>update('meal_budget_per_person',Number(e.target.value))}/></PlannerField>}</details>
-      <button type="button" className="surprise-choice" aria-pressed={surprise} onClick={() => { setSurprise(!surprise); if (!surprise) update('interests', []); }}><Sparkles size={18} />{surprise ? 'Surprise me is on · your pins stay' : 'Surprise me with the remaining stops'}</button>
-      <p className="step-note">{surprise ? 'Let us pick stops that fit your time and budget. We still keep your pinned places and comfort needs.' : 'Pins are optional. The planner fills the remaining time around your interests.'}</p>
+      <PlacePlanningSettings form={form} interests={catalog?.interests||[]} dietaryOptions={catalog?.dietary_options||[]} onChange={changes=>setForm(previous=>({...previous,...changes}))}/>
 
-      <InterestPicker tags={catalog?.interests||[]} selected={form.interests} onChange={values=>{setSurprise(false);update('interests',values);}}/>
-      {catalog?.food_available && <div><div className="trip-field-heading">Food plans<InfoTip title="Food preferences">We only suggest food choices that match the restaurant information we have. Confirm allergies directly with the restaurant.</InfoTip></div><ThemedSelect label="Food plans" value={form.food_preference || 'any'} onChange={value => update('food_preference', value as TripFormData['food_preference'])} options={[{value:'any',label:'Suggest places to eat'},...catalog.dietary_options.map(value => ({value,label:titleCase(value)})),{value:'own_meals',label:'I’ll arrange meals myself'}]} /><p className="step-note">{catalog.dietary_options.length ? 'We only list food choices we have information about.' : 'We cannot confirm special food needs yet. Choose your own meals if needed.'} Meal stops are subject to time and budget.</p></div>}
     </section>}
     {step === 3 && <section className="trip-step booking-section" aria-label="Review your trip">
       <div className="booking-summary"><h4>{titleCase(form.origin_city || 'Already there')} → {titleCase(form.destination)}</h4><p>{form.start_date} to {form.end_date} · {form.people_count} travelers · ₹{form.budget_inr.toLocaleString('en-IN')} destination budget</p><p>{titleCase(form.pace)} pace · {titleCase(form.transport_mode)} · {pins.length} must-visits</p><p>{pins.map(pinLabel).join(' · ') || 'Let the planner select the stops'}</p>{!!form.preferred_activities?.length&&<p>Optional choices: {form.preferred_activities.map(pinLabel).join(' · ')}</p>}<p>Interests: {form.interests.map(titleCase).join(', ') || 'Open to discovery'} · Food: {titleCase(form.food_preference || 'any')}</p>{form.max_visit_minutes && <p>Maximum {form.max_visit_minutes} minutes per stop</p>}{form.avoid_climbing && <p>Only stops documented as not requiring climbing</p>}</div>

@@ -233,6 +233,8 @@ class TripOptimizer:
             is_locked = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
             if not is_locked:
                 base_drop_penalty = 2000
+                if place.featured:
+                    base_drop_penalty += 400  # Researched visitor places before generic nearby listings.
                 if place.place_id.lower() in self.preferred_activities or place.name.lower() in self.preferred_activities:
                     base_drop_penalty += 1800
                 # Higher penalty if it matches user's interests (solver works harder to keep it)
@@ -363,11 +365,10 @@ class TripOptimizer:
 
         # 4. Solve with Local Search
         search_parameters = pywrapcp.DefaultRoutingSearchParameters()
-        search_parameters.first_solution_strategy = (
-            routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION
-            if any(p.meal_type for p in self.places)
-            else routing_enums_pb2.FirstSolutionStrategy.PATH_CHEAPEST_ARC
-        )
+        # Insertion considers every usable day's vehicle. Path-first search can
+        # settle on empty routes when the first travel date has a closed window
+        # and a larger catalog has many optional stops.
+        search_parameters.first_solution_strategy = routing_enums_pb2.FirstSolutionStrategy.PARALLEL_CHEAPEST_INSERTION
         search_parameters.local_search_metaheuristic = (
             routing_enums_pb2.LocalSearchMetaheuristic.GUIDED_LOCAL_SEARCH
         )

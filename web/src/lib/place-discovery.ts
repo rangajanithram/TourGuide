@@ -5,6 +5,8 @@ export type CatalogPlace = SearchOption & {
   rating?: number | null; review_count?: number | null; rating_evidence?: string | null;
   formatted_address?: string | null; source_reference?: string | null; last_verified_date?: string | null;
   tags?: string[];
+  featured?: boolean; search_aliases?: string[]; source_urls?: string[];
+  catalog_reviewed_date?: string | null; planning_window_estimated?: boolean;
 };
 export type DiscoveryPlace = { id: string; name: string; address: string; lat: number; lng: number; category: string; osm_url?: string; formatted_address?: string };
 export type BrowsePlace = { id: string; name: string; address: string; category: string; lat?: number; lng?: number; live?: DiscoveryPlace; catalog?: CatalogPlace };

@@ -370,6 +370,10 @@ class ViewpointRecommendation(BaseModel):
         return data
 
 class Place(BaseModel):
+    featured: bool = False
+    search_aliases: List[str] = Field(default_factory=list, max_length=12)
+    catalog_reviewed_date: Optional[str] = None
+    planning_window_estimated: bool = False
     rating_evidence: Optional[str] = Field(default=None, max_length=280)
     meal_venue_id: Optional[str] = None
     planning_day: Optional[int] = Field(default=None, ge=0, le=13)

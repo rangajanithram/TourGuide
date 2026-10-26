@@ -1,0 +1,1338 @@
+[
+  {
+    "place_id": "hyd_hussain_sagar",
+    "name": "Hussain Sagar Lake",
+    "place_type": "attraction",
+    "lat": 17.4349651,
+    "lng": 78.4780807,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "lake",
+      "nature",
+      "walking",
+      "iconic"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://hyderabad.telangana.gov.in/tourist-places/",
+      "https://www.openstreetmap.org/node/4683449108"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Tank Bund",
+      "Hussain Sagar"
+    ],
+    "formatted_address": "Hussain Sagar shore, Necklace Road, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/4683449108"
+  },
+  {
+    "place_id": "hyd_ntr_gardens",
+    "name": "NTR Gardens",
+    "place_type": "attraction",
+    "lat": 17.4123848,
+    "lng": 78.4681147,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "park",
+      "garden",
+      "family"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://hyderabad.telangana.gov.in/tourist-places/",
+      "https://www.openstreetmap.org/way/29124126"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "NTR Garden"
+    ],
+    "formatted_address": "Saifabad, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/29124126"
+  },
+  {
+    "place_id": "hyd_lumbini_park",
+    "name": "Lumbini Park",
+    "place_type": "attraction",
+    "lat": 17.4097297,
+    "lng": 78.4731542,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "park",
+      "lake",
+      "family"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.aai.aero/en/airports/city-info/hyderabad/Tourist-Place",
+      "https://www.openstreetmap.org/way/29124134"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Secretariat Road, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/29124134"
+  },
+  {
+    "place_id": "hyd_nehru_zoo",
+    "name": "Nehru Zoological Park",
+    "place_type": "attraction",
+    "lat": 17.35111111,
+    "lng": 78.44972222,
+    "duration_minutes": 240,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "wildlife",
+      "nature",
+      "family",
+      "iconic"
+    ],
+    "open_time_mins": 30,
+    "close_time_mins": 570,
+    "closed_days": [
+      "monday"
+    ],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://nzptsfd.telangana.gov.in/home.do",
+      "https://www.wikidata.org/wiki/Q3493970"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. Published visit window, clipped to planner hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": false,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Bahadurpura, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_birla_mandir",
+    "name": "Birla Mandir",
+    "place_type": "attraction",
+    "lat": 17.4060644,
+    "lng": 78.4691964,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "temple",
+      "heritage",
+      "architecture",
+      "viewpoint"
+    ],
+    "open_time_mins": 420,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://hyderabad.telangana.gov.in/tourist-place/birla-mandir/",
+      "https://www.openstreetmap.org/way/105726070"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. Published visit window, clipped to planner hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": false,
+    "featured": true,
+    "search_aliases": [
+      "Birla Temple"
+    ],
+    "formatted_address": "Naubat Pahad, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/105726070"
+  },
+  {
+    "place_id": "hyd_birla_science",
+    "name": "Birla Science Museum",
+    "place_type": "attraction",
+    "lat": 17.40334722,
+    "lng": 78.47064722,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "museum",
+      "science",
+      "family"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://gpbaasri.org/aboutus/",
+      "https://www.wikidata.org/wiki/Q3764957"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Adarsh Nagar, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_ramoji",
+    "name": "Ramoji Film City",
+    "place_type": "attraction",
+    "lat": 17.2523,
+    "lng": 78.6802,
+    "duration_minutes": 360,
+    "estimated_cost_per_person_inr": 1550,
+    "tags": [
+      "film",
+      "family",
+      "iconic"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 570,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.ramojifilmcity.com/faq",
+      "https://www.wikidata.org/wiki/Q1786944"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. Published visit window, clipped to planner hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": false,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Anajpur, Hyderabad outskirts, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_wonderla",
+    "name": "Wonderla Hyderabad",
+    "place_type": "attraction",
+    "lat": 17.2168699,
+    "lng": 78.5289652,
+    "duration_minutes": 360,
+    "estimated_cost_per_person_inr": 1260,
+    "tags": [
+      "theme_park",
+      "family",
+      "adventure"
+    ],
+    "open_time_mins": 180,
+    "close_time_mins": 600,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.wonderla.com/hyderabad",
+      "https://www.openstreetmap.org/way/682819772"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. Published visit window, clipped to planner hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": false,
+    "featured": true,
+    "search_aliases": [
+      "Wonderla"
+    ],
+    "formatted_address": "Raviryal, Hyderabad outskirts, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/682819772"
+  },
+  {
+    "place_id": "hyd_qutb_tombs",
+    "name": "Qutb Shahi Tombs",
+    "place_type": "attraction",
+    "lat": 17.3954641,
+    "lng": 78.3965106,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 20,
+    "tags": [
+      "heritage",
+      "architecture",
+      "history"
+    ],
+    "open_time_mins": 90,
+    "close_time_mins": 570,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.qutbshahiheritagepark.org/guidelines",
+      "https://hyderabad.telangana.gov.in/tourist-places/",
+      "https://www.openstreetmap.org/way/253509394"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Operator lists daily 09:30–17:30 and adult entry Rs 20, reviewed 26 Oct 2026; camera and other charges extra. Duration is a planning allowance; confirm current details.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": false,
+    "featured": true,
+    "search_aliases": [
+      "Qutub Shahi Tombs",
+      "Qutb Shahi Heritage Park"
+    ],
+    "formatted_address": "Ibrahim Bagh, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/253509394"
+  },
+  {
+    "place_id": "hyd_paigah",
+    "name": "Paigah Tombs",
+    "place_type": "attraction",
+    "lat": 17.343983,
+    "lng": 78.504131,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "heritage",
+      "architecture",
+      "history"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://hyderabad.telangana.gov.in/tourist-places/",
+      "https://www.wikidata.org/wiki/Q7124701"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Santosh Nagar, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_mecca",
+    "name": "Mecca Masjid",
+    "place_type": "attraction",
+    "lat": 17.3604654,
+    "lng": 78.4735819,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "heritage",
+      "architecture",
+      "culture"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.aai.aero/en/airports/city-info/hyderabad/Tourist-Place",
+      "https://www.openstreetmap.org/way/116029684"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Makkah Masjid"
+    ],
+    "formatted_address": "Charminar, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/116029684"
+  },
+  {
+    "place_id": "hyd_laad",
+    "name": "Laad Bazaar",
+    "place_type": "attraction",
+    "lat": 17.361923,
+    "lng": 78.472842,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "shopping",
+      "heritage",
+      "culture"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/customized-tourist-attractions",
+      "https://www.wikidata.org/wiki/Q6466530"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Choodi Bazaar"
+    ],
+    "formatted_address": "Charminar, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_shilparamam",
+    "name": "Shilparamam",
+    "place_type": "attraction",
+    "lat": 17.451,
+    "lng": 78.377,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 60,
+    "tags": [
+      "culture",
+      "art",
+      "crafts",
+      "shopping"
+    ],
+    "open_time_mins": 150,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://shilparamam.in/contact-us/",
+      "https://www.wikidata.org/wiki/Q7496780"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Operator lists 10:30–20:00 and adult entry Rs 60, reviewed 26 Oct 2026. Duration is a planning allowance; current prices, events and access can change.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": false,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Madhapur, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_durgam_lake",
+    "name": "Durgam Cheruvu Lake",
+    "place_type": "attraction",
+    "lat": 17.42886,
+    "lng": 78.387794,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "lake",
+      "nature",
+      "walking"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/customized-tourist-attractions",
+      "https://www.wikidata.org/wiki/Q5316410"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Madhapur, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_cable_bridge",
+    "name": "Durgam Cheruvu Cable Bridge",
+    "place_type": "attraction",
+    "lat": 17.4317,
+    "lng": 78.39,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "viewpoint",
+      "architecture",
+      "walking"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/customized-tourist-attractions",
+      "https://www.wikidata.org/wiki/Q97738380"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Cable Bridge",
+      "Durgam Cheruvu Bridge"
+    ],
+    "formatted_address": "Madhapur, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_kbr",
+    "name": "KBR National Park",
+    "place_type": "attraction",
+    "lat": 17.4226436,
+    "lng": 78.426257,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "park",
+      "nature",
+      "walking"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.telangana.gov.in/telangana-tourism/",
+      "https://www.openstreetmap.org/node/5998182251"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Kasu Brahmananda Reddy National Park"
+    ],
+    "formatted_address": "Banjara Hills, Road 12 entrance, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/5998182251"
+  },
+  {
+    "place_id": "hyd_botanical",
+    "name": "Hyderabad Botanical Garden",
+    "place_type": "attraction",
+    "lat": 17.4555188,
+    "lng": 78.3639759,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "park",
+      "garden",
+      "nature"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/customized-tourist-attractions",
+      "https://www.openstreetmap.org/way/1349136360"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Kotla Vijayabhaskara Reddy Botanical Garden"
+    ],
+    "formatted_address": "Kondapur, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/1349136360"
+  },
+  {
+    "place_id": "hyd_mahavir",
+    "name": "Mahavir Harina Vanasthali National Park",
+    "place_type": "attraction",
+    "lat": 17.34,
+    "lng": 78.58583333,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "wildlife",
+      "park",
+      "nature"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.telangana.gov.in/telangana-tourism/",
+      "https://www.wikidata.org/wiki/Q3092314"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Vanasthalipuram, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_mrugavani",
+    "name": "Mrugavani National Park",
+    "place_type": "attraction",
+    "lat": 17.35777778,
+    "lng": 78.34111111,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "wildlife",
+      "park",
+      "nature"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.telangana.gov.in/telangana-tourism/",
+      "https://www.wikidata.org/wiki/Q3092307"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Chilkur Road, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_taramati",
+    "name": "Taramati Baradari",
+    "place_type": "attraction",
+    "lat": 17.37608,
+    "lng": 78.378117,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "heritage",
+      "history",
+      "architecture"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.aai.aero/en/airports/city-info/hyderabad/Tourist-Place",
+      "https://www.wikidata.org/wiki/Q7685364"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Ibrahim Bagh, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_purani",
+    "name": "Purani Haveli",
+    "place_type": "attraction",
+    "lat": 17.365507,
+    "lng": 78.482675,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "palace",
+      "heritage",
+      "history"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/customized-tourist-attractions",
+      "https://www.wikidata.org/wiki/Q7260842"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Nizam Museum"
+    ],
+    "formatted_address": "Old City, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_state_museum",
+    "name": "Telangana State Archaeology Museum",
+    "place_type": "attraction",
+    "lat": 17.3992159,
+    "lng": 78.4702878,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "museum",
+      "history",
+      "art"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/customized-tourist-attractions",
+      "https://www.openstreetmap.org/way/378458224"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "State Museum",
+      "AP State Archaeology Museum"
+    ],
+    "formatted_address": "Public Gardens, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/378458224"
+  },
+  {
+    "place_id": "hyd_chilkur",
+    "name": "Chilkur Balaji Temple",
+    "place_type": "attraction",
+    "lat": 17.3587759,
+    "lng": 78.298839,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "temple",
+      "culture",
+      "heritage"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://tourism.telangana.gov.in/destinations/rangareddy",
+      "https://www.openstreetmap.org/way/225880080"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Chilkur, Hyderabad outskirts, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/225880080"
+  },
+  {
+    "place_id": "hyd_sanghi",
+    "name": "Sanghi Temple",
+    "place_type": "attraction",
+    "lat": 17.2668,
+    "lng": 78.6758,
+    "duration_minutes": 90,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "temple",
+      "architecture",
+      "viewpoint"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.aai.aero/en/airports/city-info/hyderabad/Tourist-Place",
+      "https://www.wikidata.org/wiki/Q7417988"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Sanghi Nagar, Hyderabad outskirts, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_snow",
+    "name": "Snow World Hyderabad",
+    "place_type": "attraction",
+    "lat": 17.4143801,
+    "lng": 78.4808321,
+    "duration_minutes": 120,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "family",
+      "adventure"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.aai.aero/en/airports/city-info/hyderabad/Tourist-Place",
+      "https://www.openstreetmap.org/node/726751707"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [
+      "Snow World"
+    ],
+    "formatted_address": "Lower Tank Bund, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/726751707"
+  },
+  {
+    "place_id": "hyd_equality",
+    "name": "Statue of Equality",
+    "place_type": "attraction",
+    "lat": 17.1858042,
+    "lng": 78.3331589,
+    "duration_minutes": 150,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "temple",
+      "architecture",
+      "heritage"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/destinations/hyderabad",
+      "https://www.openstreetmap.org/node/9468082609"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Muchintal, Hyderabad outskirts, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/9468082609"
+  },
+  {
+    "place_id": "hyd_public_gardens",
+    "name": "Public Gardens",
+    "place_type": "attraction",
+    "lat": 17.3982,
+    "lng": 78.4695,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "park",
+      "garden",
+      "walking"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.aai.aero/en/airports/city-info/hyderabad/Tourist-Place",
+      "https://www.wikidata.org/wiki/Q7257390"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Nampally, Hyderabad, Telangana",
+    "osm_url": null
+  },
+  {
+    "place_id": "hyd_indira",
+    "name": "Indira Park",
+    "place_type": "attraction",
+    "lat": 17.4146644,
+    "lng": 78.4826733,
+    "duration_minutes": 60,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "park",
+      "garden",
+      "family"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.tourism.telangana.gov.in/customized-parks",
+      "https://www.openstreetmap.org/way/29124111"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Domalguda, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/29124111"
+  },
+  {
+    "place_id": "hyd_niloufer_redhills",
+    "name": "Cafe Niloufer — Red Hills",
+    "place_type": "restaurant",
+    "lat": 17.4005982,
+    "lng": 78.4628453,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "breakfast",
+      "food",
+      "cafe"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://cafeniloufer.com/pages/contact-us",
+      "https://www.openstreetmap.org/node/6187870386"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Lakdikapul, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/6187870386"
+  },
+  {
+    "place_id": "hyd_niloufer_banjara",
+    "name": "Cafe Niloufer — Banjara Hills",
+    "place_type": "restaurant",
+    "lat": 17.413327,
+    "lng": 78.4277314,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "breakfast",
+      "food",
+      "cafe"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://cafeniloufer.com/",
+      "https://www.openstreetmap.org/node/11771783710"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Banjara Hills, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/11771783710"
+  },
+  {
+    "place_id": "hyd_bawarchi",
+    "name": "Bawarchi — RTC X Roads",
+    "place_type": "restaurant",
+    "lat": 17.4062451,
+    "lng": 78.4976285,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "lunch",
+      "dinner"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/node/14065837228"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "RTC X Roads, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/14065837228"
+  },
+  {
+    "place_id": "hyd_shah_ghouse",
+    "name": "Shah Ghouse — Gachibowli",
+    "place_type": "restaurant",
+    "lat": 17.4266793,
+    "lng": 78.3764491,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "lunch",
+      "dinner"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://shahghouse.co.in/Restaurants.html",
+      "https://www.openstreetmap.org/node/7248877413"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Old Bombay Highway, Gachibowli, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/7248877413"
+  },
+  {
+    "place_id": "hyd_chutneys_panjagutta",
+    "name": "Chutneys — Panjagutta",
+    "place_type": "restaurant",
+    "lat": 17.4263318,
+    "lng": 78.4475017,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/node/513016922"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Panjagutta, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/513016922"
+  },
+  {
+    "place_id": "hyd_chutneys_jubilee",
+    "name": "Chutneys — Jubilee Hills",
+    "place_type": "restaurant",
+    "lat": 17.4296732,
+    "lng": 78.4096135,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "breakfast",
+      "lunch",
+      "dinner"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/node/6312938485"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Jubilee Hills, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/6312938485"
+  },
+  {
+    "place_id": "hyd_pista_oldcity",
+    "name": "Pista House — Old City",
+    "place_type": "restaurant",
+    "lat": 17.3619884,
+    "lng": 78.4801587,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "lunch",
+      "dinner"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://pistahouse.in/pages/store-locator-1",
+      "https://www.openstreetmap.org/node/7012057585"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Old City, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/7012057585"
+  },
+  {
+    "place_id": "hyd_paradise_hitec",
+    "name": "Paradise Biryani — HITEC City",
+    "place_type": "restaurant",
+    "lat": 17.4506148,
+    "lng": 78.3791786,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "lunch",
+      "dinner"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.paradisefoodcourt.com/contact.html",
+      "https://www.openstreetmap.org/node/3159028268"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "HITEC City, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/3159028268"
+  },
+  {
+    "place_id": "hyd_nimrah",
+    "name": "Nimrah Cafe & Bakery",
+    "place_type": "restaurant",
+    "lat": 17.361389,
+    "lng": 78.4742856,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "cafe",
+      "snack_only"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/node/2710929650"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Charminar, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/2710929650"
+  },
+  {
+    "place_id": "hyd_karachi_mozzam",
+    "name": "Karachi Bakery — Mozamjahi Market",
+    "place_type": "restaurant",
+    "lat": 17.3834635,
+    "lng": 78.4749018,
+    "duration_minutes": 45,
+    "estimated_cost_per_person_inr": 200,
+    "tags": [
+      "food",
+      "sweets",
+      "snack_only"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.karachibakery.com/stores-locator",
+      "https://www.openstreetmap.org/node/1038346116"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Mozamjahi Market, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/1038346116"
+  },
+  {
+    "place_id": "hyd_taj_deccan",
+    "name": "Taj Deccan",
+    "place_type": "hotel",
+    "lat": 17.4183841,
+    "lng": 78.4506241,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "stay"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/way/117566235"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Banjara Hills, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/117566235",
+    "price_per_night_inr": 6990,
+    "max_guests_per_room": 2,
+    "data_source": "Historical user-supplied hotel price dataset; collection date, taxes, room capacity and current availability unverified. Not a current quote."
+  },
+  {
+    "place_id": "hyd_trident",
+    "name": "Trident Hyderabad",
+    "place_type": "hotel",
+    "lat": 17.4496376,
+    "lng": 78.3787308,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "stay"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/way/416945180"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Hitech City, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/416945180",
+    "price_per_night_inr": 14250,
+    "max_guests_per_room": 2,
+    "data_source": "Historical user-supplied hotel price dataset; collection date, taxes, room capacity and current availability unverified. Not a current quote."
+  },
+  {
+    "place_id": "hyd_marriott",
+    "name": "Hyderabad Marriott Hotel & Convention Centre",
+    "place_type": "hotel",
+    "lat": 17.4242157,
+    "lng": 78.4872201,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "stay"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/way/357043541"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Kavadiguda, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/way/357043541",
+    "price_per_night_inr": 6500,
+    "max_guests_per_room": 2,
+    "data_source": "Historical user-supplied hotel price dataset; collection date, taxes, room capacity and current availability unverified. Not a current quote."
+  },
+  {
+    "place_id": "hyd_novotel_airport",
+    "name": "Novotel Hyderabad Airport",
+    "place_type": "hotel",
+    "lat": 17.2424408,
+    "lng": 78.4545943,
+    "duration_minutes": 0,
+    "estimated_cost_per_person_inr": 0,
+    "tags": [
+      "stay"
+    ],
+    "open_time_mins": 60,
+    "close_time_mins": 720,
+    "closed_days": [],
+    "verification_status": "estimated",
+    "last_verified_date": null,
+    "source_urls": [
+      "https://www.openstreetmap.org/node/5072135241"
+    ],
+    "catalog_origin": "researched_hyderabad",
+    "source_reference": "Venue identity and map pin researched 26 Oct 2026. 09:00–20:00 is a planning window, not confirmed opening hours. Visit length and cost are planning allowances, not ticket or meal quotes. Confirm current access and fees.",
+    "catalog_reviewed_date": "2026-10-26",
+    "planning_window_estimated": true,
+    "featured": true,
+    "search_aliases": [],
+    "formatted_address": "Near Hyderabad Airport, Hyderabad, Telangana",
+    "osm_url": "https://www.openstreetmap.org/node/5072135241",
+    "price_per_night_inr": 12999,
+    "max_guests_per_room": 2,
+    "data_source": "Historical user-supplied hotel price dataset; collection date, taxes, room capacity and current availability unverified. Not a current quote."
+  }
+]

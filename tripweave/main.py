@@ -291,7 +291,13 @@ def _build_single_plan_core(
 
     # Stage 2: Hard Feasibility Filter (Budget & Operational Feasibility)
     t_stage2 = time.perf_counter()
-    sightseeing = [p for p in all_places if p.place_type != "hotel" and (not meal_places or p.meal_type or p.place_type != "restaurant" or p.place_id.lower() in pins or p.name.lower() in pins)]
+    preferences = {value.strip().casefold() for value in request.preferred_activities}
+    # A restaurant is a meal venue, not a cheap substitute for sightseeing.
+    # Otherwise a larger food catalog can fill every visit slot with restaurants
+    # when the API caller has not requested reserved meal blocks.
+    sightseeing = [p for p in all_places if p.place_type != "hotel" and (
+        p.place_type != "restaurant" or p.meal_type or p.place_id.casefold() in pins
+        or p.name.casefold() in pins or (not meal_places and (p.place_id.casefold() in preferences or p.name.casefold() in preferences)))]
     est_transport_budget = 300 * request.days
     if request.transport_pref and request.transport_pref.max_budget_inr:
         est_transport_budget = request.transport_pref.max_budget_inr
@@ -513,24 +519,30 @@ def health_check():
 
 @app.get("/api/planner/catalog", tags=["Places Database"])
 def planner_catalog(destination: str = "hyderabad"):
-    places = [p for p in attach_rating_evidence(get_database_places(destination), destination) if p.place_type not in {"hotel", "rest_break"}]
+    all_places = attach_rating_evidence(get_database_places(destination), destination)
+    places = [p for p in all_places if p.place_type not in {"hotel", "rest_break"}]
     return {
         "routing_supported": True,
         "routing_configured": bool(settings.geoapify_api_key),
         "availability_version": 2,
+        "catalog_counts": {kind: sum(p.place_type == kind for p in all_places) for kind in ('attraction', 'restaurant', 'hotel')},
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,
                     "duration": p.duration_minutes, "lat": p.lat, "lng": p.lng,
                     "cost": p.estimated_cost_per_person_inr,
                     "open_time_mins": p.open_time_mins, "close_time_mins": p.close_time_mins,
                     "closed_days": p.closed_days, "tags": p.tags,
+                    "featured": p.featured or p.catalog_origin in {'curated_seed', 'supabase_curated'},
+                    "search_aliases": p.search_aliases, "source_urls": p.source_urls,
+                    "catalog_reviewed_date": p.catalog_reviewed_date,
+                    "planning_window_estimated": p.planning_window_estimated,
                     "rating": p.rating, "review_count": p.review_count, "rating_evidence": p.rating_evidence,
                     "formatted_address": p.formatted_address, "source_reference": p.source_reference,
                     "last_verified_date": p.last_verified_date} for p in places],
-        "interests": sorted({tag for p in places for tag in p.tags} | {
+        "interests": sorted(({tag for p in places for tag in p.tags} | {
             "history", "heritage", "architecture", "art", "museum", "culture", "fortress",
-            "palace", "nature", "garden", "park", "hilltop", "panoramic", "viewpoint",
-            "sunset", "walking", "food", "breakfast", "sweets", "coastal", "caves", "unesco", "royal", "social"}),
+            "palace", "nature", "garden", "park", "viewpoint",
+            "sunset", "walking", "food", "breakfast", "sweets", "shopping", "family", "science"}) - {"snack_only"}),
         "long_visits": any(p.duration_minutes > 90 for p in places),
         "climbing_known": any(p.requires_climbing is not None for p in places),
         "food_available": any(p.place_type == "restaurant" for p in places),

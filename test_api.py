@@ -167,10 +167,13 @@ def run_tests():
     # Test 9: Data Freshness & Provenance Fields
     print("\n9️⃣ Testing Data Freshness & Verification Status on Activities...")
     sample_act = multi_result.variants["balanced"].days[0].activities[0]
-    assert sample_act.verification_status in ["curated_seed", "verified"], "Activity must have valid provenance status"
-    assert sample_act.last_verified_date is not None, "Activity must have last_verified_date"
-    assert sample_act.source_reference is not None, "Activity must have source_reference"
-    print(f"   ✅ Provenance Verified on '{sample_act.place_name}': {sample_act.verification_status} (Audited: {sample_act.last_verified_date}) - '{sample_act.source_reference}'")
+    assert sample_act.verification_status in ["curated_seed", "verified", "estimated"], "Activity must have valid provenance status"
+    if sample_act.verification_status == "verified":
+        assert sample_act.last_verified_date is not None, "Verified facts require a checking date"
+    if sample_act.verification_status == "estimated":
+        assert sample_act.last_verified_date is None, "An estimate must not claim a venue fact audit"
+    assert sample_act.source_reference, "Activity must explain its source or planning assumptions"
+    print(f"   ✅ Provenance Verified on '{sample_act.place_name}': {sample_act.verification_status} (Fact check: {sample_act.last_verified_date or 'unverified'}) - '{sample_act.source_reference}'")
 
     # Test 10: Stage 8 Independent Physics & Feasibility Verifier
     print("\n🔟 Testing Stage 8 Independent Physics & Feasibility Verifier...")

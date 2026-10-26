@@ -17,7 +17,11 @@ def samples():
 def attach_rating_evidence(places, destination):
     for place in places:
         key = re.sub(r'[^a-z0-9]+', ' ', place.name.casefold()).strip()
-        evidence = samples().get((destination.casefold(), key))
+        # Explicit aliases reviewed for one physical attraction, never a fuzzy
+        # name match and never a chain-to-branch restaurant review join.
+        aliases = {'hyd_ntr_gardens': 'ntr garden', 'hyd_wonderla': 'wonderla',
+                   'hyd_cable_bridge': 'cable bridge'}
+        evidence = samples().get((destination.casefold(), aliases.get(place.place_id, key)))
         # Restaurant chains need a branch ID/address crosswalk. A name-only join
         # would attach one branch's reviews to another; keep them unattached.
         if evidence and evidence.get('place_type') == 'attraction' and place.place_type == 'attraction':

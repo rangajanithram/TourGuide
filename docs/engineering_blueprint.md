@@ -1,5 +1,16 @@
 # TripWeave — Engineering Blueprint v2.0 (Authoritative Build Plan)
 
+Implementation record, 26 October 2026: the successful configured catalog read is
+now expanded with `data/hyderabad_curated.json` for both JSON and Supabase modes.
+The combined Hyderabad pool has 32 attractions, 11 food venues and 7 stays. Ten
+attractions connect to the existing 1,055-response historical numerical samples;
+chain-wide review data is not attached to arbitrary branches. See
+`HYDERABAD_CATALOG_GAP_ANALYSIS_2026_10_26.md` and `../data/HYDERABAD_SOURCES.md`.
+Known destination places lead browsing; blank queries no longer fetch random
+nearby listings. Routine stop filling, budget/time checks and default meal breaks
+are explained as built-in behavior in a compact settings panel. Generic food
+venues cannot crowd sightseeing out of the optimizer when meals are disabled.
+
 > **Purpose:** This is the authoritative technical architecture, security specification, and implementation contract for TripWeave. While `docs/product_spec.md` preserves the long-term product vision and historical design discussions, **this document governs what we build now and how it is engineered, secured, and verified.**
 >
 > **Core Principle:** Deliver a verified, secure, web-first vertical slice that transforms trip constraints into a geographically coherent, time-feasible, budget-compliant, and explainable multi-day itinerary—before expanding to paid external APIs, multi-user real-time sync, or native mobile apps.

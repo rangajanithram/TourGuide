@@ -129,6 +129,8 @@ def get_places_provider() -> PlacesDataProvider:
             _provider_instance = JsonFilePlacesProvider()
         else:
             raise DatabaseCatalogUnavailable("Unknown PLACE_CATALOG_PROVIDER")
+        from tripweave.catalog import ExpandedPlacesProvider
+        _provider_instance = ExpandedPlacesProvider(_provider_instance)
     return _provider_instance
 
 

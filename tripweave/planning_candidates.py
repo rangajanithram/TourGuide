@@ -49,7 +49,7 @@ def meal_candidates(request, places, base):
     if request.meal_budget_per_person is None or request.food_preference == 'own_meals':
         return []
     pins = {pin.strip().casefold() for pin in request.locked_activities}
-    restaurants = [p for p in places if p.place_type == 'restaurant' and not p.meal_type
+    restaurants = [p for p in places if p.place_type == 'restaurant' and not p.meal_type and 'snack_only' not in p.tags
                    and p.place_id.casefold() not in pins and p.name.casefold() not in pins
                    and not preference_conflict(p, request)
                    and p.estimated_cost_per_person_inr <= request.meal_budget_per_person]
@@ -72,6 +72,7 @@ def meal_candidates(request, places, base):
             if end - start < 30:
                 continue
             eligible = [p for p in restaurants if p.open_time_mins is not None and p.close_time_mins is not None
+                        and (not any(t in p.tags for t in ('breakfast','lunch','dinner')) or kind in p.tags)
                         and min(end, p.close_time_mins) - max(start, p.open_time_mins) >= p.duration_minutes
                         and p.duration_minutes <= end - start
                         and (not request.start_date or (request.start_date + timedelta(days=day)).strftime('%A').lower() not in [d.lower() for d in p.closed_days])]

@@ -1,4 +1,25 @@
 /* Compact form groups, explicit recovery and keyboard-friendly date/time controls. */
+.planner-canvas .trip-step[aria-label="Places and food"]{width:100%;max-width:1220px;min-width:0}
+.place-planning-settings{display:grid;gap:18px;min-width:0}
+.planning-defaults,.planning-settings-card{padding:20px;border:1px solid var(--ui-line,#c5d2bb);border-radius:14px;background:var(--ui-surface,#fffdf5);min-width:0;color:var(--ui-ink,#243e33)}
+.planning-defaults>p,.planning-settings-card>p{font-size:14px;line-height:1.65;max-width:65ch;margin-block:10px;color:var(--ui-muted,#526653)}
+.planning-defaults ul{display:flex;flex-wrap:wrap;gap:10px;list-style:none;padding:0;margin-top:14px}
+.planning-defaults li{display:flex;align-items:center;gap:7px;padding:9px 12px;border-radius:10px;background:var(--ui-raised,#edf2e5);font-size:13px}
+.planning-defaults li strong{margin-left:8px}
+.place-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.planning-settings-card{display:grid;gap:14px;align-content:start}
+.settings-card-heading{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px}
+.settings-card-heading>span{font-size:13px;color:var(--ui-muted,#526653)}
+.planning-settings-card>small{font-size:13px;line-height:1.6;color:var(--ui-muted,#526653)}
+.planning-settings-card .booking-chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.planning-settings-card .booking-chips button{font-size:13px;border-radius:10px;justify-content:flex-start;min-height:44px;padding:9px 10px}
+.planning-settings-card .interest-picker{display:grid;gap:14px}
+.settings-enable{min-height:44px;padding:10px 14px;border:1px solid var(--ui-line,#c5d2bb);border-radius:10px;text-align:left}
+.interest-expand{min-height:44px;text-align:left;font-size:14px;text-decoration:underline;text-underline-offset:3px;color:var(--ui-ink,#243e33)}
+.catalog-coverage{font-size:14px;line-height:1.6;color:var(--ui-muted,#526653);margin-top:-12px;max-width:65ch}
+.place-source-links{display:flex;flex-wrap:wrap;gap:12px}.place-source-links a{display:inline-flex;align-items:center;min-height:44px;font-size:14px;text-decoration:underline;text-underline-offset:3px}
+.planner-canvas .place-planning-settings .extra-discovery-settings{width:100%;max-width:720px}
+@media(max-width:850px){.place-settings-grid{grid-template-columns:1fr}.planning-settings-card .booking-chips{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}}
 .planner-canvas .booking-form>.form-error-summary{grid-column:2}
 .planner-canvas .trip-step:not([aria-label="Places and food"]){max-width:1040px}
 .planner-canvas .trip-step>.booking-grid,.planner-canvas .trip-step>.planner-field,.planner-canvas .trip-step>.city-picker{max-width:920px}
