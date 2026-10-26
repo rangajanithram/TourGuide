@@ -145,7 +145,8 @@ class ItineraryVerifier:
 
 
         try:
-            windows = planning_windows(request, date.fromisoformat(plan.days[0].date), date.fromisoformat(plan.days[-1].date))
+            early_days = [d.day_number-1 for d in plan.days if any(a.visit_part for a in d.activities)]
+            windows = planning_windows(request, date.fromisoformat(plan.days[0].date), date.fromisoformat(plan.days[-1].date), early_start_days=early_days)
         except (ValueError, TypeError, IndexError) as error:
             errors.append(f"Journey or stay timing conflict: {error}")
 
@@ -250,6 +251,9 @@ class ItineraryVerifier:
                     prev_end_minute = end_min
                     continue
 
+                if place.place_type == 'attraction' and place.duration_minutes >= 300 and not act.visit_part and duration < place.duration_minutes:
+                    errors.append(f"Visit length mismatch: '{place.name}' is shorter than its listed visit block. Regenerate the full-day visit.")
+
                 if place.planning_day is not None and place.planning_day != day.day_number - 1:
                     errors.append("Reserved meal appears on the wrong day.")
                 if place.catalog_origin == "user_confirmed_discovery":
@@ -262,7 +266,7 @@ class ItineraryVerifier:
                 if act.place_type == "restaurant" or getattr(place, "place_type", "") == "restaurant":
                     total_computed_dining_cost += act.estimated_cost_inr
                     # Verify meal window: Lunch (11:30 AM - 3:30 PM: 210 to 450) or Dinner (6:30 PM - 10:30 PM: 630 to 870)
-                    if not ((60 <= start_min <= 180) or (210 <= start_min <= 450) or (630 <= start_min <= 870)):
+                    if not ((0 <= start_min <= 180) or (210 <= start_min <= 450) or (630 <= start_min <= 870)):
                         warnings.append(
                             f"Off-Peak Dining: Restaurant '{act.place_name}' scheduled at {act.start_time}, outside breakfast, lunch or dinner (6:30 PM - 10:30 PM) service."
                         )
@@ -442,6 +446,10 @@ class ItineraryVerifier:
                 checks_passed.append("Activity Dependencies: All prerequisite activity chains respected.")
 
         # Compute Audit Score (0 - 100)
+        from tripweave.excursions import verify_excursions
+        errors.extend(verify_excursions(plan, place_lookup, request.people_count, _time_str_to_minutes))
+        if plan.visit_continuations:
+            warnings.append('Full-day visit blocks include a 30-minute onsite lunch break. Food service and walking time are not confirmed; breakfast and dinner are reserved at the stay.')
         scheduled_ids = {act.place_id for day in plan.days for act in day.activities}
         for meal in plan.meal_places:
             if meal.place_id not in scheduled_ids:

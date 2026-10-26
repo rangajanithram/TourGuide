@@ -28,6 +28,7 @@ test('search limits keep a retry message and do not suggest changing a feasible 
   assert.doesNotMatch(guidance,/adjust|connection/);
   assert.match(planningFailureGuidance('Feasibility conflict: Stay cost exceeds budget'),/specific time, place or cost/);
   assert.doesNotMatch(planningFailureGuidance('Feasibility conflict: Stay cost exceeds budget'),/internet/);
+  assert.match(planningFailureGuidance('Full-day visit conflict: Ramoji cannot fit'),/Change that setting/);
 });
 const costsModule = load('lib/journey-costs.ts');
 

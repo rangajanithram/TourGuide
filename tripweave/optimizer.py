@@ -226,6 +226,23 @@ class TripOptimizer:
                 routing.SetAllowedVehiclesForIndex([place.planning_day], index)
                 routing.solver().Add(routing.ActiveVar(index) == 1)
 
+        # A full-day venue is one continuous visit block, with an onsite lunch
+        # between its two parts; no cross-city stop may be inserted inside it.
+        for child in (p for p in self.places if p.visit_part == 'after_lunch'):
+            root_node = next(i for i,p in enumerate(self.places) if p.place_id == child.visit_parent_id)
+            meal_node = next(i for i,p in enumerate(self.places) if p.visit_parent_id == child.visit_parent_id and p.meal_type == 'lunch')
+            child_node = self.places.index(child)
+            routing.solver().Add(routing.NextVar(manager.NodeToIndex(root_node)) == manager.NodeToIndex(meal_node))
+            routing.solver().Add(routing.NextVar(manager.NodeToIndex(meal_node)) == manager.NodeToIndex(child_node))
+
+        for i, place in enumerate(self.places):
+            if i == self.hotel_index:
+                continue
+            index = manager.NodeToIndex(i)
+            time_var = time_dimension.CumulVar(index)
+            min_arrival = place.open_time_mins if place.open_time_mins is not None else 0
+            max_arrival = place.close_time_mins - place.duration_minutes if place.close_time_mins is not None else 720
+
 
             # --- Weekly Closure Constraint (e.g. Closed on Fridays / Mondays) ---
             if place.closed_days and self.start_date:
@@ -316,7 +333,8 @@ class TripOptimizer:
             max_stops_per_day = max(2, max_stops_per_day - 1)
             
         def sightseeing_count(index):
-            return 0 if self.places[manager.IndexToNode(index)].meal_type else 1
+            p = self.places[manager.IndexToNode(index)]
+            return 0 if p.meal_type or p.visit_part == 'after_lunch' else 1
         count_callback = routing.RegisterUnaryTransitCallback(sightseeing_count)
         routing.AddDimension(count_callback, 0, max_stops_per_day, True, "ActivityCount")
         count_dimension = routing.GetDimensionOrDie('ActivityCount')
@@ -511,8 +529,11 @@ class TripOptimizer:
 
                 best_vp = place.best_viewpoints[0] if place.best_viewpoints else None
                 is_pinned = (place.place_id.lower() in self.locked_activities or place.name.lower() in self.locked_activities)
+                is_pinned |= bool(place.visit_parent_id and place.visit_parent_id.casefold() in self.locked_activities)
 
                 activities.append(ScheduledActivity(
+                    visit_parent_id=place.visit_parent_id,
+                    visit_part=place.visit_part,
                     place_id=place.place_id,
                     place_name=place.name,
                     place_type=getattr(place, "place_type", "attraction"),

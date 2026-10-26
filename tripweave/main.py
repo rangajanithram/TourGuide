@@ -315,6 +315,9 @@ def _build_single_plan_core(
     day_groups, preferred_day_by_place = day_neighborhoods(request, guide_places, selected_hotel_place, clusters)
     timings[4] = round(max(0.01, (time.perf_counter() - t_stage4) * 1000), 2)
     meal_places = meal_candidates(request, all_places, selected_hotel_place, day_groups)
+    from tripweave.excursions import prepare_excursions
+    visit_parts, continuations, meal_places, early_days, excursion_notes = prepare_excursions(
+        request, all_places, selected_hotel_place, meal_places, preferred_day_by_place)
     minimum_stay_and_meals = hotel_summary.total_cost_inr + sum(p.estimated_cost_per_person_inr * request.people_count for p in meal_places)
     if minimum_stay_and_meals > request.budget_inr:
         raise HTTPException(422, detail=(
@@ -323,6 +326,7 @@ def _build_single_plan_core(
             'Open Places & food → Meals to lower the meal budget or arrange your own meals, '
             'or change the stay or destination budget in Journey.'))
     all_places.extend(meal_places)
+    all_places.extend(continuations)
 
     # Stage 2: Hard Feasibility Filter (Budget & Operational Feasibility)
     t_stage2 = time.perf_counter()
@@ -347,7 +351,16 @@ def _build_single_plan_core(
     viable_candidates.append(selected_hotel_place)
     if not any(p.place_type == 'attraction' for p in viable_candidates):
         raise HTTPException(422, detail='Feasibility conflict: No catalog sightseeing place matches the current cost and comfort settings. Check visit length and climbing choices in Travel style, or add suitable places in Places & food.')
-    valid_places = viable_candidates
+    valid_places = [visit_parts.get(p.place_id, p) for p in viable_candidates]
+    available_windows = planning_windows(request, early_start_days=early_days)
+    required_places = [p for p in valid_places if p.place_type != 'hotel' and (p.planning_day is not None
+                       or p.place_id.casefold() in pins or p.name.casefold() in pins)]
+    required_minutes = sum(p.duration_minutes for p in required_places)
+    available_minutes = sum(w['end']-w['start'] for w in available_windows)
+    if required_minutes > available_minutes:
+        raise HTTPException(422, detail=(f'Feasibility conflict: Your must-visits and meal breaks need at least {required_minutes} minutes, '
+            f'but your dates and travel/stay times leave {available_minutes} minutes, before local travel. '
+            'Add a day in Journey or remove a must-visit in Places & food.'))
     timings[2] = round(max(0.01, (time.perf_counter() - t_stage2) * 1000), 2)
 
     # Neighborhood guides were chosen before meals; restaurants cannot move a
@@ -370,7 +383,7 @@ def _build_single_plan_core(
         selected_hotel.lat, selected_hotel.lng, start_date=request.start_date,
         end_date=request.end_date, days=request.days)
     optimizer = TripOptimizer(
-        day_windows=planning_windows(request),
+        day_windows=available_windows,
         weather_by_day=weather_map,
         places=valid_places,
         days=request.days,
@@ -384,7 +397,7 @@ def _build_single_plan_core(
         max_transport_budget=request.transport_pref.max_budget_inr if request.transport_pref else None,
         start_date=request.start_date,
         variant_type=variant,
-        locked_activities=request.locked_activities,
+        locked_activities=request.locked_activities + list(visit_parts),
         preferred_activities=request.preferred_activities,
         group_profile=request.group_profile,
         arrival_available_mins=request.arrival_available_mins,
@@ -398,6 +411,10 @@ def _build_single_plan_core(
         itinerary.journey_notes = journey_notes(request)
         itinerary.planning_preferences.use_road_routes = request.use_road_routes
         itinerary.meal_places = meal_places
+        itinerary.visit_continuations = continuations
+        for day in itinerary.days:
+            if day.day_number - 1 in excursion_notes:
+                day.planning_note = excursion_notes[day.day_number - 1]
         itinerary.planning_preferences.discovery_policy = request.discovery_policy
         itinerary.booked_transport = request.booked_transport
         itinerary.planning_preferences.booked_transport = request.booked_transport
@@ -490,10 +507,10 @@ def _build_single_plan_core(
             itinerary.intercity_notice = "No reference transport options match your selected modes and dates. Arrange travel separately; intercity fares and schedules are unknown and excluded from the destination budget."
 
     itinerary.candidate_summary = {
-        'total_candidates': sum(p.place_type != 'hotel' and not p.meal_type for p in all_places),
-        'feasible_candidates': len({p.meal_venue_id or p.place_id for p in valid_places if p.place_type != 'hotel' and (not p.meal_type or p.meal_venue_id)}),
+        'total_candidates': sum(p.place_type != 'hotel' and not p.meal_type and p.visit_part != 'after_lunch' for p in all_places),
+        'feasible_candidates': len({p.visit_parent_id or p.meal_venue_id or p.place_id for p in valid_places if p.place_type != 'hotel' and (not p.meal_type or p.meal_venue_id)}),
         'confirmed_discovered_candidates': len(request.external_stops),
-        'rated_candidates': sum(p.rating_evidence is not None and not p.meal_type for p in all_places),
+        'rated_candidates': sum(p.rating_evidence is not None and not p.meal_type and p.visit_part != 'after_lunch' for p in all_places),
         'weather_used_in_ranking': bool(weather_map),
         'notes': 'Nearby sights are grouped by day where dates and required stops allow. Meals favor the day’s area or the route to your stay. Historical ratings help compare choices; unknown ratings stay neutral. Hours, prices and travel times may be estimates.'}
     for day in itinerary.days:
@@ -552,6 +569,7 @@ def planner_catalog(destination: str = "hyderabad"):
         "availability_version": 2,
         "search_recovery_version": 1,
         "route_locality_version": 1,
+        "excursion_planning_version": 1,
         "catalog_counts": {kind: sum(p.place_type == kind for p in all_places) for kind in ('attraction', 'restaurant', 'hotel')},
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,

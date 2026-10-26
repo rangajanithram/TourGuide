@@ -48,6 +48,8 @@ export interface CrowdForecast {
 }
 
 export interface ScheduledActivity {
+  visit_parent_id?: string | null;
+  visit_part?: 'before_lunch' | 'after_lunch' | null;
   meal_venue_id?: string | null;
   rating_evidence?: string | null;
   meal_type?: 'breakfast' | 'lunch' | 'dinner' | null;

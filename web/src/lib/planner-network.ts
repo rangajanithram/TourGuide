@@ -79,7 +79,7 @@ export async function requireApiSuccess(response: Response): Promise<void> {
 
 export function planningFailureGuidance(message: string): string {
   if (/could not finish checking|planner_search_incomplete/i.test(message)) return 'This was a planner search limit. Use “Try this trip again” with the same details. Your entries and saved trips are kept.';
-  if (/feasibility conflict|must.visit conflict|cannot fit|exceeds.*budget/i.test(message)) return 'Review the specific time, place or cost in the message. Change that setting in the form, then create the trip again. Your saved trips are kept.';
+  if (/feasibility conflict|must.visit conflict|full.day visit conflict|cannot fit|exceeds.*budget/i.test(message)) return 'Review the specific time, place or cost in the message. Change that setting in the form, then create the trip again. Your saved trips are kept.';
   if (/offline|connection|could not reach/i.test(message)) return 'Check your internet connection, then try again. Your entries and saved trips are kept.';
   return 'Try creating this trip again. Your entries and saved trips are kept. If it fails again, share this message with the site owner.';
 }

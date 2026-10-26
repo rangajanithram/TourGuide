@@ -236,7 +236,7 @@ class ItineraryEditor:
             ),
         })
 
-        catalog_places = all_places if all_places is not None else merge_confirmed_stops(get_places_provider().get_places(destination), plan.planning_preferences.external_stops) + plan.meal_places
+        catalog_places = all_places if all_places is not None else merge_confirmed_stops(get_places_provider().get_places(destination), plan.planning_preferences.external_stops) + plan.meal_places + plan.visit_continuations
         synthetic_req = TripRequest.model_construct(
             **plan.planning_preferences.model_dump(),
             destination=destination.lower().strip(),
@@ -284,6 +284,8 @@ class ItineraryEditor:
             raise ValueError(f"Day number {request.day_number} not found in plan.")
         
         target_day = day_match[0]
+        if any(a.visit_part for a in target_day.activities):
+            raise ValueError('This full-day visit and its meal break are linked. Change your places or travel settings and regenerate the trip to change this day.')
         activities = target_day.activities
         idx = request.activity_index
 
@@ -404,7 +406,7 @@ class ItineraryEditor:
                 raise ValueError("replacement_place_id is required for SWAP action.")
 
             provider = get_places_provider()
-            all_places = merge_confirmed_stops(provider.get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places
+            all_places = merge_confirmed_stops(provider.get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places + request.plan.visit_continuations
             repl_list = [p for p in all_places if p.place_id.lower() == request.replacement_place_id.lower()]
             if not repl_list:
                 raise ValueError(f"Replacement place '{request.replacement_place_id}' not found in {request.destination} dataset.")
@@ -758,6 +760,8 @@ class ItineraryEditor:
         plan = request.plan
         request = request.model_copy(update={"transport_mode": plan.transport_mode})
         target_day = next((day for day in plan.days if day.day_number == request.day_number), None)
+        if target_day and any(a.visit_part for a in target_day.activities):
+            raise ValueError('This full-day visit and its meal break are linked. Change your places or travel settings and regenerate the trip to change this day.')
         if target_day is None:
             raise ValueError(f"Day number {request.day_number} not found in plan.")
         activities = target_day.activities
@@ -804,7 +808,7 @@ class ItineraryEditor:
                 if plan.transport_budget_limit_inr is not None else None
             )
             baseline_request = TripRequest.model_construct(destination=request.destination, days=len(plan.days), budget_inr=budget_limit or plan.total_cost_inr, people_count=people, pace=request.pace, transport_mode=plan.transport_mode, locked_activities=[a.place_id or a.place_name for d in plan.days for a in d.activities if a.is_locked and a.place_type != "rest_break"])
-            baseline_report = ItineraryVerifier.verify(plan, baseline_request, merge_confirmed_stops(get_places_provider().get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places)
+            baseline_report = ItineraryVerifier.verify(plan, baseline_request, merge_confirmed_stops(get_places_provider().get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places + request.plan.visit_continuations)
             plan = plan.model_copy(update={"verification_report": baseline_report})
             no_work_notes = list(baseline_report.errors)
             if is_within_budget is False:
@@ -970,7 +974,7 @@ class ItineraryEditor:
 
         # Check known calendar closures and opening windows against the curated
         # catalog. Unknown venues remain explicitly unchecked rather than assumed valid.
-        catalog = {place.place_id.casefold(): place for place in merge_confirmed_stops(get_places_provider().get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places}
+        catalog = {place.place_id.casefold(): place for place in merge_confirmed_stops(get_places_provider().get_places(request.destination), request.plan.planning_preferences.external_stops) + request.plan.meal_places + request.plan.visit_continuations}
         try:
             trip_date = date.fromisoformat(target_day.date) if target_day.date else None
         except ValueError:

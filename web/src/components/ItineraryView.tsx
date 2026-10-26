@@ -424,10 +424,10 @@ export default function ItineraryView({
                   const pinnedNames: string[] = [];
                   currentPlan.days.forEach(d => {
                     d.activities.forEach(a => {
-                      if (a.is_locked) pinnedNames.push(a.place_id || a.place_name);
+                      if (a.is_locked) pinnedNames.push(a.visit_parent_id || a.place_id || a.place_name);
                     });
                   });
-                  onReoptimize(pinnedNames);
+                  onReoptimize(Array.from(new Set(pinnedNames)));
                 }}
                 className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-sm font-bold transition-all shadow-md shadow-amber-500/20 active:scale-95"
                 title="Build a new plan around your pinned places"
@@ -622,11 +622,12 @@ export default function ItineraryView({
                 <button
                   type="button"
                   onClick={() => setRebalanceDayNumber(day.day_number)}
+                  disabled={day.activities.some(a => !!a.visit_part)}
                   className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-[#89532d] border border-amber-500/40 text-sm font-bold transition-all active:scale-95 shadow-sm hover:border-amber-400"
                   title="Need a rest or running late? Adjust your remaining stops."
                 >
                   <Zap className="w-3.5 h-3.5 text-[#89532d] fill-amber-400/20" />
-                  <span>Make this day easier</span>
+                  <span>{day.activities.some(a => !!a.visit_part) ? 'Full-day visit · change in trip settings' : 'Make this day easier'}</span>
                 </button>
               </div>
             </div>
@@ -764,7 +765,7 @@ export default function ItineraryView({
 
                     {/* Interactive Customizer Action Bar */}
                     <div className="stop-action-bar">
-                      {act.meal_type ? <p className="text-sm text-[#425d4c]">Reserved meal. To change meal timing or the budget, adjust trip preferences and regenerate.</p> : <details className="stop-edit-menu"><summary>Edit stop</summary><div className="stop-actions">
+                      {day.activities.some(a => !!a.visit_part) ? <p className="text-sm text-[#425d4c]">This day’s visit parts and meal breaks are linked. The visit length includes lunch; the ticket is counted once. To change this day, adjust trip preferences and generate again.</p> : act.meal_type ? <p className="text-sm text-[#425d4c]">Reserved meal. To change meal timing or the budget, adjust trip preferences and regenerate.</p> : <details className="stop-edit-menu"><summary>Edit stop</summary><div className="stop-actions">
                         {/* Pin / Lock Button */}
                         <button
                           type="button"

@@ -28,6 +28,14 @@ and Stage 8 verification preserved. Budget and omitted-place panels now use
 shorter, accurate explanations and theme-aware layouts. See
 `ROUTE_LOCALITY_AND_RESULT_UI_2026_10_26.md` for weights, comparison and limits.
 
+Full-day visit recovery, 26 October 2026: required long visits can contain a
+disclosed onsite lunch between linked visit parts, with one ticket and the
+original total visit block preserved. Later excursion days may use an 08:00
+start while all explicit travel/stay bounds remain hard constraints. Suggested
+stays receive a necessary full-day travel/time check. Stage 8 verifies the
+linked schedule; edits on that day require regeneration. See
+`FULL_DAY_VISIT_RECOVERY_2026_10_26.md` for the five-pin reproduction and limits.
+
 > **Purpose:** This is the authoritative technical architecture, security specification, and implementation contract for TripWeave. While `docs/product_spec.md` preserves the long-term product vision and historical design discussions, **this document governs what we build now and how it is engineered, secured, and verified.**
 >
 > **Core Principle:** Deliver a verified, secure, web-first vertical slice that transforms trip constraints into a geographically coherent, time-feasible, budget-compliant, and explainable multi-day itinerary—before expanding to paid external APIs, multi-user real-time sync, or native mobile apps.

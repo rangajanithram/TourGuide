@@ -370,6 +370,8 @@ class ViewpointRecommendation(BaseModel):
         return data
 
 class Place(BaseModel):
+    visit_parent_id: Optional[str] = Field(default=None, max_length=523)
+    visit_part: Optional[Literal['before_lunch', 'after_lunch']] = None
     featured: bool = False
     search_aliases: List[str] = Field(default_factory=list, max_length=12)
     catalog_reviewed_date: Optional[str] = None
@@ -495,6 +497,8 @@ class ExpenseBreakdown(BaseModel):
     per_person_inr: int = Field(default=0, ge=0, le=5_000_000)
 
 class ScheduledActivity(BaseModel):
+    visit_parent_id: Optional[str] = Field(default=None, max_length=523)
+    visit_part: Optional[Literal['before_lunch', 'after_lunch']] = None
     meal_venue_id: Optional[str] = None
     rating_evidence: Optional[str] = Field(default=None, max_length=280)
     meal_type: Optional[Literal["breakfast", "lunch", "dinner"]] = None
@@ -542,6 +546,7 @@ class VerificationReport(BaseModel):
     metrics: Dict[str, str] = Field(default_factory=dict, description="Operational physics metrics")
 
 class TripPlan(BaseModel):
+    visit_continuations: List[Place] = Field(default_factory=list, max_length=14)
     routing_summary: Dict[str, Any] = Field(default_factory=dict)
     journey_notes: List[str] = Field(default_factory=list, max_length=12)
     candidate_summary: Dict[str, Any] = Field(default_factory=dict)

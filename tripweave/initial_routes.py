@@ -21,6 +21,11 @@ def initial_routes(optimizer, time_matrix, max_visits):
     mandatory = {i for i, p in enumerate(places) if i != depot and
                  (p.planning_day is not None or p.place_id.casefold() in pins or p.name.casefold() in pins)}
     available_budget = None if o.max_total_budget is None else o.max_total_budget - (o.hotel_summary.total_cost_inr if o.hotel_summary else 0)
+    links = []
+    for child in (p for p in places if p.visit_part == 'after_lunch'):
+        root = lookup[child.visit_parent_id.casefold()]
+        lunch = next(i for i,p in enumerate(places) if p.visit_parent_id == child.visit_parent_id and p.meal_type=='lunch')
+        links.extend([(root,lunch),(lunch,lookup[child.place_id.casefold()])])
 
     @lru_cache(maxsize=4096)
     def metrics(day, route):
@@ -29,6 +34,9 @@ def initial_routes(optimizer, time_matrix, max_visits):
         previous = depot
         cost = transit_cost = visits = 0
         seen = set()
+        positions = {node:i for i,node in enumerate(route)}
+        if any(a in positions and b in positions and positions[b] != positions[a]+1 for a,b in links):
+            return None
         for node in route:
             p = places[node]
             if p.planning_day is not None and p.planning_day != day:
@@ -46,7 +54,7 @@ def initial_routes(optimizer, time_matrix, max_visits):
             fare = o.cost_matrix[previous][node]
             transit_cost += fare
             cost += fare + p.estimated_cost_per_person_inr * o.people_count
-            visits += not bool(p.meal_type)
+            visits += not bool(p.meal_type) and p.visit_part != 'after_lunch'
             if visits > max_visits:
                 return None
             previous = node
@@ -114,7 +122,7 @@ def initial_routes(optimizer, time_matrix, max_visits):
         for day in range(o.days):
             if time.monotonic() > deadline:
                 return routes
-            if sum(not places[i].meal_type for i in routes[day]) >= count:
+            if sum(not places[i].meal_type and places[i].visit_part != 'after_lunch' for i in routes[day]) >= count:
                 continue
             options = []
             for node in optional:

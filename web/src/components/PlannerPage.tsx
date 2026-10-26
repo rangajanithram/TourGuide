@@ -942,7 +942,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               <p className="notice-guidance">{errorContext === 'saved-trip'
                 ? <>Open a trip from <Link href="/trips">My trips</Link>, or use <Link href="/rooms">Trip rooms</Link> for a trip someone shared with you. Room access does not allow editing the owner’s private saved trip.</>
                 : planningFailureGuidance(error)}</p>
-              {errorContext==='planning'&&lastPlanAttempt&&!/feasibility conflict|must.visit conflict/i.test(error)&&<button type="button" className="planning-retry" disabled={isLoading} onClick={()=>{if(lastPlanAttempt)void fetchTripPlan(lastPlanAttempt.formData,lastPlanAttempt.options);}}><RefreshCw size={17}/>Try this trip again</button>}
+              {errorContext==='planning'&&lastPlanAttempt&&!/feasibility conflict|must.visit conflict|full.day visit conflict/i.test(error)&&<button type="button" className="planning-retry" disabled={isLoading} onClick={()=>{if(lastPlanAttempt)void fetchTripPlan(lastPlanAttempt.formData,lastPlanAttempt.options);}}><RefreshCw size={17}/>Try this trip again</button>}
             </div>
           </div>
         )}

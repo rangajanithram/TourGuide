@@ -118,6 +118,10 @@ class FeasibilityFilter:
 
         selected_hotel = None
         selected_summary = None
+        pins = {v.strip().casefold() for v in request.locked_activities}
+        long_visits = [p for p in sightseeing if p.place_type == 'attraction' and p.duration_minutes >= 300
+                       and (p.place_id.casefold() in pins or p.name.casefold() in pins)]
+        excursion_rejected = False
 
         for hotel in candidates:
             occupancy = hotel.max_guests_per_room or 2
@@ -126,6 +130,13 @@ class FeasibilityFilter:
             total_hotel_cost = rooms_needed * nightly_rate * nights
 
             if total_hotel_cost <= request.budget_inr:
+                if long_visits and request.meal_budget_per_person is not None and request.food_preference != 'own_meals':
+                    from tripweave.excursions import excursion_options
+                    from tripweave.availability import planning_windows
+                    windows = planning_windows(request, early_start_days=range(1,request.days))
+                    if any(not excursion_options(request,p,hotel,windows)[0] for p in long_visits):
+                        excursion_rejected = True
+                        continue
                 dist_to_centroid = calculate_distance_km(hotel.lat, hotel.lng, centroid_lat, centroid_lng)
                 selected_hotel = hotel
                 selected_summary = HotelStaySummary(
@@ -154,6 +165,8 @@ class FeasibilityFilter:
                 break
 
         if not selected_hotel:
+            if excursion_rejected:
+                raise ValueError('No suggested hotel in this price range leaves enough time for the required full-day visit, return travel and meals. Try a closer stay in Journey, faster transport in Travel style, or remove the full-day must-visit in Places & food.')
             raise ValueError(f"All hotels exceed total trip budget of ₹{request.budget_inr} for {nights} night(s) and {request.people_count} guest(s).")
 
         return selected_hotel, selected_summary

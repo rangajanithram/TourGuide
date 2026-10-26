@@ -13,7 +13,7 @@ def exclusion_hints(plan, request, candidates):
     limit = {'relaxed': 2, 'balanced': 3, 'intensive': 4}.get(pace, 3)
     if getattr(request.group_profile, 'value', request.group_profile) == 'elderly':
         limit = max(1, limit - 1)
-    full = bool(plan.days) and all(sum(not a.meal_type and a.place_type != 'rest_break'
+    full = bool(plan.days) and all(sum(not a.meal_type and a.place_type != 'rest_break' and a.visit_part != 'after_lunch'
                                     for a in d.activities) >= limit for d in plan.days)
     windows = planning_windows(request)
     left = max(0, request.budget_inr - plan.total_cost_inr)

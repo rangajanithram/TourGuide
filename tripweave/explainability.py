@@ -36,7 +36,7 @@ class ExplainabilityEngine:
 
         # 2. Pacing Rationale
         pace_val = request.pace.value if hasattr(request.pace, "value") else str(request.pace)
-        stops_count = sum(not a.meal_type and a.place_type != 'rest_break' for d in plan.days for a in d.activities)
+        stops_count = sum(not a.meal_type and a.place_type != 'rest_break' and a.visit_part != 'after_lunch' for d in plan.days for a in d.activities)
         pacing_text = (
             f"{pace_val.capitalize()} pace: about {stops_count / max(1, len(plan.days)):.1f} "
             "visits per day. Meal breaks are separate. Nearby places are grouped where times and required stops allow."

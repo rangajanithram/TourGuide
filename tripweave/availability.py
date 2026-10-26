@@ -24,7 +24,7 @@ def lodging_nights(request):
     return destination_nights(request)
 
 
-def planning_windows(request, start=None, end=None):
+def planning_windows(request, start=None, end=None, early_start_days=()):
     start, end = start or request.start_date, end or request.end_date
     if not start or not end:
         raise ValueError('Trip dates are required to check arrival and stay timing.')
@@ -56,7 +56,7 @@ def planning_windows(request, start=None, end=None):
     for day in range((end - start).days + 1):
         current = start + timedelta(days=day)
         base = datetime.combine(current, time(8), IST)
-        earliest = request.arrival_available_mins if day == 0 else 60
+        earliest = request.arrival_available_mins if day == 0 else (0 if day in early_start_days else 60)
         latest = request.departure_deadline_mins if current == end else 720
         for lower in (ready, room_ready):
             if lower:
