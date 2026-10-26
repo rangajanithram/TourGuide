@@ -1,6 +1,6 @@
 'use client';
 import { plannerFetch } from '@/lib/planner-fetch';
-import { apiBaseUrl, checkPlannerReadiness } from '@/lib/planner-network';
+import { apiBaseUrl, checkPlannerReadiness, requireApiSuccess, planningFailureGuidance } from '@/lib/planner-network';
 import { validateSnapshot } from '@/lib/snapshot-validation';
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
@@ -72,6 +72,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
   const persistenceBusy = useRef(false);
   const [planEpoch, setPlanEpoch] = useState(0);
   const activeRequest = useRef<AbortController | null>(null);
+  const [lastPlanAttempt, setLastPlanAttempt] = useState<{formData: TripFormData; options?: {keepSavedTripContext?: boolean; revisionSummary?: string}} | null>(null);
   useEffect(() => () => { requestVersion.current += 1; historyVersion.current += 1; activeRequest.current?.abort(); }, []);
 
   const [multiPlan, setMultiPlan] = useState<MultiVariantTripPlan | null>(null);
@@ -209,6 +210,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
     options?: { keepSavedTripContext?: boolean; revisionSummary?: string }
   ) => {
     if (persistenceBusy.current) return;
+    setLastPlanAttempt({formData, options});
     historyVersion.current += 1;
     setIsLoadingSavedTrip(false);
     activeRequest.current?.abort();
@@ -264,11 +266,7 @@ export default function Home({ preferences }: { preferences?: unknown }) {
         })
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        const detail = typeof errData.detail === 'string' ? errData.detail : Array.isArray(errData.detail) ? errData.detail.map((item: { msg?: string }) => item.msg || 'Check your trip details.').join(' ') : `Could not create the trip (status ${response.status}). Please try again.`;
-        throw new Error(detail);
-      }
+      await requireApiSuccess(response);
 
       const data: unknown = await response.json();
       try { validateSnapshot(data); }
@@ -943,7 +941,8 @@ export default function Home({ preferences }: { preferences?: unknown }) {
               <p>{error}</p>
               <p className="notice-guidance">{errorContext === 'saved-trip'
                 ? <>Open a trip from <Link href="/trips">My trips</Link>, or use <Link href="/rooms">Trip rooms</Link> for a trip someone shared with you. Room access does not allow editing the owner’s private saved trip.</>
-                : 'Follow the message above: check your connection if the service is unreachable, or adjust your budget, dates or must-visit places if the plan cannot fit. Your saved trips are unchanged.'}</p>
+                : planningFailureGuidance(error)}</p>
+              {errorContext==='planning'&&lastPlanAttempt&&!/feasibility conflict|must.visit conflict/i.test(error)&&<button type="button" className="planning-retry" disabled={isLoading} onClick={()=>{if(lastPlanAttempt)void fetchTripPlan(lastPlanAttempt.formData,lastPlanAttempt.options);}}><RefreshCw size={17}/>Try this trip again</button>}
             </div>
           </div>
         )}

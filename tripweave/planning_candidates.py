@@ -4,7 +4,7 @@ import re
 from datetime import timedelta
 from fastapi import HTTPException
 from tripweave.models import ConfirmedDiscoveryStop, Place
-from tripweave.distance import calculate_distance_km
+from tripweave.distance import calculate_distance_km, get_travel_metrics
 from tripweave.preferences import preference_conflict
 
 
@@ -64,6 +64,16 @@ def meal_candidates(request, places, base):
     meals = []
     from tripweave.availability import planning_windows
     windows = planning_windows(request)
+    mode = request.transport_pref.mode if request.transport_pref else request.transport_mode or 'cab'
+    mode = getattr(mode, 'value', mode)
+    if getattr(request.group_profile, 'value', request.group_profile) == 'elderly' and mode == 'walk':
+        mode = 'auto'
+
+    def reachable_meal(venue, start, end, earliest, latest):
+        outward, _ = get_travel_metrics(base.lat, base.lng, venue.lat, venue.lng, mode, request.people_count)
+        back, _ = get_travel_metrics(venue.lat, venue.lng, base.lat, base.lng, mode, request.people_count)
+        finish = max(start, venue.open_time_mins, earliest + outward) + venue.duration_minutes
+        return finish <= min(end, venue.close_time_mins) and finish + back <= latest
     for day in range(request.days):
         earliest, latest = windows[day]['start'], windows[day]['end']
         used_today = set()
@@ -75,6 +85,7 @@ def meal_candidates(request, places, base):
                         and (not any(t in p.tags for t in ('breakfast','lunch','dinner')) or kind in p.tags)
                         and min(end, p.close_time_mins) - max(start, p.open_time_mins) >= p.duration_minutes
                         and p.duration_minutes <= end - start
+                        and reachable_meal(p, start, end, earliest, latest)
                         and (not request.start_date or (request.start_date + timedelta(days=day)).strftime('%A').lower() not in [d.lower() for d in p.closed_days])]
             available = [p for p in eligible if p.place_id not in used_today]
             available.sort(key=lambda p: (sum(m.meal_venue_id == p.place_id for m in meals),

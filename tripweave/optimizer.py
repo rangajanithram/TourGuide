@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+import logging
 from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from typing import List, Optional
@@ -10,6 +11,11 @@ from tripweave.clustering import GeoClusterer
 
 class InfeasibleItineraryError(ValueError):
     """Raised when user constraints make generating a valid itinerary mathematically impossible."""
+    pass
+
+
+class PlannerSearchIncomplete(RuntimeError):
+    """A bounded search did not produce a plan; infeasibility is unproven."""
     pass
 
 class TripOptimizer:
@@ -175,7 +181,7 @@ class TripOptimizer:
         # 4. Add Time Dimension
         routing.AddDimension(
             time_callback_index,
-            720 if any(p.meal_type for p in self.places) else 120,
+            720,  # Waiting at base is allowed within the day's actual time window.
             720,    # Max 720 minutes (8:00 AM to 8:00 PM)
             False,  # Allow actual first-day availability
             "Time"
@@ -374,10 +380,32 @@ class TripOptimizer:
         )
         search_parameters.time_limit.seconds = 2
 
-        solution = routing.SolveWithParameters(search_parameters)
+        from tripweave.initial_routes import initial_routes
+        routes = initial_routes(self, time_matrix, max_stops_per_day - 1)
+        routing.CloseModelWithParameters(search_parameters)
+        seed = routing.ReadAssignmentFromRoutes(
+            [[manager.NodeToIndex(node) for node in route] for route in routes], True
+        ) if routes is not None else None
+        if seed:
+            # Even if improvement exhausts its allowance, the validated seed is
+            # usable. Every returned plan still passes independent verification.
+            solution = routing.SolveFromAssignmentWithParameters(seed, search_parameters) or seed
+        else:
+            solution = routing.SolveWithParameters(search_parameters)
 
         if not solution:
-            raise InfeasibleItineraryError("No feasible itinerary could be found with the given constraints.")
+            if routing.status() == pywrapcp.RoutingModel.ROUTING_INFEASIBLE:
+                raise InfeasibleItineraryError("The required stops, meals, travel windows and cost limits cannot fit together. Review the requested times and budget.")
+            if routing.status() == pywrapcp.RoutingModel.ROUTING_INVALID:
+                raise RuntimeError('The routing model was invalid')
+            logging.getLogger('tripweave').warning('Planner search incomplete: engine_status=%s candidates=%s days=%s', routing.status(),len(self.places),self.days)
+            raise PlannerSearchIncomplete('The search did not finish with a usable itinerary.')
+
+        if not any(p.place_type == 'attraction' and solution.Value(routing.ActiveVar(manager.NodeToIndex(i)))
+                   for i, p in enumerate(self.places) if i != self.hotel_index):
+            # A legal empty/meal-only assignment is not a useful trip and does
+            # not prove that all sightseeing is impossible.
+            raise PlannerSearchIncomplete('The bounded search did not include a sightseeing visit.')
 
         # 5. Translate solution into TripPlan
         return self._parse_solution(manager, routing, solution)

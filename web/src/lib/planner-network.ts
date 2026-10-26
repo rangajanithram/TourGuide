@@ -58,6 +58,12 @@ export async function boundedFetch(input: string, init: RequestInit = {}, timeou
 
 export async function requireApiSuccess(response: Response): Promise<void> {
   if (response.ok) return;
+  if (response.status === 503) {
+    const data = await response.clone().json().catch(() => ({}));
+    if (data.detail?.code === 'planner_search_incomplete') {
+      throw new Error('The planner could not finish checking this trip in time. Keep your trip details and try again.');
+    }
+  }
   if (response.status === 429 || response.status === 503) {
     const seconds = Number(response.headers.get('Retry-After'));
     const wait = Number.isFinite(seconds) && seconds > 0 ? ` Try again in ${Math.ceil(seconds)} seconds.` : ' Please try again shortly.';
@@ -69,6 +75,13 @@ export async function requireApiSuccess(response: Response): Promise<void> {
     ? data.detail.map((item: { msg?: string }) => item.msg || 'Check your trip details.').join(' ')
     : 'Could not complete this request. Check your trip details and try again.';
   throw new Error(detail);
+}
+
+export function planningFailureGuidance(message: string): string {
+  if (/could not finish checking|planner_search_incomplete/i.test(message)) return 'This was a planner search limit. Use “Try this trip again” with the same details. Your entries and saved trips are kept.';
+  if (/feasibility conflict|must.visit conflict|cannot fit|exceeds.*budget/i.test(message)) return 'Review the specific time, place or cost in the message. Change that setting in the form, then create the trip again. Your saved trips are kept.';
+  if (/offline|connection|could not reach/i.test(message)) return 'Check your internet connection, then try again. Your entries and saved trips are kept.';
+  return 'Try creating this trip again. Your entries and saved trips are kept. If it fails again, share this message with the site owner.';
 }
 
 export async function checkPlannerReadiness(signal: AbortSignal): Promise<void> {

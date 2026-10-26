@@ -24,7 +24,7 @@ from tripweave.models import (
     RebalanceTiredRequest, RebalanceTiredResponse
 )
 from tripweave.feasibility import FeasibilityFilter
-from tripweave.optimizer import TripOptimizer, InfeasibleItineraryError
+from tripweave.optimizer import TripOptimizer, InfeasibleItineraryError, PlannerSearchIncomplete
 from tripweave.transport import get_transport_provider
 from tripweave.editor import ItineraryEditor
 from tripweave.auth import get_current_user, UserProfile
@@ -32,6 +32,22 @@ from tripweave import rail_reference
 from tripweave.planning_candidates import expand_request, meal_candidates
 from tripweave.rating_evidence import attach_rating_evidence
 from tripweave.availability import planning_windows, journey_notes
+
+
+def search_incomplete_response():
+    return HTTPException(503, detail={
+        'code': 'planner_search_incomplete',
+        'message': 'The planner could not finish checking this trip in time. Keep your trip details and try again.',
+        'retryable': True,
+    }, headers={'Retry-After': '3'})
+
+
+def variant_failure_reason(error):
+    if error.status_code == 503 and isinstance(error.detail, dict) and error.detail.get('code') == 'planner_search_incomplete':
+        return error.detail['message']
+    if error.status_code == 422:
+        return str(error.detail)
+    raise error
 
 # ---------------------------------------------------------------------------
 # Process-Local Production Protection Guardrails
@@ -287,6 +303,13 @@ def _build_single_plan_core(
     timings[5] = round(max(0.01, (time.perf_counter() - t_stage5) * 1000), 2)
 
     meal_places = meal_candidates(request, all_places, selected_hotel_place)
+    minimum_stay_and_meals = hotel_summary.total_cost_inr + sum(p.estimated_cost_per_person_inr * request.people_count for p in meal_places)
+    if minimum_stay_and_meals > request.budget_inr:
+        raise HTTPException(422, detail=(
+            f'Feasibility conflict: Your stay and planned meals cost at least ₹{minimum_stay_and_meals:,}, '
+            f'above your ₹{request.budget_inr:,} destination budget, before sightseeing and local travel. '
+            'Open Places & food → Meals to lower the meal budget or arrange your own meals, '
+            'or change the stay or destination budget in Journey.'))
     all_places.extend(meal_places)
 
     # Stage 2: Hard Feasibility Filter (Budget & Operational Feasibility)
@@ -310,6 +333,8 @@ def _build_single_plan_core(
         if (place.meal_type or total_place_cost <= max_activity_budget) and not preference_conflict(place, request):
             viable_candidates.append(place)
     viable_candidates.append(selected_hotel_place)
+    if not any(p.place_type == 'attraction' for p in viable_candidates):
+        raise HTTPException(422, detail='Feasibility conflict: No catalog sightseeing place matches the current cost and comfort settings. Check visit length and climbing choices in Travel style, or add suitable places in Places & food.')
     valid_places = viable_candidates
     timings[2] = round(max(0.01, (time.perf_counter() - t_stage2) * 1000), 2)
 
@@ -390,6 +415,8 @@ def _build_single_plan_core(
         itinerary.planning_preferences.max_visit_minutes = request.max_visit_minutes
         itinerary.planning_preferences.avoid_climbing = request.avoid_climbing
         itinerary.planning_preferences.food_preference = request.food_preference
+    except PlannerSearchIncomplete:
+        raise search_incomplete_response()
     except (InfeasibleItineraryError, ValueError) as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -399,7 +426,7 @@ def _build_single_plan_core(
         logger.exception("Unexpected error during itinerary optimization")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Internal optimization engine error: {str(e)}"
+            detail="The planner encountered an internal problem. Your saved trip is unchanged. Please try again."
         )
     timings[6] = round((time.perf_counter() - t_stage6) * 1000, 2)
 
@@ -525,6 +552,7 @@ def planner_catalog(destination: str = "hyderabad"):
         "routing_supported": True,
         "routing_configured": bool(settings.geoapify_api_key),
         "availability_version": 2,
+        "search_recovery_version": 1,
         "catalog_counts": {kind: sum(p.place_type == kind for p in all_places) for kind in ('attraction', 'restaurant', 'hotel')},
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,
@@ -587,6 +615,7 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
     with _solver_slot():
         user_transport_cap = request.transport_pref.max_budget_inr if request.transport_pref else None
         unavailable_variants: Dict[str, str] = {}
+        search_incomplete = False
         stage_timings: Dict[int, float] = {}
         shared_weather: Dict[str, WeatherSummary] = {}
 
@@ -602,9 +631,8 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
                 if day.date and day.weather:
                     shared_weather[day.date] = day.weather
         except HTTPException as e:
-            if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-                raise
-            unavailable_variants["balanced"] = str(e.detail)
+            unavailable_variants["balanced"] = variant_failure_reason(e)
+            search_incomplete |= e.status_code == 503
 
         # Step B: Attempt Budget variant (Relaxed pace, Auto transit, budget-conscious stay)
         t_stage9_start = time.perf_counter()
@@ -624,8 +652,8 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
                     budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather or None
                 )
         except HTTPException as e:
-            if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-                raise
+            unavailable_variants["budget"] = variant_failure_reason(e)
+            search_incomplete |= e.status_code == 503
             if "hotel" in str(e.detail).lower() and budget_req.hotel_pref != request.hotel_pref:
                 budget_req.hotel_pref = request.hotel_pref
                 try:
@@ -638,11 +666,10 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
                             budget_req, variant=PlanVariantType.BUDGET, prefetched_weather=shared_weather or None
                         )
                 except HTTPException as e_retry:
-                    if e_retry.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-                        raise
-                    unavailable_variants["budget"] = str(e_retry.detail)
+                    unavailable_variants["budget"] = variant_failure_reason(e_retry)
+                    search_incomplete |= e_retry.status_code == 503
             else:
-                unavailable_variants["budget"] = str(e.detail)
+                unavailable_variants["budget"] = variant_failure_reason(e)
 
         if plan_budget is not None and not shared_weather:
             for day in plan_budget.days:
@@ -666,8 +693,8 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
                     comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather or None
                 )
         except HTTPException as e:
-            if e.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-                raise
+            unavailable_variants["comfort"] = variant_failure_reason(e)
+            search_incomplete |= e.status_code == 503
             if "hotel" in str(e.detail).lower() and comfort_req.hotel_pref != request.hotel_pref:
                 comfort_req.hotel_pref = request.hotel_pref
                 try:
@@ -680,11 +707,10 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
                             comfort_req, variant=PlanVariantType.COMFORT, prefetched_weather=shared_weather or None
                         )
                 except HTTPException as e_retry:
-                    if e_retry.status_code != status.HTTP_422_UNPROCESSABLE_ENTITY:
-                        raise
-                    unavailable_variants["comfort"] = str(e_retry.detail)
+                    unavailable_variants["comfort"] = variant_failure_reason(e_retry)
+                    search_incomplete |= e_retry.status_code == 503
             else:
-                unavailable_variants["comfort"] = str(e.detail)
+                unavailable_variants["comfort"] = variant_failure_reason(e)
 
         # Deduplicate variants so we never return identical schedules disguised as different tiers
         # Evaluate 'balanced' first so the primary baseline is retained when a secondary tier is identical.
@@ -697,6 +723,7 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
         ):
             if candidate_plan is None:
                 continue
+            unavailable_variants.pop(v_key, None)
             sig = _variant_signature(candidate_plan)
             if sig in seen_signatures:
                 existing_key = seen_signatures[sig]
@@ -715,6 +742,8 @@ def generate_variants(request: TripRequest, current_user: UserProfile = Depends(
         }
 
         if not ordered_variants:
+            if search_incomplete:
+                raise search_incomplete_response()
             primary_reason = (
                 unavailable_variants.get("balanced")
                 or unavailable_variants.get("budget")

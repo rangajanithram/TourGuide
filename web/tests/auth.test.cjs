@@ -18,6 +18,17 @@ function load(relative, mocks = {}) {
 const { safeNext, authErrorMessage } = load('lib/auth-policy.ts');
 const { createAuthService } = load('lib/auth-service.ts');
 const { apiBaseUrl, boundedFetch, requireApiSuccess } = load('lib/planner-network.ts');
+
+test('search limits keep a retry message and do not suggest changing a feasible trip', async () => {
+  const response=new Response(JSON.stringify({detail:{code:'planner_search_incomplete',message:'internal detail',retryable:true}}),{status:503,headers:{'Retry-After':'3'}});
+  await assert.rejects(requireApiSuccess(response),/Keep your trip details and try again/);
+  const {planningFailureGuidance}=load('lib/planner-network.ts');
+  const guidance=planningFailureGuidance('The planner could not finish checking this trip in time.');
+  assert.match(guidance,/same details/);
+  assert.doesNotMatch(guidance,/adjust|connection/);
+  assert.match(planningFailureGuidance('Feasibility conflict: Stay cost exceeds budget'),/specific time, place or cost/);
+  assert.doesNotMatch(planningFailureGuidance('Feasibility conflict: Stay cost exceeds budget'),/internet/);
+});
 const costsModule = load('lib/journey-costs.ts');
 
 test('room navigation separates list and room state, including different trip links', async () => {

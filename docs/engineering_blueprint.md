@@ -11,6 +11,15 @@ nearby listings. Routine stop filling, budget/time checks and default meal break
 are explained as built-in behavior in a compact settings panel. Generic food
 venues cannot crowd sightseeing out of the optimizer when meals are disabled.
 
+Planner recovery record, 26 October 2026: bounded constructive routes now provide
+an initial solution that OR-Tools validates before improvement. Stage 8 remains
+mandatory. Meal choices account for outward travel and the return deadline.
+Unknown/timeout search failures use retryable 503 responses; only proven routing
+infeasibility or explicit checked constraint conflicts use 422. Verified variants
+survive failures in another tier. The web client offers a manual retry and
+separates service/search failures from settings that require a change. See
+`PLANNER_SEARCH_RECOVERY_2026_10_26.md` for evidence and operating limits.
+
 > **Purpose:** This is the authoritative technical architecture, security specification, and implementation contract for TripWeave. While `docs/product_spec.md` preserves the long-term product vision and historical design discussions, **this document governs what we build now and how it is engineered, secured, and verified.**
 >
 > **Core Principle:** Deliver a verified, secure, web-first vertical slice that transforms trip constraints into a geographically coherent, time-feasible, budget-compliant, and explainable multi-day itinerary—before expanding to paid external APIs, multi-user real-time sync, or native mobile apps.
