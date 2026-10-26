@@ -465,8 +465,8 @@ class WeatherSummary(BaseModel):
 
 class ExclusionReason(BaseModel):
     place_name: str
-    category: str = Field(..., description="Category: 'closed_on_day', 'budget_limit', 'pace_limit', 'operating_hours', 'geographic_detour'")
-    reason: str = Field(..., description="Human-readable explanation of why this attraction was omitted")
+    category: str = Field(..., description="Planning hint: closed_on_day, budget_limit, pace_limit, operating_hours, geographic_detour, route_choice, meal_choice or preference")
+    reason: str = Field(..., description="Evidence-based hint; not proof that no alternative itinerary could include this place")
     suggested_action: Optional[str] = Field(None, description="Actionable suggestion to include this place")
 
 class DecisionTrace(BaseModel):

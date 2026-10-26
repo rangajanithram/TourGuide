@@ -20,6 +20,14 @@ survive failures in another tier. The web client offers a manual retry and
 separates service/search failures from settings that require a change. See
 `PLANNER_SEARCH_RECOVERY_2026_10_26.md` for evidence and operating limits.
 
+Route quality and results UI record, 26 October 2026: DBSCAN groups receive
+complete-link refinement before greedy daily area assignment. Meal selection
+uses those areas before the time-window solver; internal hop/day penalties and
+the warm start favor nearby visits. These remain soft objectives, with all pins
+and Stage 8 verification preserved. Budget and omitted-place panels now use
+shorter, accurate explanations and theme-aware layouts. See
+`ROUTE_LOCALITY_AND_RESULT_UI_2026_10_26.md` for weights, comparison and limits.
+
 > **Purpose:** This is the authoritative technical architecture, security specification, and implementation contract for TripWeave. While `docs/product_spec.md` preserves the long-term product vision and historical design discussions, **this document governs what we build now and how it is engineered, secured, and verified.**
 >
 > **Core Principle:** Deliver a verified, secure, web-first vertical slice that transforms trip constraints into a geographically coherent, time-feasible, budget-compliant, and explainable multi-day itinerary—before expanding to paid external APIs, multi-user real-time sync, or native mobile apps.

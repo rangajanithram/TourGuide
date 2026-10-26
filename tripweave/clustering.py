@@ -96,6 +96,28 @@ class GeoClusterer:
 
         return clusters
 
+    def compact_clusters(self, clusters, diameter_km=5.0):
+        """Complete-link refinement: every pair in a group stays within the bound.
+
+        DBSCAN's epsilon bounds an edge, not the diameter of its connected
+        component. Retain DBSCAN for discovery, then split chains for day guides.
+        Deterministic agglomeration is bounded by the small candidate catalog.
+        """
+        compact = []
+        for group in clusters.values():
+            parts = [[p] for p in sorted(group, key=lambda p: p.place_id)]
+            distances = {(a.place_id, b.place_id): calculate_distance_km(a.lat, a.lng, b.lat, b.lng)
+                         for a in group for b in group}
+            while len(parts) > 1:
+                candidate = min((max(distances[a.place_id, b.place_id] for a in left for b in right), i, j)
+                    for i, left in enumerate(parts) for j, right in enumerate(parts) if i < j)
+                distance, i, j = candidate
+                if distance > diameter_km:
+                    break
+                parts[i].extend(parts.pop(j))
+            compact.extend(parts)
+        return dict(enumerate(compact))
+
     def balance_workload(
         self,
         clusters: Dict[int, List[Place]],

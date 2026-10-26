@@ -302,7 +302,19 @@ def _build_single_plan_core(
         )
     timings[5] = round(max(0.01, (time.perf_counter() - t_stage5) * 1000), 2)
 
-    meal_places = meal_candidates(request, all_places, selected_hotel_place)
+    from tripweave.locality import day_neighborhoods
+    guide_places = [p for p in all_places if p.place_type == 'attraction'
+                    and not preference_conflict(p, request)
+                    and p.estimated_cost_per_person_inr * request.people_count <= request.budget_inr - hotel_summary.total_cost_inr]
+    t_stage3 = time.perf_counter()
+    from tripweave.clustering import GeoClusterer
+    clusterer = GeoClusterer()
+    clusters = clusterer.compact_clusters(clusterer.cluster_places(guide_places))
+    timings[3] = round(max(0.01, (time.perf_counter() - t_stage3) * 1000), 2)
+    t_stage4 = time.perf_counter()
+    day_groups, preferred_day_by_place = day_neighborhoods(request, guide_places, selected_hotel_place, clusters)
+    timings[4] = round(max(0.01, (time.perf_counter() - t_stage4) * 1000), 2)
+    meal_places = meal_candidates(request, all_places, selected_hotel_place, day_groups)
     minimum_stay_and_meals = hotel_summary.total_cost_inr + sum(p.estimated_cost_per_person_inr * request.people_count for p in meal_places)
     if minimum_stay_and_meals > request.budget_inr:
         raise HTTPException(422, detail=(
@@ -338,28 +350,14 @@ def _build_single_plan_core(
     valid_places = viable_candidates
     timings[2] = round(max(0.01, (time.perf_counter() - t_stage2) * 1000), 2)
 
-    # Stage 3: DBSCAN Geo-Clustering
-    t_stage3 = time.perf_counter()
-    from tripweave.clustering import GeoClusterer
-    clusterer = GeoClusterer()
-    clusters = clusterer.cluster_places(valid_places)
-    timings[3] = round(max(0.01, (time.perf_counter() - t_stage3) * 1000), 2)
-
-    # Stage 4: Workload Balancing & Cluster Synthesis
-    t_stage4 = time.perf_counter()
-    balanced_clusters = clusterer.balance_workload(clusters, days=request.days, pace=request.pace)
-    preferred_day_by_place = {
-        place.place_id: day_id
-        for day_id, day_group in balanced_clusters.items()
-        for place in day_group
-    }
-    timings[4] = round(max(0.01, (time.perf_counter() - t_stage4) * 1000), 2)
+    # Neighborhood guides were chosen before meals; restaurants cannot move a
+    # sightseeing area to another day just to satisfy global venue rotation.
 
     if hotel_summary.nights > 0 and not request.stay_choice:
         hotel_summary.why_this_hotel = (
             f"Selected {hotel_summary.hotel_name} (₹{hotel_summary.price_per_night_per_room}/room/night) "
-            f"because its centroid proximity minimizes daily commute to attractions "
-            f"while comfortably fulfilling your {hotel_summary.people_accommodated}-guest room requirement."
+            f"using your budget, room needs and estimated travel to candidate places. "
+            "Confirm rates and room availability before booking."
         )
 
     # Resolve routing depot
@@ -497,7 +495,7 @@ def _build_single_plan_core(
         'confirmed_discovered_candidates': len(request.external_stops),
         'rated_candidates': sum(p.rating_evidence is not None and not p.meal_type for p in all_places),
         'weather_used_in_ranking': bool(weather_map),
-        'notes': 'Historical sample ratings are soft ranking signals. Unknown ratings are neutral. Hours, prices and travel times may be estimates; all hard constraints still apply.'}
+        'notes': 'Nearby sights are grouped by day where dates and required stops allow. Meals favor the day’s area or the route to your stay. Historical ratings help compare choices; unknown ratings stay neutral. Hours, prices and travel times may be estimates.'}
     for day in itinerary.days:
         window = planning_windows(request)[day.day_number - 1]
         if window['note']:
@@ -553,6 +551,7 @@ def planner_catalog(destination: str = "hyderabad"):
         "routing_configured": bool(settings.geoapify_api_key),
         "availability_version": 2,
         "search_recovery_version": 1,
+        "route_locality_version": 1,
         "catalog_counts": {kind: sum(p.place_type == kind for p in all_places) for kind in ('attraction', 'restaurant', 'hotel')},
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,

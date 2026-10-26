@@ -6,6 +6,7 @@ import "./theme.css";
 import "./planner-visual.css";
 import "./planner-forms.css";
 import "./expenses-sharing.css";
+import "./planner-results.css";
 import SiteFooter from "@/components/SiteFooter";
 import RoomReturn from '@/components/RoomReturn';
 import SiteTheme from "@/components/SiteTheme";

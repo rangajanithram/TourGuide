@@ -44,7 +44,7 @@ def expand_request(request, discovery, existing):
     return request.model_copy(update={'external_stops': stops}, deep=True)
 
 
-def meal_candidates(request, places, base):
+def meal_candidates(request, places, base, day_groups=None):
     """Use affordable suitable catalog venues, otherwise retain an honest base block."""
     if request.meal_budget_per_person is None or request.food_preference == 'own_meals':
         return []
@@ -76,6 +76,9 @@ def meal_candidates(request, places, base):
         return finish <= min(end, venue.close_time_mins) and finish + back <= latest
     for day in range(request.days):
         earliest, latest = windows[day]['start'], windows[day]['end']
+        from tripweave.locality import medoid
+        group = (day_groups or {}).get(day, [])
+        area = medoid(group) if group else base
         used_today = set()
         for kind, start, end in [('breakfast', 60, 180), ('lunch', 240, 420), ('dinner', 630, 720)]:
             start, end = max(start, earliest), min(end, latest)
@@ -87,10 +90,23 @@ def meal_candidates(request, places, base):
                         and p.duration_minutes <= end - start
                         and reachable_meal(p, start, end, earliest, latest)
                         and (not request.start_date or (request.start_date + timedelta(days=day)).strftime('%A').lower() not in [d.lower() for d in p.closed_days])]
+            def distance(a, b):
+                return calculate_distance_km(a.lat, a.lng, b.lat, b.lng)
+            def detour(p):
+                if kind == 'lunch':
+                    return 2 * distance(area, p)
+                return max(0, distance(base, p) + distance(p, area) - distance(base, area)) + .5 * distance(base, p)
             available = [p for p in eligible if p.place_id not in used_today]
+            # Variety only among nearby choices. Never cross town for a fresh
+            # restaurant when a suitable one is beside the day's visits.
+            if available:
+                closest = min(detour(p) for p in available)
+                available = [p for p in available if detour(p) <= closest + 2]
+                if group and kind == 'lunch':
+                    available = [p for p in available if distance(area, p) <= 4]
             available.sort(key=lambda p: (sum(m.meal_venue_id == p.place_id for m in meals),
                                         sum(m.meal_venue_id == p.place_id and m.meal_type == kind for m in meals),
-                                        calculate_distance_km(base.lat, base.lng, p.lat, p.lng),
+                                        detour(p),
                                         p.estimated_cost_per_person_inr, p.place_id))
             venue = available[0] if available else None
             if venue:
@@ -100,12 +116,13 @@ def meal_candidates(request, places, base):
                     'meal_venue_id': venue.place_id, 'open_time_mins': max(start, venue.open_time_mins),
                     'close_time_mins': min(end, venue.close_time_mins)}, deep=True))
             else:
+                meeting = area if group and kind == 'lunch' else base
                 meals.append(Place(place_id=f'meal:{day}:{kind}', name=f'{kind.title()} - arrange venue',
-                    place_type='restaurant', lat=base.lat, lng=base.lng, duration_minutes=30,
+                    place_type='restaurant', lat=meeting.lat, lng=meeting.lng, duration_minutes=30,
                     estimated_cost_per_person_inr=request.meal_budget_per_person,
                     open_time_mins=start, close_time_mins=end, planning_day=day, meal_type=kind,
                     verification_status='estimated', last_verified_date=None,
-                    source_reference=('Reserved meal time at base; user budget estimate; suitable venue not confirmed. '
-                                      + ('No different suitable restaurant is available for this meal; add more choices or enable discovery.' if eligible
-                                         else 'No restaurant fits the listed hours, meal budget and food requirements.'))))
+                    source_reference=('Meal time near the shown meeting point; venue and walking time not confirmed. User budget estimate. '
+                                      + ('No different suitable restaurant is available near this day’s route for this meal; add more choices or enable discovery.' if eligible
+                                         else 'No nearby restaurant fits the listed hours, meal budget and food requirements.'))))
     return meals

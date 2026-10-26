@@ -447,7 +447,7 @@ class ItineraryVerifier:
             if meal.place_id not in scheduled_ids:
                 errors.append(f"Reserved {meal.meal_type} block missing on day {meal.planning_day + 1}.")
         if any(not meal.meal_venue_id for meal in plan.meal_places):
-            warnings.append("Some meal venues are not selected. Those blocks use your budget estimate and base location; confirm venues before travel.")
+            warnings.append("Some meal venues are not selected. Those blocks use your budget estimate and the shown meeting points; confirm the venue and walking time before travel.")
         if any('No different suitable restaurant' in (meal.source_reference or '') for meal in plan.meal_places):
             warnings.append("Meal variety is limited by the available suitable restaurants. We kept meal time instead of repeating one venue in the same day. Add more restaurant choices or enable automatic discovery.")
         if any(meal.meal_venue_id for meal in plan.meal_places):

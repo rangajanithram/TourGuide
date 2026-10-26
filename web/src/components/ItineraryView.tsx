@@ -7,7 +7,7 @@ import {
   ShieldCheck, CheckCircle2, Calendar,
   Copy, Check, Activity, CloudSun,
   CloudRain, Flame, Utensils, Wallet,
-  HelpCircle, ChevronDown, ChevronUp, Pin, Link2, Users,
+  Pin, Link2, Users,
   CheckSquare,
   ArrowRightLeft, Trash2, Sun, Lock, Unlock, RotateCcw, RefreshCw, Zap,
   MapPin
@@ -26,6 +26,8 @@ import JourneyCostSummary from './JourneyCostSummary';
 import TravelImage from './TravelImage';
 import StaySummaryCard from './StaySummaryCard';
 import TravelTimingSummary from './TravelTimingSummary';
+import BudgetSummary from './BudgetSummary';
+import OmittedPlaces from './OmittedPlaces';
 import IntercityTravel from './IntercityTravel';
 import { isUnassignedMeal, timeBetweenStops } from '@/lib/itinerary-presentation';
 import type {TripVisitProgress} from './useTripVisits';
@@ -152,7 +154,6 @@ export default function ItineraryView({
 
   const [shareOpen, setShareOpen] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
-  const [showWhyNot, setShowWhyNot] = useState(false);
 
   const [visitedActivities, setVisitedActivities] = useState<Record<string, { visited: boolean; actualCost: number }>>({});
   const [editingSpend, setEditingSpend] = useState<string | null>(null);
@@ -924,83 +925,7 @@ export default function ItineraryView({
 
 <section className="itinerary-evidence-grid" aria-label="Budget and schedule details">
       <details className="itinerary-disclosure"><summary>Budget breakdown <span>See stay, travel, meal costs and money left</span></summary><div className="disclosure-body">
-      {/* Feature 2: Smart Expense Simulator & Category Allocation */}
-      {plan.expense_breakdown && (
-        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#d6dfd0] gap-2">
-            <div className="flex items-center space-x-2.5">
-              <Wallet className="w-5 h-5 text-[#89532d]" />
-              <div>
-                <h4 className="font-bold text-base text-[#243e33]">Where your budget goes</h4>
-                <p className="text-sm text-[#526653]">Your planned costs and money left over add up to your destination budget.</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <span className="text-sm text-[#526653]">Destination budget: </span>
-              <span className="text-base font-bold text-[#89532d]">₹{plan.expense_breakdown.total_inr.toLocaleString('en-IN')}</span>
-              <span className="text-sm text-[#596b57] block">₹{plan.expense_breakdown.per_person_inr.toLocaleString('en-IN')} / traveler</span>
-            </div>
-          </div>
-
-          <div className="budget-category-rows">
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Stay</span>
-              <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.lodging_inr.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Local Transit</span>
-              <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.transit_inr.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">Sightseeing</span>
-              <span className="text-base font-bold text-[#243e33] mt-0.5 block">₹{plan.expense_breakdown.activities_inr.toLocaleString('en-IN')}</span>
-            </div>
-            <div className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3 text-center">
-              <span className="text-sm uppercase font-semibold text-[#526653] block tracking-wider">
-                {plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0 ? 'Dining (Itinerary)' : 'Est. Dining'}
-              </span>
-              <span className="text-base font-bold text-[#243e33] mt-0.5 block">
-                ₹{((plan.expense_breakdown.dining_inr && plan.expense_breakdown.dining_inr > 0) ? plan.expense_breakdown.dining_inr : plan.expense_breakdown.suggested_meals_inr || plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}
-              </span>
-            </div>
-            <div className="bg-[#eef1e5] border border-emerald-500/20 bg-emerald-500/5 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
-              <span className="text-sm uppercase font-semibold text-emerald-700 block tracking-wider">Unallocated</span>
-              <span className="text-base font-bold text-emerald-800 mt-0.5 block">₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}</span>
-            </div>
-          </div>
-
-          {/* Reconciled Accounting Status Bar */}
-          <div className="budget-reconciliation flex flex-col sm:flex-row sm:items-center justify-between bg-[#eef1e5] border border-[#c6d2c0] rounded-xl px-4 py-2.5 text-sm gap-2">
-            <div className="flex items-center space-x-2 text-[#425d4c]">
-              <span className="font-semibold text-[#243e33]">Direct Subtotal:</span>
-              <span className="text-[#89532d] font-bold">₹{(plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr).toLocaleString('en-IN')}</span>
-              <span className="text-[#596b57]">•</span>
-              <span className="text-[#526653]">Meals Guidance:</span>
-              <span className="text-[#294333]">₹{(plan.expense_breakdown.suggested_meals_inr ?? plan.expense_breakdown.estimated_meals_inr).toLocaleString('en-IN')}</span>
-            </div>
-            {plan.expense_breakdown.meal_buffer_status && (
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold ${
-                plan.expense_breakdown.meal_buffer_status.toLowerCase().includes('sufficient')
-                  ? 'bg-emerald-500/10 text-emerald-800 border border-emerald-500/30'
-                  : 'bg-amber-500/10 text-[#89532d] border border-amber-500/30'
-              }`}>
-                {plan.expense_breakdown.meal_buffer_status}
-              </span>
-            )}
-          </div>
-
-          {plan.intercity_transport && (
-            <div className="text-sm text-[#89532d]/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3.5 py-2 leading-relaxed flex items-center justify-between flex-wrap gap-2">
-              <div>
-                <span className="font-semibold text-[#243e33]">What your budget covers:</span> Your ₹{(formData?.budget_inr ?? plan.expense_breakdown.budget_limit_inr ?? (plan.expense_breakdown.direct_subtotal_inr ?? plan.total_cost_inr)).toLocaleString('en-IN')} budget covers your stay, local travel, visits and planned meals. Money left: ₹{(plan.expense_breakdown.unallocated_buffer_inr ?? plan.expense_breakdown.buffer_inr).toLocaleString('en-IN')}. Extra meals may cost more than this.
-              </div>
-              <span className="text-sm bg-[#fffdf5] px-2 py-0.5 rounded border border-amber-500/30 text-[#89532d] font-medium">
-                Inter-City Travel is Additive
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+      {currentPlan.expense_breakdown && <BudgetSummary expense={currentPlan.expense_breakdown} people={peopleCount} separateTravel={!!(currentPlan.intercity_transport || currentPlan.booked_transport)} />}
 
       </div></details>
       <details className="itinerary-disclosure"><summary>Plan checks & data <span>See what we checked and which details are estimates</span></summary><div className="disclosure-body">
@@ -1050,58 +975,7 @@ export default function ItineraryView({
 
       </div></details>
       </section>
-      {/* Blueprint Stage 10 & Spec Feature 1: Places not included */}
-      {currentPlan.decision_trace?.excluded_places && currentPlan.decision_trace.excluded_places.length > 0 && (
-        <div className="bg-[#fffdf5] border border-[#d6dfd0] rounded-2xl p-5 shadow-xl">
-          <button
-            type="button"
-            onClick={() => setShowWhyNot(!showWhyNot)}
-            className="w-full flex items-center justify-between text-left transition-colors"
-          >
-            <div className="flex items-center space-x-2.5">
-              <HelpCircle className="w-5 h-5 text-[#89532d]" />
-              <div>
-                <h4 className="font-bold text-base text-[#243e33]">Places not included</h4>
-                <p className="text-sm text-[#526653]">
-                  {currentPlan.decision_trace.excluded_places.length} places considered but not included
-                </p>
-              </div>
-            </div>
-            <div className="p-1.5 rounded-lg bg-[#eef1e5] border border-[#c6d2c0] text-[#526653]">
-              {showWhyNot ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </div>
-          </button>
-
-          {showWhyNot && (
-            <div className="mt-4 pt-4 border-t border-[#d6dfd0] space-y-3">
-              {currentPlan.decision_trace.excluded_places.map((item, idx) => (
-                <div key={idx} className="bg-[#eef1e5] border border-[#c6d2c0] rounded-xl p-3.5 text-sm space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-[#243e33] text-base">{item.place_name}</span>
-                    <span className={`text-sm font-semibold px-2 py-0.5 rounded uppercase tracking-wider ${
-                      item.category === 'closed_on_day'
-                        ? 'bg-rose-500/10 text-rose-800 border border-rose-500/20'
-                        : item.category === 'budget_limit'
-                        ? 'bg-amber-500/10 text-[#89532d] border border-amber-500/20'
-                        : item.category === 'pace_limit'
-                        ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20'
-                        : 'bg-gray-500/10 text-[#425d4c] border border-gray-500/20'
-                    }`}>
-                      {item.category.replace(/_/g, ' ')}
-                    </span>
-                  </div>
-                  <p className="text-[#425d4c] leading-relaxed">{item.reason}</p>
-                  {item.suggested_action && (
-                    <div className="text-sm text-[#89532d]/90 pt-1 font-medium">
-                      💡 Tip: {item.suggested_action}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {currentPlan.decision_trace?.excluded_places && currentPlan.decision_trace.excluded_places.length > 0 && <OmittedPlaces key={currentPlan.days.map(d => d.activities.map(a => a.place_id).join(',')).join('|')} items={currentPlan.decision_trace.excluded_places} />}
 
       {/* Transparency Disclaimer */}
       {currentPlan.disclaimer && (

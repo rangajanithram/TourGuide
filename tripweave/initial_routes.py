@@ -55,7 +55,8 @@ def initial_routes(optimizer, time_matrix, max_visits):
             clock += time_matrix[previous][depot] - places[previous].duration_minutes
             cost += o.cost_matrix[previous][depot]
             transit_cost += o.cost_matrix[previous][depot]
-        return (cost, transit_cost, clock) if clock <= end else None
+        hops = sum(o.distance_matrix[a][b] * 140 for a, b in zip(route, route[1:]))
+        return (cost, transit_cost, clock, hops) if clock <= end else None
 
     def insertion(node, day):
         old = metrics(day, tuple(routes[day]))
@@ -74,7 +75,7 @@ def initial_routes(optimizer, time_matrix, max_visits):
                 continue
             if o.max_transport_budget is not None and transit > o.max_transport_budget:
                 continue
-            value = new[0] - old[0] + (new[2] - old[2]) * 5
+            value = new[0] - old[0] + (new[2] - old[2]) * 5 + new[3] - old[3]
             if best is None or value < best[0]:
                 best = value, route
         return best
@@ -121,7 +122,8 @@ def initial_routes(optimizer, time_matrix, max_visits):
                     continue
                 candidate = insertion(node, day)
                 if candidate:
-                    options.append((reward(node) - candidate[0], node, candidate[1]))
+                    other_day = o.preferred_day_by_place.get(places[node].place_id, day) != day
+                    options.append((reward(node) - candidate[0] - 1200 * other_day, node, candidate[1]))
             if options:
                 _, node, routes[day] = max(options, key=lambda row: (row[0], -row[1]))
                 used.add(node)

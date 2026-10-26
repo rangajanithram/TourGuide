@@ -374,7 +374,7 @@ def run_tests():
     assert len(june_plan.decision_trace.excluded_places) > 0
     # At least one excluded place should have a clear category and suggested action
     first_ex = june_plan.decision_trace.excluded_places[0]
-    assert first_ex.category in ["closed_on_day", "budget_limit", "pace_limit", "operating_hours", "geographic_detour"]
+    assert first_ex.category in ["closed_on_day", "budget_limit", "pace_limit", "operating_hours", "geographic_detour", "route_choice", "meal_choice", "preference"]
     assert len(first_ex.reason) > 5
     print(f"   ✅ Explainability Trace Verified: {len(june_plan.decision_trace.excluded_places)} candidate exclusions analyzed (Example: '{first_ex.place_name}' -> {first_ex.category})")
 
@@ -453,7 +453,7 @@ def run_tests():
     # Test 25: Candidate Omission Diagnostic Formatting
     print("\n2️⃣5️⃣ Testing Candidate Omission Diagnostic Formatting...")
     for ex in june_plan.decision_trace.excluded_places:
-        assert ex.reason.startswith("Candidate Omission Diagnostic:"), f"Diagnostic prefix missing in reason: '{ex.reason}'"
+        assert len(ex.reason) > 10 and not ex.reason.startswith("Candidate Omission Diagnostic:"), f"Expected a plain-language planning hint: '{ex.reason}'"
         assert ex.suggested_action is not None and len(ex.suggested_action) > 5
     print(f"   ✅ Candidate Omission Diagnostics Verified: Deterministic checks labeled across {len(june_plan.decision_trace.excluded_places)} candidate places.")
 

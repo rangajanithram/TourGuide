@@ -31,6 +31,17 @@ test('search limits keep a retry message and do not suggest changing a feasible 
 });
 const costsModule = load('lib/journey-costs.ts');
 
+test('budget presentation reconciles actual planned meals and keeps extra allowances separate', () => {
+  const {budgetPresentation} = load('lib/budget-presentation.ts');
+  const expense={lodging_inr:2400,transit_inr:3783,activities_inr:1840,dining_inr:3600,budget_limit_inr:15000,total_inr:15000,estimated_meals_inr:3600,buffer_inr:3377,per_person_inr:7500};
+  const full=budgetPresentation(expense);
+  assert.equal(full.planned,11623); assert.equal(full.remaining,3377); assert.equal(full.extraMeals,0);
+  const own=budgetPresentation({...expense,dining_inr:0,estimated_meals_inr:5000});
+  assert.equal(own.rows.find(row=>row.key==='meals').amount,0);
+  assert.equal(own.planned,8023); assert.equal(own.extraMeals,5000);
+  assert.equal(budgetPresentation({...expense,budget_limit_inr:10000}).remaining,-1623);
+});
+
 test('room navigation separates list and room state, including different trip links', async () => {
   const Component = () => null;
   const {default: Page} = load('app/rooms/page.tsx', {

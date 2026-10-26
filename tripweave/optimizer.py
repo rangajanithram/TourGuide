@@ -4,7 +4,7 @@ from ortools.constraint_solver import routing_enums_pb2
 from ortools.constraint_solver import pywrapcp
 from typing import List, Optional
 from tripweave.models import Place, DayPlan, ScheduledActivity, TripPlan, HotelStaySummary, ViewpointRecommendation, TransportMode, PacePreference, PlanVariantType, GroupProfile
-from tripweave.distance import get_travel_metrics, calculate_distance_km, compute_detour_cost_rupees
+from tripweave.distance import get_travel_metrics, calculate_distance_km, compute_detour_cost_rupees, route_distance_km
 from tripweave.crowd import HeuristicCrowdProvider
 from tripweave.solar import get_golden_hour_window
 from tripweave.clustering import GeoClusterer
@@ -89,18 +89,22 @@ class TripOptimizer:
         # Find which place is our hotel (the start and end point of every day)
         self.hotel_index = next((i for i, p in enumerate(places) if p.place_id == hotel_id), 0)
         self.cost_matrix = []
+        self.distance_matrix = []
         
     def _create_matrices(self) -> List[List[int]]:
         """Creates time matrix (for routing) and cost matrix (for transit budgeting)."""
         time_matrix = []
         self.cost_matrix = []
+        self.distance_matrix = []
         for from_place in self.places:
             time_row = []
             cost_row = []
+            distance_row = []
             for to_place in self.places:
                 if from_place.place_id == to_place.place_id:
                     time_row.append(0)
                     cost_row.append(0)
+                    distance_row.append(0)
                 else:
                     travel_time, travel_cost = get_travel_metrics(
                         from_place.lat, from_place.lng, 
@@ -111,8 +115,11 @@ class TripOptimizer:
                     total_time = from_place.duration_minutes + travel_time
                     time_row.append(total_time)
                     cost_row.append(travel_cost)
+                    distance_row.append(route_distance_km(from_place.lat, from_place.lng,
+                        to_place.lat, to_place.lng, self.transport_mode))
             time_matrix.append(time_row)
             self.cost_matrix.append(cost_row)
+            self.distance_matrix.append(distance_row)
         return time_matrix
 
     def generate_plan(self) -> TripPlan:
@@ -120,7 +127,8 @@ class TripOptimizer:
         time_matrix = self._create_matrices()
         
         clusterer = GeoClusterer(eps_km=6.0)
-        clusters_dict = clusterer.cluster_places(self.places)
+        clusters_dict = clusterer.compact_clusters(clusterer.cluster_places(
+            [p for p in self.places if p.place_type == 'attraction']))
         place_cluster_map = {}
         for c_id, c_places in clusters_dict.items():
             for cp in c_places:
@@ -153,7 +161,7 @@ class TripOptimizer:
                     c1 = place_cluster_map.get(from_p.place_id)
                     c2 = place_cluster_map.get(to_p.place_id)
                     if c1 is not None and c2 is not None and c1 != c2:
-                        cluster_penalty = 350
+                        cluster_penalty = 600
 
                 # Soft day preference from Stage 4. Keep it below ordinary
                 # drop penalties so a preferred day never makes a feasible
@@ -162,7 +170,7 @@ class TripOptimizer:
                 if to_node != self.hotel_index:
                     preferred_day = self.preferred_day_by_place.get(self.places[to_node].place_id)
                     if preferred_day is not None and preferred_day != vehicle_id:
-                        day_penalty = 500
+                        day_penalty = 1200
 
                 weather_penalty = 0
                 if self.start_date and to_node != self.hotel_index:
@@ -171,7 +179,12 @@ class TripOptimizer:
                     indoor = target.place_type == 'restaurant' or any(t.lower() in {'indoor', 'museum'} for t in target.tags)
                     if weather and not indoor and (weather.heat_advisory or weather.precipitation_probability_pct >= 50):
                         weather_penalty = 600
-                return int(base_time * 5 + base_cost + cluster_penalty + day_penalty + weather_penalty)
+                # Internal objective points, not rupees or physical minutes.
+                # Base commutes remain fully counted; emphasize avoiding long
+                # hops *between* visits instead of avoiding a whole useful area.
+                hop_penalty = (self.distance_matrix[from_node][to_node] * 140
+                               if from_node != self.hotel_index and to_node != self.hotel_index else 0)
+                return int(base_time * 5 + base_cost + hop_penalty + cluster_penalty + day_penalty + weather_penalty)
             return routing_cost_callback
 
         for vehicle_id in range(self.days):
@@ -536,7 +549,7 @@ class TripOptimizer:
                 day_number=day_id + 1,
                 date=day_date.isoformat() if day_date else None,
                 day_of_week=day_date.strftime("%A") if day_date else None,
-                cluster_name=clusterer.get_cluster_name(day_places) if day_places else "Free time — no scheduled visits",
+                cluster_name=clusterer.get_cluster_name([p for p in day_places if p.place_type == 'attraction'] or day_places) if day_places else "Free time — no scheduled visits",
                 activities=activities,
                 day_cost_inr=day_cost
             ))
