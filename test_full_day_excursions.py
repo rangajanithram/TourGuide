@@ -56,6 +56,7 @@ class FullDayExcursionTests(unittest.TestCase):
         self.assertEqual(parts[2].estimated_cost_inr,0)
         self.assertTrue(parts[0].is_locked and parts[2].is_locked)
         self.assertIn('08:00',day.planning_note)
+        self.assertEqual(day.cluster_name,'Ramoji Film City')
         self.assertIn('includes a 30-minute lunch',day.planning_note)
 
     def test_verifier_rejects_shortened_visit_even_if_timing_still_looks_possible(self):

@@ -415,6 +415,8 @@ def _build_single_plan_core(
         for day in itinerary.days:
             if day.day_number - 1 in excursion_notes:
                 day.planning_note = excursion_notes[day.day_number - 1]
+                continuation = next(p for p in continuations if p.planning_day == day.day_number - 1)
+                day.cluster_name = next(p.name for p in all_places if p.place_id == continuation.visit_parent_id)
         itinerary.planning_preferences.discovery_policy = request.discovery_policy
         itinerary.booked_transport = request.booked_transport
         itinerary.planning_preferences.booked_transport = request.booked_transport
@@ -569,7 +571,7 @@ def planner_catalog(destination: str = "hyderabad"):
         "availability_version": 2,
         "search_recovery_version": 1,
         "route_locality_version": 1,
-        "excursion_planning_version": 1,
+        "excursion_planning_version": 2,
         "catalog_counts": {kind: sum(p.place_type == kind for p in all_places) for kind in ('attraction', 'restaurant', 'hotel')},
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,

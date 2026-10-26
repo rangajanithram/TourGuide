@@ -75,10 +75,13 @@ production build.
 Release validation passed: 155 Python regressions, 82 frontend tests, all 42 API
 checks, seven auth/security tests, TypeScript, lint and the production build.
 
-`excursion_planning_version=1` on the public catalog identifies the backend
-release. The unchanged signed-in browser draft is retained for a live retry
-after deployment. A successful local or public capability check alone does not
-prove that signed-in production generation passed.
+The unchanged signed-in production draft was successfully generated on
+26 October 2026. It returned ₹17,367 / ₹18,374 / ₹24,855 estimates, below ₹30,000,
+with the required places and the linked Ramoji visit. The road provider was
+unavailable during that run; the page clearly labeled distance-based fallback.
+No saved trip was overwritten. Live review also found a generic Old City area
+label on the excursion day; its heading now uses the actual full-day venue.
+`excursion_planning_version=2` on the public catalog identifies that correction.
 
 Limits: long-visit allocation is bounded and may require another date for
 several excursions. A genuinely tight request still receives a conflict with
