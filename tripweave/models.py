@@ -497,6 +497,8 @@ class ExpenseBreakdown(BaseModel):
     per_person_inr: int = Field(default=0, ge=0, le=5_000_000)
 
 class ScheduledActivity(BaseModel):
+    travel_minutes_from_previous: Optional[int] = Field(default=None, ge=0, le=1440)
+    free_minutes_before: Optional[int] = Field(default=None, ge=0, le=1440)
     visit_parent_id: Optional[str] = Field(default=None, max_length=523)
     visit_part: Optional[Literal['before_lunch', 'after_lunch']] = None
     meal_venue_id: Optional[str] = None

@@ -331,6 +331,7 @@ class TripOptimizer:
         if is_elderly:
             # Senior travelers: reduce max stops to build in rest buffers (min 2: 1 activity + return depot)
             max_stops_per_day = max(2, max_stops_per_day - 1)
+        self.max_visits_per_day = max_stops_per_day - 1
             
         def sightseeing_count(index):
             p = self.places[manager.IndexToNode(index)]
@@ -439,6 +440,8 @@ class TripOptimizer:
             raise PlannerSearchIncomplete('The bounded search did not include a sightseeing visit.')
 
         # 5. Translate solution into TripPlan
+        from tripweave.schedule_gaps import fill_schedule_gaps
+        solution = fill_schedule_gaps(self, manager, routing, solution, time_matrix)
         return self._parse_solution(manager, routing, solution)
 
     def _minutes_to_clock_time(self, total_minutes: int) -> str:
@@ -565,8 +568,22 @@ class TripOptimizer:
             # Preserve the requested calendar even when a day has no scheduled visits.
             # Dropping it changes trip length while hotel nights still cover all dates.
             day_date = (self.start_date + timedelta(days=day_id)) if self.start_date else None
+            note = self.day_windows[day_id].get('note')
+            long_wait = any(
+                solution.Min(time_dimension.CumulVar(b[0])) - solution.Min(time_dimension.CumulVar(a[0]))
+                - (self.places[a[1]].duration_minutes + get_travel_metrics(
+                    self.places[a[1]].lat, self.places[a[1]].lng, self.places[b[1]].lat, self.places[b[1]].lng,
+                    mode=self.transport_mode, people_count=self.people_count)[0]) >= 60
+                for a, b in zip(route_nodes[1:-1], route_nodes[2:-1]))
+            if long_wait and not any(p.visit_part for p in day_places):
+                visits = sum(not p.meal_type for p in day_places)
+                explanation = (f'This day has the {self.max_visits_per_day} visits allowed at your pace. '
+                    'Open time is kept for rest; choose a faster pace or swap a visit to use it differently.'
+                    if visits >= self.max_visits_per_day else
+                    'Some open time remains around meal or venue hours. No extra nearby visit was added within this plan.')
+                note = ((note or '') + ' ' + explanation).strip()[:500]
             day_plans.append(DayPlan(
-                planning_note=self.day_windows[day_id].get('note'),
+                planning_note=note,
                 day_number=day_id + 1,
                 date=day_date.isoformat() if day_date else None,
                 day_of_week=day_date.strftime("%A") if day_date else None,

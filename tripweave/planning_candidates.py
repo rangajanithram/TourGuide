@@ -126,3 +126,56 @@ def meal_candidates(request, places, base, day_groups=None):
                                       + ('No different suitable restaurant is available near this day’s route for this meal; add more choices or enable discovery.' if eligible
                                          else 'No nearby restaurant fits the listed hours, meal budget and food requirements.'))))
     return meals
+
+
+def reserve_pinned_meals(request, places, base, meals, day_groups=None):
+    """A required restaurant can supply one meal, rather than a second lunch.
+
+    Keep its original ID/name, ticket estimate and pin. Full-day onsite meals
+    stay linked. Dates, venue hours and both base commutes must still fit.
+    """
+    if not meals:
+        return meals
+    pins = {v.strip().casefold() for v in request.locked_activities}
+    required = sorted((p for p in places if p.place_type == 'restaurant' and not p.meal_type
+                       and (p.place_id.casefold() in pins or p.name.casefold() in pins)),
+                      key=lambda p: (p.close_time_mins or 720, p.place_id))
+    result = list(meals)
+    replaced = set()
+    from tripweave.availability import planning_windows
+    windows = planning_windows(request)
+    mode = request.transport_pref.mode if request.transport_pref else request.transport_mode or 'cab'
+    mode = getattr(mode, 'value', mode)
+    if getattr(request.group_profile, 'value', request.group_profile) == 'elderly' and mode == 'walk':
+        mode = 'auto'
+    for venue in required:
+        kinds = set(venue.tags) & {'breakfast', 'lunch', 'dinner'}
+        if 'snack_only' in venue.tags:
+            continue
+        options = []
+        for index, meal in enumerate(result):
+            if index in replaced or meal.visit_parent_id or (kinds and meal.meal_type not in kinds):
+                continue
+            day = meal.planning_day
+            if request.start_date and (request.start_date + timedelta(days=day)).strftime('%A').lower() in {d.lower() for d in venue.closed_days}:
+                continue
+            # The required venue replaces the previous choice. Its hours must
+            # not be clipped by the unrelated restaurant we are replacing.
+            meal_start, meal_end = {'breakfast': (60, 180), 'lunch': (240, 420), 'dinner': (630, 720)}[meal.meal_type]
+            start = max(meal_start, windows[day]['start'], venue.open_time_mins or 0)
+            end = min(meal_end, windows[day]['end'], venue.close_time_mins if venue.close_time_mins is not None else 720)
+            outward, _ = get_travel_metrics(base.lat, base.lng, venue.lat, venue.lng, mode, request.people_count)
+            back, _ = get_travel_metrics(venue.lat, venue.lng, base.lat, base.lng, mode, request.people_count)
+            if max(start, windows[day]['start'] + outward) + venue.duration_minutes > min(end, windows[day]['end'] - back):
+                continue
+            group = (day_groups or {}).get(day, [])
+            distance = min((calculate_distance_km(venue.lat, venue.lng, p.lat, p.lng) for p in group), default=0)
+            options.append((distance, day, index, start, end))
+        if not options:
+            raise HTTPException(422, detail=(f'Pinned meal conflict: {venue.name} cannot fit a meal on these dates with the listed hours and travel times. '
+                'Add a day or change this required restaurant in Places & food.'))
+        _, day, index, start, end = min(options)
+        result[index] = venue.model_copy(update={'planning_day': day, 'meal_type': result[index].meal_type,
+            'meal_venue_id': venue.place_id, 'open_time_mins': start, 'close_time_mins': end}, deep=True)
+        replaced.add(index)
+    return result

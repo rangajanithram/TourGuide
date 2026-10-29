@@ -29,7 +29,7 @@ from tripweave.transport import get_transport_provider
 from tripweave.editor import ItineraryEditor
 from tripweave.auth import get_current_user, UserProfile
 from tripweave import rail_reference
-from tripweave.planning_candidates import expand_request, meal_candidates
+from tripweave.planning_candidates import expand_request, meal_candidates, reserve_pinned_meals
 from tripweave.rating_evidence import attach_rating_evidence
 from tripweave.availability import planning_windows, journey_notes
 
@@ -318,6 +318,7 @@ def _build_single_plan_core(
     from tripweave.excursions import prepare_excursions
     visit_parts, continuations, meal_places, early_days, excursion_notes = prepare_excursions(
         request, all_places, selected_hotel_place, meal_places, preferred_day_by_place)
+    meal_places = reserve_pinned_meals(request, all_places, selected_hotel_place, meal_places, day_groups)
     minimum_stay_and_meals = hotel_summary.total_cost_inr + sum(p.estimated_cost_per_person_inr * request.people_count for p in meal_places)
     if minimum_stay_and_meals > request.budget_inr:
         raise HTTPException(422, detail=(
@@ -325,7 +326,8 @@ def _build_single_plan_core(
             f'above your ₹{request.budget_inr:,} destination budget, before sightseeing and local travel. '
             'Open Places & food → Meals to lower the meal budget or arrange your own meals, '
             'or change the stay or destination budget in Journey.'))
-    all_places.extend(meal_places)
+    reserved_ids = {p.place_id for p in meal_places}
+    all_places = [p for p in all_places if p.place_id not in reserved_ids] + meal_places
     all_places.extend(continuations)
 
     # Stage 2: Hard Feasibility Filter (Budget & Operational Feasibility)
@@ -572,6 +574,7 @@ def planner_catalog(destination: str = "hyderabad"):
         "search_recovery_version": 1,
         "route_locality_version": 1,
         "excursion_planning_version": 2,
+        "gap_planning_version": 1,
         "catalog_counts": {kind: sum(p.place_type == kind for p in all_places) for kind in ('attraction', 'restaurant', 'hotel')},
         "cities": [{"value": c, "label": c.title()} for c in sorted(get_places_provider().get_supported_cities())],
         "places": [{"value": p.place_id, "label": p.name, "type": p.place_type,

@@ -14,3 +14,13 @@ export function timeBetweenStops(previous: ScheduledActivity, next: ScheduledAct
   const end=minute(previous.end_time), start=minute(next.start_time);
   return end==null||start==null||start<end?null:start-end;
 }
+export function stopGapLabel(previous: ScheduledActivity, next: ScheduledActivity): string | null {
+  const gap = timeBetweenStops(previous, next);
+  if (gap == null || gap === 0) return null;
+  const travel = next.travel_minutes_from_previous;
+  if (travel == null || !Number.isInteger(travel) || travel < 0 || travel > gap) {
+    return `${gap} min between stops · travel estimate unavailable`;
+  }
+  const free = gap - travel;
+  return [`${travel} min estimated travel`, free > 0 ? `${free} min open time` : null].filter(Boolean).join(' · ');
+}

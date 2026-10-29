@@ -187,12 +187,20 @@ class TravelDayTests(unittest.TestCase):
             with patch.object(routing.road_provider,'matrix',side_effect=roads):
                 response = TestClient(app).post('/api/itinerary/generate-variants',json=self.request(use_road_routes=True).model_dump(mode='json'))
             self.assertEqual(response.status_code,200,response.text)
+            saw_road = False
             for plan in response.json()['variants'].values():
                 if not plan: continue
                 self.assertTrue(plan['verification_report']['is_valid'])
                 self.assertEqual(plan['planning_preferences']['availability_version'],2)
-                self.assertEqual(plan['routing_summary']['source'],'Geoapify / OpenStreetMap')
+                # The free matrix covers at most 25 candidate points. A new
+                # useful visit/stay can be outside it; never claim roads for
+                # a returned route whose legs all use the labeled fallback.
+                road_legs = plan['routing_summary']['road_legs']
+                saw_road |= road_legs > 0
+                self.assertEqual(plan['routing_summary']['source'],
+                    'Geoapify / OpenStreetMap' if road_legs else 'distance_estimate')
                 self.assertFalse(plan['days'][0]['activities']); self.assertFalse(plan['days'][2]['activities'])
+            self.assertTrue(saw_road)
         finally:
             if old is None: app.dependency_overrides.pop(get_current_user,None)
             else: app.dependency_overrides[get_current_user]=old

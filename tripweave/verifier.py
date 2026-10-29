@@ -451,6 +451,15 @@ class ItineraryVerifier:
         if plan.visit_continuations:
             warnings.append('Full-day visit blocks include a 30-minute onsite lunch break. Food service and walking time are not confirmed; breakfast and dinner are reserved at the stay.')
         scheduled_ids = {act.place_id for day in plan.days for act in day.activities}
+        meal_slots = set()
+        for day in plan.days:
+            for act in day.activities:
+                if not act.meal_type:
+                    continue
+                slot = (day.day_number, act.meal_type)
+                if slot in meal_slots:
+                    errors.append(f'Duplicate {act.meal_type} on Day {day.day_number}. A required restaurant should supply the reserved meal.')
+                meal_slots.add(slot)
         for meal in plan.meal_places:
             if meal.place_id not in scheduled_ids:
                 errors.append(f"Reserved {meal.meal_type} block missing on day {meal.planning_day + 1}.")

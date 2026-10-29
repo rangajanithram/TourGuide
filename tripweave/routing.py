@@ -152,6 +152,8 @@ def route_summary():
 
 
 def annotate_plan(plan):
+    from tripweave.distance import get_travel_metrics
+    from tripweave.verifier import _time_str_to_minutes
     plan.routing_summary = route_summary()
     road, estimated, blocked = 0, 0, 0
     if plan.hotel_summary:
@@ -178,6 +180,19 @@ def annotate_plan(plan):
     basis = ('Geoapify road model with distance estimates where needed; fares and traffic are estimates.' if estimated else
              'Geoapify road model; fares and traffic are estimates.') if plan.routing_summary['source'] != 'distance_estimate' else plan.routing_summary['note']
     for day in plan.days:
+        previous = (plan.hotel_summary.lat, plan.hotel_summary.lng) if plan.hotel_summary else None
+        previous_end = None
+        for activity in day.activities:
+            activity.travel_minutes_from_previous = None
+            activity.free_minutes_before = None
+            if previous is not None:
+                activity.travel_minutes_from_previous = get_travel_metrics(*previous, activity.lat, activity.lng,
+                    mode=plan.transport_mode)[0]  # Party size affects fares, not travel minutes.
+                if previous_end is not None:
+                    activity.free_minutes_before = max(0, _time_str_to_minutes(activity.start_time)
+                        - previous_end - activity.travel_minutes_from_previous)
+            previous = (activity.lat, activity.lng)
+            previous_end = _time_str_to_minutes(activity.end_time)
         note = (day.planning_note or '').split('Travel basis:')[0].strip()
         day.planning_note = (note + ' Travel basis: ' + basis).strip()[:500]
 

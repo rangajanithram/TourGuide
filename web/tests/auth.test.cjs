@@ -844,6 +844,18 @@ test('meal placeholders remain distinct from named restaurants, including old sn
   assert.equal(timeBetweenStops({end_time:'bad'},{start_time:'13:00'}),null);
   assert.equal(timeBetweenStops({end_time:'14:00'},{start_time:'13:00'}),null);
 });
+test('stop gaps separate estimated travel from open time and keep old plans honest', () => {
+  const {stopGapLabel} = load('lib/itinerary-presentation.ts');
+  const breakfast = {end_time:'9:55 AM'};
+  assert.equal(stopGapLabel(breakfast,{start_time:'12:30 PM',travel_minutes_from_previous:25}),
+    '25 min estimated travel · 130 min open time');
+  assert.equal(stopGapLabel(breakfast,{start_time:'10:20 AM',travel_minutes_from_previous:25}),
+    '25 min estimated travel');
+  assert.equal(stopGapLabel(breakfast,{start_time:'12:30 PM'}),
+    '155 min between stops · travel estimate unavailable');
+  assert.match(stopGapLabel(breakfast,{start_time:'12:30 PM',travel_minutes_from_previous:200}),/unavailable/);
+  assert.equal(stopGapLabel(breakfast,{start_time:'9:55 AM',travel_minutes_from_previous:0}),null);
+});
 test('travel art is local, labelled and does not use unrelated venue photographs', () => {
   const { travelArtwork } = load('lib/travel-media.ts');
   assert.equal(travelArtwork('hyderabad', 'attractions', 'Salar Jung Museum').src,'/images/travel/museum.webp');

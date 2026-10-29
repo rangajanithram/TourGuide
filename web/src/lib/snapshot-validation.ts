@@ -79,6 +79,9 @@ export function validateSnapshot(raw: unknown): asserts raw is MultiVariantTripP
         dayTotal += activity.estimated_cost_inr;
         if (activity.place_type !== 'rest_break' && activity.place_type !== 'restaurant') visits++;
         if (activity.is_locked !== undefined && typeof activity.is_locked !== 'boolean') invalid('pin');
+        for (const key of ['travel_minutes_from_previous', 'free_minutes_before']) {
+          if (activity[key] != null) integer(activity[key], 'stop travel or free time', 0, 1440);
+        }
         if (activity.visit_part != null && !['before_lunch','after_lunch'].includes(String(activity.visit_part))) invalid('visit part');
         if (activity.visit_parent_id != null) text(activity.visit_parent_id, 'full-day visit reference', 523);
         if (activity.visit_part != null && !activity.visit_parent_id) invalid('full-day visit reference');

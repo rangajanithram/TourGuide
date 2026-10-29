@@ -48,6 +48,8 @@ export interface CrowdForecast {
 }
 
 export interface ScheduledActivity {
+  travel_minutes_from_previous?: number | null;
+  free_minutes_before?: number | null;
   visit_parent_id?: string | null;
   visit_part?: 'before_lunch' | 'after_lunch' | null;
   meal_venue_id?: string | null;

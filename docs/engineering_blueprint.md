@@ -1,5 +1,13 @@
 # TripWeave — Engineering Blueprint v2.0 (Authoritative Build Plan)
 
+Schedule gap recovery, 29 October 2026: required restaurants can supply reserved
+meals rather than adding duplicate lunches. A bounded nearby insertion/relocation
+pass uses the existing directional matrices and the original solver constraints,
+then passes independent Stage 8 verification. Stop cards distinguish estimated
+travel from open time; old snapshots do not receive fabricated travel splits.
+Pace, pins, full-day links, hours, cost and travel/stay boundaries remain hard
+constraints. See `SCHEDULE_GAPS_AND_PINNED_MEALS_2026_10_29.md` for tests and limits.
+
 Implementation record, 26 October 2026: the successful configured catalog read is
 now expanded with `data/hyderabad_curated.json` for both JSON and Supabase modes.
 The combined Hyderabad pool has 32 attractions, 11 food venues and 7 stays. Ten

@@ -29,7 +29,7 @@ import TravelTimingSummary from './TravelTimingSummary';
 import BudgetSummary from './BudgetSummary';
 import OmittedPlaces from './OmittedPlaces';
 import IntercityTravel from './IntercityTravel';
-import { isUnassignedMeal, timeBetweenStops } from '@/lib/itinerary-presentation';
+import { isUnassignedMeal, stopGapLabel } from '@/lib/itinerary-presentation';
 import type {TripVisitProgress} from './useTripVisits';
 import {tripConnectionLabel} from '@/lib/trip-realtime';
 
@@ -646,7 +646,7 @@ export default function ItineraryView({
                 const isVisited = stopVisited(day.day_number,actIdx,actKey);
                 const actSpend = visitInfo?.actualCost ?? act.estimated_cost_inr;
                 const isMealPlaceholder=isUnassignedMeal(act);
-                const gap=actIdx>0?timeBetweenStops(day.activities[actIdx-1],act):null;
+                const gap=actIdx>0?stopGapLabel(day.activities[actIdx-1],act):null;
 
                 return (
                 <div key={actIdx} className="itinerary-stop relative group" data-visited={isVisited} data-meal-placeholder={isMealPlaceholder} data-simple-stop={isMealPlaceholder||act.place_type==='rest_break'}>
@@ -665,7 +665,7 @@ export default function ItineraryView({
                   <div className={`border rounded-xl p-4 transition-colors ${
                     isVisited ? 'bg-[#eef1e5] border-emerald-500/40' : 'bg-[#eef1e5] border-[#c6d2c0] hover:border-gray-600'
                   }`}>
-                    {gap!=null&&gap>0&&<p className="stop-gap">{gap} min between stops · travel or free time</p>}
+                    {gap&&<p className="stop-gap">{gap}</p>}
                     <div className="stop-heading">
                       {act.place_type!=='rest_break'&&!isMealPlaceholder&&<TravelImage destination={destination} category={act.place_type==='restaurant'?'food':undefined} placeName={act.place_name} compact className="stop-thumbnail"/>}
                       <div className="stop-identity">
